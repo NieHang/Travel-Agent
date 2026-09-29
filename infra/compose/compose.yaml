@@ -1,0 +1,24 @@
+services:
+  chat:
+    build:
+      context: ../..
+      dockerfile: infra/compose/Dockerfile.chat
+    ports:
+      - '4001:4001'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4001/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  chat-web:
+    build:
+      context: ../..
+      dockerfile: infra/compose/Dockerfile.web
+    ports:
+      - '3002:3002'
+    depends_on:
+      chat:
+        condition: service_healthy
+

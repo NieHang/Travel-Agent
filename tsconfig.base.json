@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "paths": {
+      "@autix/contracts": ["./packages/contracts/src/index.ts"],
+      "@autix/contracts/*": ["./packages/contracts/src/*"]
+    }
+  }
+}
+

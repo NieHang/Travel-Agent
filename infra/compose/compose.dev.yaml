@@ -1,0 +1,13 @@
+services:
+ chat:
+  command: bun run dev
+  volumes:
+    - ../../services/chat/src:/app/services/chat/src
+    - ../../packages/contracts:/app/packages/contracts
+      
+ chat-web:
+  command: bun run dev
+  volumes:
+    - ../../clients/chat-web:/app/clients/chat-web
+    - ../../packages/contracts:/app/packages/contracts
+                    
