@@ -7,10 +7,20 @@ import { RunnableMemoryService } from './memory/runnable-memory.service.js';
 import { TrimmedMemoryService } from './memory/trimmed-memory.service.js';
 import { FilesystemController } from './filesystem/filesystem.controller.js';
 import { FilesystemService } from './filesystem/filesystem.service.js';
+import { EmbeddingController } from './embedding/embedding.controller.js';
+import { EmbeddingService } from './embedding/embedding.service.js';
+import { VectorStoreService } from './embedding/vector-store.service.js';
 
 @Module({
-  controllers: [LlmController, MemoryController, FilesystemController],
+  controllers: [
+    LlmController,
+    MemoryController,
+    FilesystemController,
+    EmbeddingController,
+  ],
   providers: [
+    EmbeddingService,
+    VectorStoreService,
     FilesystemService,
     LlmService,
     RequirementService,
@@ -18,6 +28,8 @@ import { FilesystemService } from './filesystem/filesystem.service.js';
     TrimmedMemoryService,
   ],
   exports: [
+    EmbeddingService,
+    VectorStoreService,
     FilesystemService,
     LlmService,
     RequirementService,

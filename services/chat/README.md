@@ -85,6 +85,37 @@ curl -X POST http://localhost:4001/api/files/chat -H "Content-Type: application/
 随后允许一次最终模型回答。无法解析、缺失 ID 或超出上限的调用返回 HTTP 502；
 缺失、空白或非字符串 `input` 返回 HTTP 400。
 
+## 本地嵌入与向量检索
+
+`EmbeddingService` 继承 LangChain `Embeddings`，使用
+`@xenova/transformers` 的 `Xenova/paraphrase-multilingual-MiniLM-L12-v2`
+在本地生成 384 维向量（均值池化、L2 归一化），无需 OpenAI API Key。
+首次嵌入会下载 Hugging Face 模型文件并缓存，后续复用本地缓存和模型实例。
+运行环境需允许首次下载，并保留 Transformers.js 默认缓存目录的读写权限。
+模型加载失败后的下一次请求会重试。
+
+`VectorStoreService` 使用 `@langchain/classic` 的 `MemoryVectorStore`，
+首次存储或检索前灌入需求规范、验收标准、约束说明三类示例片段。
+示例内容位于 `src/llm/embedding/vector-store.service.ts`，可替换为真实业务规范。
+向量库按余弦相似度返回文档，存储仅在当前进程内有效，重启后新增文档消失。
+
+三个接口均为 POST（成功返回 HTTP 201）：
+
+| 路径                    | 请求体                               | 响应                                         |
+| ----------------------- | ------------------------------------ | -------------------------------------------- |
+| `/api/embedding/embed`  | `{ "text": "密码至少8位" }`          | `{ "dimensions": 384, "vector": [...] }`     |
+| `/api/embedding/store`  | `{ "texts": ["密码长度应至少8位"] }` | `{ "added": 1 }`（本次新增数量）             |
+| `/api/embedding/search` | `{ "query": "验收标准", "k": 2 }`    | 文档数组，每项包含 `pageContent`、`metadata` |
+
+空白或非字符串文本、空 `texts` 数组、非正整数或缺失的 `k` 返回 HTTP 400。
+检索结果按相似度降序排列；`k` 超过库内文档数量时返回全部文档。
+
+```sh
+curl -X POST http://localhost:4001/api/embedding/embed -H "Content-Type: application/json" -d '{"text":"密码至少8位"}'
+curl -X POST http://localhost:4001/api/embedding/store -H "Content-Type: application/json" -d '{"texts":["密码长度应至少8位"]}'
+curl -X POST http://localhost:4001/api/embedding/search -H "Content-Type: application/json" -d '{"query":"验收标准","k":2}'
+```
+
 ## Project setup
 
 ```bash
