@@ -11,6 +11,7 @@ import {
 } from '@langchain/core/messages';
 import { createChatModel } from '../model.factory.js';
 import { businessTools } from '../tools/business.tools.js';
+import { randomUUID } from 'node:crypto';
 import type {
   StructuredToolInterface,
   ToolSchemaBase,
@@ -20,6 +21,16 @@ const MAX_TOOL_ROUNDS = 5;
 
 @Injectable()
 export class FilesystemService {
+  async writeReport(content: string): Promise<string> {
+    if (typeof content !== 'string' || !content.trim()) {
+      throw new BadRequestException('report must be a non-empty string');
+    }
+    // Generated names avoid collisions and never use user input as a filesystem path.
+    const path = `reports/${randomUUID()}-analysis.md`;
+    await businessTools[2].invoke({ path, content });
+    return path;
+  }
+
   async chat(input: string) {
     if (typeof input !== 'string' || !input.trim()) {
       throw new BadRequestException('input must be a non-empty string');

@@ -111,3 +111,44 @@ curl -X POST http://localhost:4001/api/langchain/prompt-to-model
 
 新增测试通过本地模型替身执行真实提示词、LCEL 链、编排服务和 HTTP 路由，
 覆盖上述示例输入、澄清终止、并行执行、上下游数据传递及失败回退，不消耗真实模型令牌。
+
+## 第四章统一 Nest 入口
+
+`AdvancedModule` 统一注册会话记忆、Embedding、向量库、文件服务、多 Agent 编排
+和 `AdvancedAnalysisService`。五个 Controller 定义在 `src/llm/advanced.controller.ts`，
+原有 `/api/memory`、`/api/files`、`/api/embedding`、`/api/agents` 路由继续可用。
+`AppModule` 导入该模块；`LlmModule` 也导入并导出该模块，复用同一组服务。
+
+`POST /api/advanced/analyze` 接收 `{ sessionId, input }`。服务读取该 session 的完整
+历史后执行固定多 Agent 流程，区分用户提供的信息与助手建议。需要澄清时直接返回
+`status: needs_clarification` 和 `clarificationQuestions`，不保存报告或写回最终结论。
+编排失败时保留 `failed` / `manual_review` 响应，也不写入报告或结论。
+
+成功响应包含完整 Markdown `report`、相对于 workspace 的 `reportPath`，以及编排的
+`steps`、`usedAgents` 等字段。报告保存为 `workspace/reports/{UUID}-analysis.md`，
+随后用 `appendMessage(sessionId, input, report)` 写回原始第四轮输入和报告原文。
+保存或写回均不调用模型；保存失败不会写回成功结论。UUID 文件名避免覆盖已有报告。
+Memory HTTP 路由继续裁剪模型上下文至 2000 tokens，完整历史与统一分析服务共享。
+
+四轮测试按相同 `sessionId` 依次请求：
+
+| 轮次 | POST 路由 | input |
+| --- | --- | --- |
+| 1 | `/api/memory/chat` | 我们想做一个需求分析助手，希望它能记住多轮对话 |
+| 2 | `/api/memory/chat` | 需求单号是 REQ-2026-001 |
+| 3 | `/api/memory/chat` | 用户注册时必须绑定手机号，密码至少8位 |
+| 4 | `/api/advanced/analyze` | 帮我判断这个需求是否完整，并产出一份需求分析报告 |
+
+第四轮请求示例：
+
+```json
+{
+  "sessionId": "requirement-demo",
+  "input": "帮我判断这个需求是否完整，并产出一份需求分析报告"
+}
+```
+
+可通过 `GET /api/memory/history/requirement-demo` 检查报告写回后的历史。
+自动测试 `src/llm/advanced.http.spec.ts` 使用本地 OpenAI 兼容测试服务执行真实链和
+HTTP 路由，验证前三轮上下文、session 隔离、报告文件内容、无额外模型调用、澄清、
+编排失败、文件写入失败和参数校验。

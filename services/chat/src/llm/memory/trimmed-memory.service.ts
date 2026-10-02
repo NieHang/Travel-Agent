@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { createRequire } from 'node:module';
 import { getModelNameForTiktoken } from '@langchain/core/language_models/base';
 import { trimMessages, type BaseMessage } from '@langchain/core/messages';
@@ -22,6 +22,11 @@ const encoders = new Map<string, ReturnType<typeof encodingForModel>>();
 
 @Injectable()
 export class TrimmedMemoryService extends RunnableMemoryService {
+  constructor(@Inject(RunnableMemoryService) memory: RunnableMemoryService) {
+    super();
+    this.useHistoryFrom(memory);
+  }
+
   protected override async prepareMessages(
     messages: BaseMessage[],
     model: ChatOpenAI,

@@ -29,8 +29,14 @@ const prompt = ChatPromptTemplate.fromMessages([
 
 @Injectable()
 export class RunnableMemoryService {
-  private readonly sessions = new Map<string, InMemoryChatMessageHistory>();
-  private readonly pending = new Map<string, Promise<unknown>>();
+  private sessions = new Map<string, InMemoryChatMessageHistory>();
+  private pending = new Map<string, Promise<unknown>>();
+
+  // Share stored history and its per-session queue, while keeping prompt preparation separate.
+  protected useHistoryFrom(memory: RunnableMemoryService): void {
+    this.sessions = memory.sessions;
+    this.pending = memory.pending;
+  }
 
   private validateText(value: string, name: string) {
     if (typeof value !== 'string' || !value.trim()) {
