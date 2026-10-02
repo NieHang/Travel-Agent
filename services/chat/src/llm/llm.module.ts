@@ -10,15 +10,19 @@ import { FilesystemService } from './filesystem/filesystem.service.js';
 import { EmbeddingController } from './embedding/embedding.controller.js';
 import { EmbeddingService } from './embedding/embedding.service.js';
 import { VectorStoreService } from './embedding/vector-store.service.js';
+import { AgentsController } from './agents/agents.controller.js';
+import { OrchestratorService } from './agents/orchestrator.service.js';
 
 @Module({
   controllers: [
+    AgentsController,
     LlmController,
     MemoryController,
     FilesystemController,
     EmbeddingController,
   ],
   providers: [
+    OrchestratorService,
     EmbeddingService,
     VectorStoreService,
     FilesystemService,
@@ -28,6 +32,7 @@ import { VectorStoreService } from './embedding/vector-store.service.js';
     TrimmedMemoryService,
   ],
   exports: [
+    OrchestratorService,
     EmbeddingService,
     VectorStoreService,
     FilesystemService,

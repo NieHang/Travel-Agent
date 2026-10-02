@@ -74,3 +74,40 @@ curl -X POST http://localhost:4001/api/langchain/prompt-to-model
 
 部署时保留服务目录中的 `config/langchain.yaml`；编译后的加载器仍从该位置读取。
 集成测试连接本地 OpenAI 兼容测试服务器，不消耗真实模型令牌。
+
+## 需求分析 Multi-Agent 固定编排
+
+`POST /api/agents/orchestrate` 接收非空字符串 `input`：
+
+```json
+{
+  "input": "开发一个面向需求分析师的会话记忆系统，支持多轮澄清并自动裁剪长对话上下文"
+}
+```
+
+固定流程为 `extractAgent → clarifyAgent → 并行(analysisAgent + riskAgent) → summaryAgent`。
+五个 Agent 均使用 `ChatPromptTemplate.pipe(model).pipe(StringOutputParser)`，
+通过现有模型工厂读取模型、API Key、Base URL 和代理配置。
+抽取 JSON 字段为 `goal`、`users`、`features`、`constraints`、`unknowns`；
+澄清 JSON 字段为 `needsClarification` 和 `clarificationQuestions`。
+两者经过 JSON 解析及 schema 校验；分析、风控、汇总输出非空 Markdown。
+
+响应始终包含以下字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `mode` | 固定为 `fixed` |
+| `status` | `completed`、`needs_clarification` 或 `failed` |
+| `clarificationQuestions` | 需要澄清时返回问题数组，否则为空数组 |
+| `usedAgents` | 本次尝试执行的 Agent 名称，按工作流顺序排列 |
+| `fallback` | 正常或待澄清时为 `null`；失败时为 `manual_review` |
+| `steps` | 每步包含 `agent`、`status`、`output`；失败步增加通用 `error` |
+| `report` | 成功时为最终 Markdown 报告，否则为 `null` |
+
+需要澄清时在第二步立即终止，不执行分析、风控及汇总。
+该接口不保存会话，调用方可将澄清答案合并到新的 `input` 后再次请求。
+任一步模型调用、模型初始化或输出校验失败均返回 `failed` 和 `manual_review`，
+供调用方转人工处理；非法请求输入返回 HTTP 400。
+
+新增测试通过本地模型替身执行真实提示词、LCEL 链、编排服务和 HTTP 路由，
+覆盖上述示例输入、澄清终止、并行执行、上下游数据传递及失败回退，不消耗真实模型令牌。
