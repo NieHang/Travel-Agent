@@ -2,7 +2,7 @@ llm:
   provider: openai
   model: gpt-5.4
   temperature: 0
-  maxTokens: 800
+  maxTokens: 4096
 
 retrieval:
   enabled: true
