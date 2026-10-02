@@ -55,6 +55,36 @@
 
 工具名称或参数错误会以工具结果回填，供模型修正；无法解析的模型调用返回 HTTP 502。
 
+## 文件与业务查询助手
+
+`POST /api/files/chat` 接收 `{ "input": "..." }`，返回 `{ "content": "..." }`。
+复用上述模型配置，按需调用三个 `tool()` + Zod 工具：
+
+- `query_requirement({ requirementId })`：读取 `requirements/{requirementId}.json`。
+- `read_file({ path })`：读取 UTF-8 文件，例如 `standards/requirement-spec.md`。
+- `write_file({ path, content })`：写入完整 UTF-8 内容，自动创建父目录，覆盖已有文件。
+
+工作目录固定为 **`services/chat/workspace/`**，与启动命令所在目录无关，源码和
+编译后的服务共用此目录。部署时需保留该目录，并赋予服务读写权限。
+工具路径均相对于此目录，**不带 `workspace/` 前缀**。`safePath` 拒绝绝对路径、
+`..`、Windows 盘符和特殊路径、符号链接、junction 及文件硬链接。
+此校验用于工具路径隔离；workspace 应由服务独占写入，不支持其他进程在操作期间替换目录或链接。
+
+仓库附带明确标注的测试需求 `REQ-2026-001.json` 和规范
+`standards/requirement-spec.md`，可替换为实际业务内容。调用示例：
+
+```sh
+curl -X POST http://localhost:4001/api/files/chat -H "Content-Type: application/json" -d '{"input":"查询需求单 REQ-2026-001 的详情"}'
+curl -X POST http://localhost:4001/api/files/chat -H "Content-Type: application/json" -d '{"input":"读取 standards/requirement-spec.md 并判断需求单 REQ-2026-001"}'
+curl -X POST http://localhost:4001/api/files/chat -H "Content-Type: application/json" -d '{"input":"把需求判断结论写入 reports/REQ-2026-001-analysis.md"}'
+```
+
+每次请求独立执行，不保留跨请求对话；写报告时会重新读取需求依据。服务先记录模型
+工具调用，再顺序执行全部调用，以带相同 `tool_call_id` 的 `ToolMessage` 回填结果，
+继续调用模型，直到获得最终回答。工具错误回填供模型修正；最多执行 5 轮工具，
+随后允许一次最终模型回答。无法解析、缺失 ID 或超出上限的调用返回 HTTP 502；
+缺失、空白或非字符串 `input` 返回 HTTP 400。
+
 ## Project setup
 
 ```bash
