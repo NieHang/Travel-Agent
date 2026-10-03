@@ -74,12 +74,12 @@ export function Field({
 
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-bold text-ink">
+      <label htmlFor={id} className="text-sm font-bold text-white">
         {label}
       </label>
       <div
         data-on-ink
-        className="flex items-center rounded-full bg-ink px-5 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-lime"
+        className="flex items-center rounded-full border border-white/40 bg-ink px-5 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-lime"
       >
         <input
           ref={setRefs}
@@ -121,14 +121,14 @@ export function Field({
       {hasError ? (
         <p
           id={errorId}
-          className="flex items-center gap-1.5 text-sm font-bold text-ink"
+          className="flex items-center gap-1.5 text-sm font-bold text-white"
         >
           <AlertCircle aria-hidden className="size-4 shrink-0 text-danger" />
           <span>{error}</span>
         </p>
       ) : null}
       {hint ? (
-        <p id={hintId} className="text-xs text-ink">
+        <p id={hintId} className="text-xs text-white">
           {hint}
         </p>
       ) : null}
