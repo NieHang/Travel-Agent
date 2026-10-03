@@ -47,6 +47,8 @@
     "goLogin": "去登录",
     "ruleLength": "至少 8 位",
     "ruleMixed": "包含字母和数字",
+    "ruleMet": "已满足",
+    "ruleUnmet": "未满足",
     "invalidEmail": "请输入有效的邮箱",
     "required": "请填写此项",
     "nicknameTooLong": "昵称最多 20 个字",

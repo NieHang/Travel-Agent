@@ -14,7 +14,10 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace, refresh: vi.fn() }),
   useSearchParams: () => search,
 }))
-vi.mock('@/components/ui/toast', () => ({ toast: vi.fn() }))
+const toastMock = vi.fn()
+vi.mock('@/components/ui/toast', () => ({
+  toast: (...args: unknown[]) => toastMock(...args),
+}))
 
 const authResult = { accessToken: 'tok', user: makeUser() }
 
@@ -47,6 +50,7 @@ beforeEach(() => {
   authStore.setGuest()
   resetRefreshForTests()
   replace.mockClear()
+  toastMock.mockClear()
   search = new URLSearchParams()
 })
 
@@ -175,6 +179,55 @@ it('RATE_LIMITED 倒计时', async () => {
   await act(() => vi.advanceTimersByTimeAsync(1000))
   expect(screen.queryByText(/尝试过于频繁/)).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: '创建账号' })).toBeEnabled()
+})
+
+it('密码规则的可访问文本包含满足状态', async () => {
+  const { user } = renderWithProviders(<RegisterForm />)
+  const text = (name: string) => rule(name).textContent
+  expect(text('至少 8 位')).toContain('未满足')
+  expect(text('包含字母和数字')).toContain('未满足')
+  await user.type(screen.getByLabelText('密码'), 'abcdefgh')
+  expect(text('至少 8 位')).toContain('已满足')
+  expect(text('至少 8 位')).not.toContain('未满足')
+  expect(text('包含字母和数字')).toContain('未满足')
+})
+
+it('VALIDATION_FAILED 指向客户端认为合法的字段：弹通用提示、仍聚焦该字段', async () => {
+  onRegister(() =>
+    HttpResponse.json(
+      errorBody('VALIDATION_FAILED', { fieldErrors: { password: ['bad'] } }),
+      { status: 400 },
+    ),
+  )
+  const { user } = renderWithProviders(<RegisterForm />)
+  await fill(user)
+  await user.click(screen.getByRole('button', { name: '创建账号' }))
+  await waitFor(() =>
+    expect(toastMock).toHaveBeenCalledWith('出了点问题，请重试', { tone: 'danger' }),
+  )
+  expect(screen.getByLabelText('密码')).toHaveFocus()
+  expect(rule('至少 8 位')).not.toHaveClass('text-danger')
+})
+
+it('RATE_LIMITED 期间修改输入：提示与禁用保持', async () => {
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'],
+    shouldAdvanceTime: true,
+  })
+  const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+  onRegister(() =>
+    HttpResponse.json(errorBody('RATE_LIMITED'), {
+      status: 429,
+      headers: { 'Retry-After': '30' },
+    }),
+  )
+  renderWithProviders(<RegisterForm />)
+  await fill(user)
+  await user.click(screen.getByRole('button', { name: '创建账号' }))
+  expect(await screen.findByText(/尝试过于频繁/)).toBeInTheDocument()
+  await user.type(screen.getByLabelText('昵称'), 'x')
+  expect(screen.getByText(/尝试过于频繁/)).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '创建账号' })).toBeDisabled()
 })
 
 it('切换链接带上 next', () => {

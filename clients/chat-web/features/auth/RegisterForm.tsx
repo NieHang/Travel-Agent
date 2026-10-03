@@ -40,6 +40,7 @@ function PasswordRules({
     { met: rules.length, label: t('ruleLength') },
     { met: rules.mixed, label: t('ruleMixed') },
   ]
+  const state = (met: boolean) => (met ? t('ruleMet') : t('ruleUnmet'))
   return (
     <span className="flex flex-col gap-1">
       {items.map(({ met, label }) => (
@@ -56,6 +57,7 @@ function PasswordRules({
             <Circle aria-hidden className="size-4 shrink-0" />
           )}
           {label}
+          <span className="sr-only">{state(met)}</span>
         </span>
       ))}
     </span>
@@ -160,15 +162,16 @@ export function RegisterForm() {
         const fields = (
           err.details as { fieldErrors?: Record<string, string[]> } | undefined
         )?.fieldErrors
+        // 昵称、邮箱有对应文案；密码已满足两条规则，没有一条正确的字段文案，走通用提示
         const mapped: Errors = {}
-        if (fields?.nickname)
-          mapped.nickname = validateNickname(nickname) ?? 'auth.nicknameTooLong'
-        if (fields?.email) mapped.email = validateEmail(email) ?? 'auth.invalidEmail'
-        const passwordBad = Boolean(fields?.password)
-        if (mapped.nickname || mapped.email || passwordBad) {
-          showErrors(mapped, passwordBad)
-        } else {
-          toast(t('errors.network'), { tone: 'danger' })
+        if (fields?.nickname) mapped.nickname = 'auth.nicknameTooLong'
+        if (fields?.email) mapped.email = 'auth.invalidEmail'
+        showErrors(mapped, false)
+        if (!mapped.nickname && !mapped.email && fields?.password) {
+          passwordRef.current?.focus()
+        }
+        if (fields?.password || (!mapped.nickname && !mapped.email)) {
+          toast(t('errors.generic'), { tone: 'danger' })
         }
       } else {
         toast(t('errors.network'), { tone: 'danger' })

@@ -182,6 +182,44 @@ it('VALIDATION_FAILED：错误显示在对应输入框下并聚焦', async () =>
   expect(screen.getByLabelText('邮箱')).toHaveFocus()
 })
 
+it('VALIDATION_FAILED 指向客户端认为合法的字段：弹通用提示、不显示错误文案、仍聚焦该字段', async () => {
+  onLogin(() =>
+    HttpResponse.json(
+      errorBody('VALIDATION_FAILED', { fieldErrors: { password: ['bad'] } }),
+      { status: 400 },
+    ),
+  )
+  const { user } = renderWithProviders(<LoginForm />)
+  await fill(user)
+  await user.click(screen.getByRole('button', { name: '登录' }))
+  await waitFor(() =>
+    expect(toastMock).toHaveBeenCalledWith('出了点问题，请重试', { tone: 'danger' }),
+  )
+  expect(screen.queryByText('请填写此项')).not.toBeInTheDocument()
+  expect(screen.getByLabelText('密码')).toHaveFocus()
+})
+
+it('RATE_LIMITED 期间修改输入：提示与禁用保持', async () => {
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'],
+    shouldAdvanceTime: true,
+  })
+  const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+  onLogin(() =>
+    HttpResponse.json(errorBody('RATE_LIMITED'), {
+      status: 429,
+      headers: { 'Retry-After': '30' },
+    }),
+  )
+  renderWithProviders(<LoginForm />)
+  await fill(user)
+  await user.click(screen.getByRole('button', { name: '登录' }))
+  expect(await screen.findByText(/尝试过于频繁/)).toBeInTheDocument()
+  await user.type(screen.getByLabelText('邮箱'), 'x')
+  expect(screen.getByText(/尝试过于频繁/)).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '登录' })).toBeDisabled()
+})
+
 it('请求进行中：按钮为加载态，再次提交不发第二个请求', async () => {
   let release: () => void = () => {}
   const gate = new Promise<void>((r) => {

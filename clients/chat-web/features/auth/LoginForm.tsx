@@ -16,6 +16,7 @@ import { safeNext } from './safe-next'
 import { login } from './session'
 import { validateEmail, validateRequired } from './validation'
 
+
 type Errors = { email?: string; password?: string }
 
 export function LoginForm() {
@@ -44,6 +45,7 @@ export function LoginForm() {
   function edit(field: keyof Errors, set: (v: string) => void) {
     return (value: string) => {
       set(value)
+      // 限流提示有意保留：它随倒计时自行消失，只有凭据错误在修改输入后清除
       setCredentialsError(false)
       setErrors((e) => (e[field] ? { ...e, [field]: undefined } : e))
     }
@@ -91,12 +93,15 @@ export function LoginForm() {
         const fields = (
           err.details as { fieldErrors?: Record<string, string[]> } | undefined
         )?.fieldErrors
+        // 邮箱有对应文案；密码已通过非空校验，没有一条正确的字段文案，走通用提示
         const mapped: Errors = {}
-        if (fields?.email) mapped.email = validateEmail(email) ?? 'auth.invalidEmail'
-        if (fields?.password)
-          mapped.password = validateRequired(password) ?? 'auth.required'
-        if (mapped.email || mapped.password) showFieldErrors(mapped)
-        else toast(t('errors.network'), { tone: 'danger' })
+        if (fields?.email) mapped.email = 'auth.invalidEmail'
+        setErrors(mapped)
+        if (fields?.email) emailRef.current?.focus()
+        else if (fields?.password) passwordRef.current?.focus()
+        if (!fields?.email || fields?.password) {
+          toast(t('errors.generic'), { tone: 'danger' })
+        }
       } else {
         toast(t('errors.network'), { tone: 'danger' })
       }

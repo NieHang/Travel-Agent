@@ -47,6 +47,8 @@
     "goLogin": "Sign in",
     "ruleLength": "At least 8 characters",
     "ruleMixed": "Letters and numbers",
+    "ruleMet": "met",
+    "ruleUnmet": "not met",
     "invalidEmail": "Enter a valid email",
     "required": "This field is required",
     "nicknameTooLong": "Nickname can be up to 20 characters",

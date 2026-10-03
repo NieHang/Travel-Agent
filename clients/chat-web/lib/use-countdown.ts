@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 
-/** 每秒减一的倒计时；start 可在任意时刻重新开始。 */
+export const COUNTDOWN_MAX_SECONDS = 3600
+
+/** 每秒减一的倒计时；start 可在任意时刻重新开始，非有限或非正数的输入被忽略，上限 3600。 */
 export function useCountdown(): { seconds: number; start(seconds: number): void } {
   const [seconds, setSeconds] = useState(0)
 
@@ -10,6 +12,9 @@ export function useCountdown(): { seconds: number; start(seconds: number): void 
     return () => clearTimeout(timer)
   }, [seconds])
 
-  const start = useCallback((n: number) => setSeconds(Math.max(0, Math.ceil(n))), [])
+  const start = useCallback((n: number) => {
+    if (!Number.isFinite(n) || n <= 0) return
+    setSeconds(Math.min(COUNTDOWN_MAX_SECONDS, Math.ceil(n)))
+  }, [])
   return { seconds, start }
 }
