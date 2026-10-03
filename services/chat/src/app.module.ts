@@ -8,6 +8,7 @@ import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
+import { ConversationsModule } from './conversations/conversations.module.js';
 import { ConfigModule } from './config/config.module.js';
 import { LlmModule } from './llm/llm.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -24,6 +25,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     ThrottlerModule.forRoot([{ limit: 60, ttl: 60_000 }]),
     AuthModule,
     UsersModule,
+    ConversationsModule,
     LlmModule,
     // Distributed tracing, auto-correlated logs, request/job metrics, error
     // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
