@@ -33,7 +33,10 @@ beforeEach(() => {
   calls = 0
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
 })
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+})
 
 it('成功：置为 authed，返回 true，且带凭据', async () => {
   // MSW 重建的 request 看不到 credentials，所以在 fetch 调用处用透传的 spy 断言
@@ -42,7 +45,6 @@ it('成功：置为 authed，返回 true，且带凭据', async () => {
   await expect(refreshSession()).resolves.toBe(true)
   expect(authStore.getState()).toMatchObject({ status: 'authed', accessToken: 'new' })
   expect(fetchSpy.mock.calls[0][1]).toMatchObject({ method: 'POST', credentials: 'include' })
-  fetchSpy.mockRestore()
 })
 
 it('REFRESH_INVALID：300ms 后重试一次，第二次成功', async () => {
@@ -93,4 +95,41 @@ it('bootstrapAuth 调两次只刷新一次', async () => {
   await bootstrapAuth()
   expect(calls).toBe(1)
   expect(authStore.getState().status).toBe('authed')
+})
+
+function gatedRefresh(make: () => Response) {
+  let release!: () => void
+  const gate = new Promise<void>((r) => (release = r))
+  let started!: () => void
+  const requestStarted = new Promise<void>((r) => (started = r))
+  calls = 0
+  server.use(
+    http.post(apiUrl('/api/auth/refresh'), async () => {
+      calls += 1
+      started()
+      await gate
+      return make()
+    }),
+  )
+  return { release, requestStarted }
+}
+
+it('刷新在途时 setGuest：成功的刷新结果被丢弃，状态保持 guest，返回 false', async () => {
+  const { release, requestStarted } = gatedRefresh(ok)
+  const p = refreshSession()
+  await requestStarted
+  authStore.setGuest()
+  release()
+  expect(await p).toBe(false)
+  expect(authStore.getState()).toEqual({ status: 'guest', reason: null })
+})
+
+it('刷新在途时重新登录：失败的刷新结果被丢弃，保持登录的 token', async () => {
+  const { release, requestStarted } = gatedRefresh(() => err('REFRESH_REUSED'))
+  const p = refreshSession()
+  await requestStarted
+  authStore.setAuthed({ accessToken: 'login', user })
+  release()
+  expect(await p).toBe(false)
+  expect(authStore.getState()).toMatchObject({ status: 'authed', accessToken: 'login' })
 })

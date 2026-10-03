@@ -1,4 +1,4 @@
-import { AuthResultSchema } from '@autix/contracts'
+import { AuthResultSchema, type AuthResult } from '@autix/contracts'
 import { API_BASE_URL } from '@/lib/api-base'
 import { ApiRequestError, toApiError } from './api-client'
 import { authStore } from './auth-store'
@@ -8,7 +8,7 @@ export const REFRESH_RETRY_DELAY_MS = 300
 let inflight: Promise<boolean> | null = null
 let bootstrap: Promise<void> | null = null
 
-async function requestRefresh(): Promise<void> {
+async function requestRefresh(): Promise<AuthResult> {
   let res: Response
   try {
     res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
@@ -19,31 +19,33 @@ async function requestRefresh(): Promise<void> {
     throw new ApiRequestError('NETWORK', 0)
   }
   if (!res.ok) throw await toApiError(res)
-  let result
   try {
-    result = AuthResultSchema.parse(await res.json())
+    return AuthResultSchema.parse(await res.json())
   } catch {
     throw new ApiRequestError('INTERNAL_ERROR', res.status)
   }
-  authStore.setAuthed(result)
 }
 
 async function runRefresh(): Promise<boolean> {
+  // 刷新期间若发生了登出、登录等外部切换，本次结果作废，不写 store
+  const generation = authStore.getGeneration()
   try {
+    let result: AuthResult
     try {
-      await requestRefresh()
+      result = await requestRefresh()
     } catch (error) {
       if (!(error instanceof ApiRequestError) || error.code !== 'REFRESH_INVALID') {
         throw error
       }
       // 多标签页并发刷新时，另一个请求可能已写入新 Cookie：等一会再试一次
       await new Promise((resolve) => setTimeout(resolve, REFRESH_RETRY_DELAY_MS))
-      await requestRefresh()
+      if (authStore.getGeneration() !== generation) return false
+      result = await requestRefresh()
     }
-    return true
+    return authStore.setAuthedIfCurrent(generation, result)
   } catch (error) {
     const reused = error instanceof ApiRequestError && error.code === 'REFRESH_REUSED'
-    authStore.setGuest(reused ? 'reused' : null)
+    authStore.setGuestIfCurrent(generation, reused ? 'reused' : null)
     return false
   }
 }

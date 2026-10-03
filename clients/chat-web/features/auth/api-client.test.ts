@@ -21,6 +21,8 @@ function useRefresh() {
   )
 }
 
+afterEach(() => vi.restoreAllMocks())
+
 beforeEach(() => {
   resetRefreshForTests()
   authStore.reset()
@@ -52,7 +54,6 @@ it('带上 Authorization 与凭据', async () => {
   expect(auth).toBe('Bearer old')
   expect(fetchSpy).toHaveBeenCalledTimes(1)
   expect(fetchSpy.mock.calls[0][1]).toMatchObject({ credentials: 'include' })
-  fetchSpy.mockRestore()
 })
 
 it('TOKEN_EXPIRED：刷新后用新 token 重试一次并成功', async () => {
@@ -85,21 +86,48 @@ it('并发的三个 TOKEN_EXPIRED 只触发一次刷新', async () => {
 })
 
 it('别的请求已换过 token：迟到的 TOKEN_EXPIRED 直接用新 token 重试，不再刷新', async () => {
+  let release!: () => void
+  const gate = new Promise<void>((r) => (release = r))
   server.use(
     http.get(apiUrl('/api/things'), async ({ request }) => {
       if (request.headers.get('authorization') === 'Bearer new') {
         return HttpResponse.json({ ok: true })
       }
-      // 带 ?slow 的请求晚于快请求的整个刷新流程才返回过期
-      if (new URL(request.url).searchParams.has('slow')) await delay(150)
+      // 带 ?slow 的请求要等到刷新完全结束后才返回过期
+      if (new URL(request.url).searchParams.has('slow')) await gate
       return expired()
     }),
   )
   useRefresh()
   const slow = api('/api/things?slow=1')
   await api('/api/things')
+  expect(refreshCalls).toBe(1)
+  release()
   await expect(slow).resolves.toEqual({ ok: true })
   expect(refreshCalls).toBe(1)
+})
+
+it('刷新失败（REUSED）后迟到的 TOKEN_EXPIRED：不再刷新，保留 reused', async () => {
+  let release!: () => void
+  const gate = new Promise<void>((r) => (release = r))
+  server.use(
+    http.get(apiUrl('/api/things'), async ({ request }) => {
+      if (new URL(request.url).searchParams.has('slow')) await gate
+      return expired()
+    }),
+    http.post(apiUrl('/api/auth/refresh'), () => {
+      refreshCalls += 1
+      return HttpResponse.json({ code: 'REFRESH_REUSED', message: '' }, { status: 401 })
+    }),
+  )
+  const slow = catchError(api('/api/things?slow=1'))
+  const fast = catchError(api('/api/things'))
+  expect((await fast).code).toBe('TOKEN_EXPIRED')
+  expect(authStore.getState()).toEqual({ status: 'guest', reason: 'reused' })
+  release()
+  expect((await slow).code).toBe('TOKEN_EXPIRED')
+  expect(refreshCalls).toBe(1)
+  expect(authStore.getState()).toEqual({ status: 'guest', reason: 'reused' })
 })
 
 it('重试后仍是 TOKEN_EXPIRED：不再刷新，抛出', async () => {

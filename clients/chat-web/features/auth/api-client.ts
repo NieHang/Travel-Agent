@@ -88,6 +88,9 @@ export async function apiFetch(
     if (!(error instanceof ApiRequestError) || error.code !== 'TOKEN_EXPIRED') {
       throw error
     }
+    // 带着 token 发出的请求失败时，会话已被别处判为 guest（如 REFRESH_REUSED）：
+    // 不再刷新，保留原因，避免再打一次服务端
+    if (usedToken !== null && authStore.getState().status === 'guest') throw error
     // 并发请求中别人已经换过 token：直接用新 token 重试，不再刷新
     const latest = currentToken()
     if (latest !== null && latest !== usedToken) {
