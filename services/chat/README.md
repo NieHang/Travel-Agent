@@ -25,6 +25,24 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## 数据库初始化（Prisma 7）
+
+数据库使用 PostgreSQL 和 pgvector。先在数据库服务器安装 pgvector，再将
+`.env.example` 中的 `DATABASE_URL` 添加到 `services/chat/.env` 并替换连接信息。
+Prisma CLI 的连接串配置位于 `prisma.config.ts`，不写入 Schema。
+
+在 `services/chat` 目录执行：
+
+```sh
+bun run db:migrate
+bun run db:generate
+```
+
+初始化迁移包含 `CREATE EXTENSION IF NOT EXISTS "vector"`，迁移用户需要相应权限。
+客户端生成到 `src/generated/prisma`（不提交 Git），构建前需执行 `db:generate`。
+全局 `PrismaModule` 已接入 `AppModule`，服务启动时连接数据库，关闭时断开连接。
+启动前必须配置 `DATABASE_URL`。用户由 user-system 维护，此服务只保存字符串 `userId`。
+
 ## LangChain 工具调用
 
 两个接口均用于需求抽取，接收相同的请求体：

@@ -10,6 +10,7 @@ import request from 'supertest';
 import { RunnableMemoryService } from './memory/runnable-memory.service.js';
 import { TrimmedMemoryService } from './memory/trimmed-memory.service.js';
 import type { FilesystemService } from './filesystem/filesystem.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 const state = vi.hoisted(() => ({ root: '' }));
 vi.mock('./tools/business.tools.js', async (importOriginal) => {
@@ -97,7 +98,10 @@ describe('advanced analysis HTTP integration', () => {
     const { AppModule } = await import('../app.module.js');
     const module = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .compile();
     app = module.createNestApplication();
     app.useLogger(false);
     await app.init();

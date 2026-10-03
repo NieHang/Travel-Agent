@@ -6,6 +6,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import type { RequirementResult } from '@autix/contracts';
 import { RequirementService } from '../src/llm/requirement.service.js';
+import { PrismaService } from '../src/prisma/prisma.service.js';
 
 describe('requirement extraction', () => {
   const input = '用户注册时必须绑定手机号，密码至少8位';
@@ -69,7 +70,10 @@ describe('requirement extraction', () => {
     const { AppModule } = await import('../src/app.module.js');
     const module = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .compile();
     service = module.get(RequirementService);
     app = module.createNestApplication();
     await app.init();
