@@ -1,6 +1,6 @@
 @import "@heroui/styles";
 
-@theme {
+@theme static {
   --color-ink: #1b1535;
   --color-lime: #c6e82f;
   --color-paper: #ffffff;
@@ -19,30 +19,32 @@
   --font-sans: var(--font-plus-jakarta), var(--font-noto-sc), sans-serif;
 }
 
-body {
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-}
+@layer base {
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
 
-:focus-visible {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 2px;
-}
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
 
-[data-on-ink] :focus-visible,
-[data-on-ink]:focus-visible {
-  outline-color: var(--color-lime);
-}
+  [data-on-ink] :focus-visible,
+  [data-on-ink]:focus-visible {
+    outline-color: var(--color-lime);
+  }
 
-h1,
-h2,
-h3 {
-  letter-spacing: -0.04em;
-}
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.04em;
+  }
 
-html:lang(zh) h1,
-html:lang(zh) h2,
-html:lang(zh) h3 {
-  letter-spacing: -0.02em;
+  html:lang(zh) h1,
+  html:lang(zh) h2,
+  html:lang(zh) h3 {
+    letter-spacing: -0.02em;
+  }
 }
