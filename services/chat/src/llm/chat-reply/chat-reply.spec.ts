@@ -119,6 +119,7 @@ describe('LlmModule bindings', () => {
 
   it.each([
     ['1', FakeChatReply, FakeRequirementService],
+    ['true', FakeChatReply, FakeRequirementService],
     [undefined, ModelChatReply, RequirementService],
   ])('LLM_FAKE=%s 时 LlmModule 绑定对应实现', async (flag, cls, reqCls) => {
     vi.stubEnv('LLM_FAKE', flag);
