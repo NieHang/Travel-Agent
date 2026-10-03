@@ -25,7 +25,7 @@ export class FakeChatReply implements ChatReplyPort {
 
 @Injectable()
 export class FakeRequirementService {
-  async extract(_input: string): Promise<RequirementResult> {
+  async extract(_input: string, _signal?: AbortSignal): Promise<RequirementResult> {
     return FAKE_REQUIREMENTS;
   }
 }

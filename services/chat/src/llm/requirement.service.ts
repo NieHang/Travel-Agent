@@ -17,9 +17,12 @@ export class RequirementService {
     ['human', REQUIREMENT_USER_TEMPLATE],
   ]);
 
-  async extract(input: string): Promise<RequirementResult> {
+  /** `signal` 中止时取消进行中的模型请求，调用随之被拒绝。 */
+  async extract(input: string, signal?: AbortSignal): Promise<RequirementResult> {
     const messages = await this.prompt.formatMessages({ input });
     const model = createChatModel();
-    return model.withStructuredOutput(RequirementResultSchema).invoke(messages);
+    return model
+      .withStructuredOutput(RequirementResultSchema)
+      .invoke(messages, { signal });
   }
 }

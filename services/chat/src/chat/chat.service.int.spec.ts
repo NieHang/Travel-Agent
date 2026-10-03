@@ -6,7 +6,7 @@ import type { ChatReplyPort, ChatTurn } from '../llm/chat-reply/chat-reply.port.
 import { FAKE_REQUIREMENTS } from '../llm/chat-reply/fakes.js';
 import { ChatService, HISTORY_LIMIT, REQUIREMENT_WAIT_MS } from './chat.service.js';
 
-type Extractor = { extract(input: string): Promise<RequirementResult> };
+type Extractor = { extract(input: string, signal?: AbortSignal): Promise<RequirementResult> };
 type FakePort = ChatReplyPort & { lastHistory: ChatTurn[] };
 
 async function collect(gen: AsyncIterable<ChatStreamEvent>): Promise<ChatStreamEvent[]> {
@@ -51,6 +51,24 @@ const extractOk: Extractor = {
 const extractFails: Extractor = { extract: () => Promise.reject(new Error('extract failed')) };
 const extractEmpty: Extractor = { extract: () => Promise.resolve({ requirements: [] }) };
 const extractNeverResolves: Extractor = { extract: () => new Promise<RequirementResult>(() => {}) };
+
+/** 记下收到的信号；一直不给结果，直到该信号中止时才拒绝（真实模型客户端被取消时的表现）。 */
+function abortableExtractor(): Extractor & { signal: AbortSignal | undefined; calls: number } {
+  const fake = {
+    signal: undefined as AbortSignal | undefined,
+    calls: 0,
+    extract(_input: string, signal?: AbortSignal) {
+      fake.signal = signal;
+      fake.calls += 1;
+      return new Promise<RequirementResult>((_resolve, reject) => {
+        const onAbort = () => reject(new Error('extraction aborted'));
+        if (signal?.aborted) onAbort();
+        else signal?.addEventListener('abort', onAbort, { once: true });
+      });
+    },
+  };
+  return fake;
+}
 
 describe('ChatService.send', () => {
   const prisma = createTestPrisma();
@@ -325,6 +343,55 @@ describe('ChatService.send', () => {
     expect(seen).toEqual(['user_message', 'delta']);
     expect(await lastAssistant()).toMatchObject({ status: 'partial', content: 'ok', metadata: null });
     expect(await prisma.message.count({ where: { conversationId: id } })).toBe(2);
+  });
+
+  it('客户端中途中止时抽取也被中止：仍是 partial，metadata 不因此记失败', async () => {
+    const ac = new AbortController();
+    const extractor = abortableExtractor();
+    const seen: string[] = [];
+    for await (const e of chat(port(['一', '二', '三']), extractor).send(id, 'x', ac.signal)) {
+      seen.push(e.event);
+      if (e.event === 'delta') {
+        expect(extractor.signal).toBeInstanceOf(AbortSignal);
+        expect(extractor.signal!.aborted).toBe(false);
+        ac.abort();
+        break;
+      }
+    }
+    expect(seen).toEqual(['user_message', 'delta']);
+    expect(extractor.calls).toBe(1);
+    expect(extractor.signal!.aborted).toBe(true);
+    await nextMacrotask();
+    expect(await lastAssistant()).toMatchObject({ status: 'partial', content: '一', metadata: null });
+    expect(await prisma.message.count({ where: { conversationId: id } })).toBe(2);
+  });
+
+  it('上游出错时抽取也被中止：仍是 MODEL_FAILED，metadata 不因此记失败', async () => {
+    const extractor = abortableExtractor();
+    const events = await collect(
+      chat(port(['半', '句'], { failAfter: 1 }), extractor).send(id, 'x', signal),
+    );
+    expect(events.map((e) => e.event)).toEqual(['user_message', 'delta', 'error']);
+    expect(events.at(-1)).toMatchObject({
+      event: 'error',
+      data: { code: 'MODEL_FAILED', message: { status: 'error', content: '半', metadata: null } },
+    });
+    expect(extractor.calls).toBe(1);
+    expect(extractor.signal).toBeInstanceOf(AbortSignal);
+    expect(extractor.signal!.aborted).toBe(true);
+    await nextMacrotask();
+    expect(await lastAssistant()).toMatchObject({ status: 'error', content: '半', metadata: null });
+    expect(await prisma.message.count({ where: { conversationId: id } })).toBe(2);
+  });
+
+  it('上游出错之前抽取已真正失败：error 消息照旧记 requirementError', async () => {
+    const events = await collect(
+      chat(port(['半'], { failAfter: 1, onChunk: nextMacrotask }), extractFails).send(id, 'x', signal),
+    );
+    expect(events.at(-1)).toMatchObject({
+      event: 'error',
+      data: { message: { status: 'error', content: '半', metadata: { requirementError: true } } },
+    });
   });
 
   it('生成过程中会话被删除：流正常结束，不抛错，不留孤立消息', async () => {

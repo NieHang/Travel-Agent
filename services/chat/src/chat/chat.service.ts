@@ -51,7 +51,7 @@ export class ChatService {
   ): AsyncGenerator<ChatStreamEvent> {
     const userMessage = await this.saveUserMessage(conversationId, content);
 
-    // 与传入的信号联动；生成器无论怎样结束都会中止它，让模型调用随之停止。
+    // 与传入的信号联动；生成器无论怎样结束都会中止它，让模型调用与抽取随之停止。
     const abort = new AbortController();
     const onAbort = () => abort.abort();
     if (signal.aborted) abort.abort();
@@ -111,12 +111,14 @@ export class ChatService {
       const history = await this.loadHistory(conversationId);
       if (abort.signal.aborted) return;
 
-      // 抽取与回复并行。两个处理函数都不抛错，所以它在回复流进行期间不会成为未处理的拒绝。
-      const extracting = (async () => this.requirements.extract(content))().then(
+      // 抽取与回复并行，共用同一个中止信号。两个处理函数都不抛错，所以它不会成为未处理的拒绝。
+      const extracting = (async () => this.requirements.extract(content, abort.signal))().then(
         (result) => {
           extraction ??= result.requirements;
         },
         (error: unknown) => {
+          // 被我们自己中止而失败的不算抽取失败：metadata 只反映中止之前真正到达的结果。
+          if (abort.signal.aborted) return;
           this.logger.warn(`Requirement extraction failed: ${String(error)}`);
           extraction ??= 'failed';
         },
@@ -149,6 +151,8 @@ export class ChatService {
         if (abort.signal.aborted) return;
         this.logger.error(`Model stream failed: ${String(error)}`);
         failed = true;
+        // 抽取结果已经用不上了，连同它一起中止。从这里起不再用信号区分出口，只看 failed。
+        abort.abort();
       } finally {
         // 提前离开循环时让上游生成器收尾；不等待它，它可能正停在一次未完成的读取上。
         void Promise.resolve(chunks.return?.()).catch(noop);
