@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Noto_Sans_SC } from "next/font/google";
-import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
+import { cookies, headers } from "next/headers";
+import { IntlProvider } from "./intl-provider";
+import { LOCALE_COOKIE, resolveLocale } from "@/i18n/locale";
+import { loadMessages } from "@/i18n/messages";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -24,17 +26,19 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const locale = await getLocale();
-  const messages = await getMessages();
+  const locale = resolveLocale(
+    (await cookies()).get(LOCALE_COOKIE)?.value,
+    (await headers()).get("accept-language"),
+  );
   return (
     <html
       lang={locale}
       className={`${plusJakarta.variable} ${notoSansSC.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <IntlProvider locale={locale} messages={loadMessages(locale)}>
           {children}
-        </NextIntlClientProvider>
+        </IntlProvider>
       </body>
     </html>
   );
