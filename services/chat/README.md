@@ -83,6 +83,7 @@ bun run db:generate
 - 只在错误码为 `TOKEN_EXPIRED` 时刷新 access token，其他 401 不要触发刷新。
 - 刷新返回 `REFRESH_INVALID` 而响应没有清除 Cookie 时（多标签页并发刷新，另一个请求已经写入新 Cookie），
   重试一次；Cookie 被清除了则按未登录处理。
+- 429 响应的 `Retry-After` 已通过 CORS `exposedHeaders` 对前端可读，可据此做倒计时。
 
 ### 对话接口
 

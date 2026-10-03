@@ -26,6 +26,7 @@
 
 - Next 16 与 HeroUI 在 Tailwind 4 下的具体接法，在实施计划阶段先读已安装包自带的文档再定。本文只规定要达到的行为。
 - 所有请求与响应类型来自 `@autix/contracts`，前端不重复定义。
+- 前端（3002）与后端（4001）跨源，`Retry-After` 默认读不到，而 A5、R5、C9 的倒计时依赖它；后端 `enableCors` 已加 `exposedHeaders: ['Retry-After']`。
 
 ## 4. 路由
 
@@ -46,7 +47,9 @@
 app/(public)/page.tsx           落地页
 app/(auth)/login/page.tsx       登录页
 app/(auth)/register/page.tsx    注册页
-app/(app)/chat/[[...id]]/       对话页
+app/(app)/chat/layout.tsx       对话页的界面与状态（ChatScreen），会话 id 从 usePathname() 解析
+app/(app)/chat/[[...id]]/       page.tsx 只返回 null；首条消息后用 window.history.replaceState 把 /chat 换成 /chat/{id}，不触发导航、不打断流
+tsconfig.json                   路径别名 @/* 指向 ./*（无 src 目录）
 features/auth/                  鉴权 store、API 客户端、表单
 features/conversations/         抽屉、会话条目、查询 hooks
 features/chat/                  消息流、输入框、useChatStream
@@ -61,7 +64,7 @@ messages/zh.json、en.json       词典
 
 ### 6.1 鉴权
 
-- 一个模块级 store，通过 `useSyncExternalStore` 订阅，不引入状态库。状态为 `loading | authed | guest`，持有内存中的 `accessToken` 与 `user`。
+- 一个模块级 store，通过 `useSyncExternalStore` 订阅，不引入状态库。状态为 `loading | authed | guest`，持有内存中的 `accessToken` 与 `user`；`guest` 带 `reason: 'reused' | null`，登录页据此区分是否因 `REFRESH_REUSED` 被登出。
 - 应用启动时静默调用一次 `POST /api/auth/refresh` 恢复登录态。
 - API 客户端自动加 `Authorization` 头，所有请求带 `credentials: 'include'`。
 - 收到 `TOKEN_EXPIRED`：触发刷新并把原请求重试一次，且仅一次。
@@ -87,7 +90,7 @@ messages/zh.json、en.json       词典
 - `done` 或 `error` 到达时把助手消息写入查询缓存，清空本地状态。
 - `stop()` 中止请求；中止后把已累计的文本作为一条 `partial` 助手消息写入缓存，并使该会话的消息查询失效以便与服务端对齐。
 - 流开始前请求失败（网络错误、4xx、5xx）：不写缓存，把文字还给输入框，弹提示。
-- 组件卸载或 `conversationId` 变化时自动 `stop()`。
+- 组件卸载或 `conversationId` 变化时自动 `stop()`。例外：从「无」变成当前流所属的会话 `id`（首条消息发出后把地址从 `/chat` 换成 `/chat/{id}`）不中止。
 
 ### 6.4 落地页输入的暂存
 
@@ -394,4 +397,4 @@ HeroUI 提供输入框、弹窗、下拉菜单、提示气泡这些带无障碍�
 
 ## 15. 需要新增的依赖
 
-HeroUI、Motion、TanStack Query、next-intl；开发依赖 Vitest、Testing Library、MSW、Playwright、axe 的 Playwright 集成。具体包与版本在实施计划阶段依据已安装版本的文档确定。
+HeroUI、Motion、TanStack Query、next-intl；开发依赖 Vitest、Testing Library、MSW、Playwright、axe 的 Playwright 集成。具体包与版本在实施计划阶段依据已安装版本的文档确定。另需：图标用 `lucide-react`；测试另需 `jsdom`、`@vitejs/plugin-react`、`vite-tsconfig-paths`、`@testing-library/dom`、`@testing-library/user-event`、`@testing-library/jest-dom`。
