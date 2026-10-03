@@ -5,7 +5,7 @@ import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { ArrowDown } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Chip } from '@/components/ui/Chip'
 import { LogoDot } from '@/components/ui/Logo'
 import { PillButton } from '@/components/ui/PillButton'
@@ -105,7 +105,7 @@ export function ChatScreen(): ReactNode {
     restoreInput(raw)
     switch (error.code) {
       case 'RATE_LIMITED':
-        countdown.start(error.retryAfter ?? 60)
+        if (error.retryAfter !== undefined) countdown.start(error.retryAfter)
         break
       case 'CONVERSATION_NOT_FOUND':
         setMissingId(targetId)
@@ -120,6 +120,8 @@ export function ChatScreen(): ReactNode {
   const submit = async (raw: string, target: string | null) => {
     const content = raw.trim()
     if (!content || busyRef.current || stream.phase !== 'idle') return
+    // 首次消息拉取还在途中：它可能盖掉流写入缓存的用户消息，等它结束再发
+    if (target !== null && loadingInitial) return
     busyRef.current = true
     setInput('')
     let conversationId = target
@@ -147,9 +149,20 @@ export function ChatScreen(): ReactNode {
     if (!outcome.ok) handleFailure(raw, conversationId, outcome.error)
   }
 
+  const deferredPrompt = useRef<string | null>(null)
+  useEffect(() => {
+    // 不带依赖数组：每次渲染都检查，拉取结束后的那次渲染发出暂存的消息
+    if (deferredPrompt.current === null || loadingInitial || id === null) return
+    const prompt = deferredPrompt.current
+    deferredPrompt.current = null
+    void submit(prompt, id)
+  })
+
   usePendingPrompt(auth.status === 'authed', (pendingPrompt) => {
     if (pendingPrompt.conversationId !== undefined) {
-      if (pendingPrompt.conversationId === id) void submit(pendingPrompt.prompt, id)
+      if (pendingPrompt.conversationId !== id) return
+      if (loadingInitial) deferredPrompt.current = pendingPrompt.prompt
+      else void submit(pendingPrompt.prompt, id)
       return
     }
     if (id === null) void submit(pendingPrompt.prompt, null)
@@ -219,6 +232,7 @@ export function ChatScreen(): ReactNode {
               pending={pending}
               hasMore={!notFound && query.hasNextPage}
               loadingMore={query.isFetchingNextPage}
+              loadMoreFailed={query.isFetchNextPageError && !query.isFetchingNextPage}
               onLoadMore={() => void query.fetchNextPage()}
             >
               {body}

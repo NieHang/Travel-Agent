@@ -4,15 +4,18 @@ import { authStore } from '@/features/auth/auth-store'
 import { makeConversation, makeUser } from '@/test/fixtures'
 import { renderWithProviders } from '@/test/render'
 import { apiUrl, server } from '@/test/server'
+import { AuthGate, resetSignOutIntentForTests } from '@/features/auth/AuthGate'
 import { UserMenu } from './UserMenu'
 
 const replace = vi.fn()
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace, refresh: vi.fn() }),
+  usePathname: () => '/chat/abc',
 }))
 
 beforeEach(() => {
   replace.mockClear()
+  resetSignOutIntentForTests()
   authStore.reset()
   authStore.setAuthed({
     accessToken: 't',
@@ -40,15 +43,22 @@ it('Esc 关闭菜单', async () => {
   await waitFor(() => expect(screen.queryByText('ann@example.com')).not.toBeInTheDocument())
 })
 
-it('退出：接口 500 也清空缓存、置为 guest 并 router.replace("/")', async () => {
+it('退出：接口 500 也清空缓存、置为 guest，且只有一次跳转，目标为 /', async () => {
   server.use(
     http.post(apiUrl('/api/auth/logout'), () => new HttpResponse(null, { status: 500 })),
   )
-  const { user, queryClient } = renderWithProviders(<UserMenu />)
+  const { user, queryClient } = renderWithProviders(
+    <AuthGate>
+      <UserMenu />
+    </AuthGate>,
+  )
   queryClient.setQueryData(['conversations', { q: '' }], [makeConversation()])
   await user.click(screen.getByRole('button', { name: '账号菜单' }))
   await user.click(await screen.findByRole('button', { name: '退出登录' }))
-  await waitFor(() => expect(replace).toHaveBeenCalledWith('/'))
+  await waitFor(() => expect(replace).toHaveBeenCalled())
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  expect(replace).toHaveBeenCalledTimes(1)
+  expect(replace).toHaveBeenCalledWith('/')
   expect(authStore.getState().status).toBe('guest')
   expect(queryClient.getQueryData(['conversations', { q: '' }])).toBeUndefined()
 })

@@ -2,19 +2,18 @@
 
 import { Popover } from '@heroui/react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Avatar } from '@/components/ui/Avatar'
 import { LocaleSwitch } from '@/components/ui/LocaleSwitch'
 import { PillButton } from '@/components/ui/PillButton'
+import { markSignOutIntent } from '@/features/auth/AuthGate'
 import { useAuth } from '@/features/auth/auth-store'
 import { logout } from '@/features/auth/session'
 
 export function UserMenu() {
   const t = useTranslations('chat')
   const auth = useAuth()
-  const router = useRouter()
   const queryClient = useQueryClient()
   const [signingOut, setSigningOut] = useState(false)
   const user = auth.status === 'authed' ? auth.user : null
@@ -22,8 +21,9 @@ export function UserMenu() {
   const signOut = async () => {
     if (signingOut) return
     setSigningOut(true)
+    // 跳转由 AuthGate 统一负责：guest 后回落地页
+    markSignOutIntent()
     await logout(queryClient)
-    router.replace('/')
   }
 
   return (

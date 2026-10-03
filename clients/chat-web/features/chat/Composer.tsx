@@ -63,7 +63,7 @@ export function Composer({
       ) : null}
       <div
         data-on-ink
-        className="relative flex items-end gap-2 rounded-card bg-ink p-2 pl-5 shadow-float"
+        className="relative flex items-end gap-2 rounded-panel bg-ink p-2 pl-5 shadow-float has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-offset-2 has-[textarea:focus-visible]:outline-lime"
       >
         <textarea
           ref={inner}

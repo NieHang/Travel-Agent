@@ -103,3 +103,13 @@ it('ref 指向输入框', () => {
   )
   expect(el).toBe(screen.getByRole('textbox'))
 })
+
+it('容器带有键盘聚焦的 lime 外扩描边，并使用面板圆角', () => {
+  setup()
+  const wrapper = screen.getByRole('textbox').parentElement!
+  expect(wrapper).toHaveAttribute('data-on-ink')
+  expect(wrapper.className).toContain('has-[textarea:focus-visible]:outline-2')
+  expect(wrapper.className).toContain('has-[textarea:focus-visible]:outline-offset-2')
+  expect(wrapper.className).toContain('has-[textarea:focus-visible]:outline-lime')
+  expect(wrapper.className).toContain('rounded-panel')
+})

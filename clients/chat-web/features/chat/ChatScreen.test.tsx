@@ -416,6 +416,70 @@ it('暂存输入 { prompt, conversationId } 与当前会话一致：直接发送
   act(() => stream.close())
 })
 
+it('暂存输入带 conversationId：首次消息拉取返回前不发送，返回后恰好发送一次', async () => {
+  nav.path = '/chat/conv_1'
+  sessionStorage.setItem(PENDING_KEY, JSON.stringify({ prompt: '里斯本 5 天', conversationId: 'conv_1' }))
+  let open!: () => void
+  const gate = new Promise<void>((resolve) => (open = resolve))
+  onList({ first: { items: [], nextCursor: null } }, { gate })
+  const stream = sseController()
+  onSend(() => sseResponse(stream.body))
+  renderScreen()
+  await waitFor(() => expect(listCursors).toHaveLength(1))
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
+  expect(sends).toBe(0)
+  act(() => open())
+  await waitFor(() => expect(sends).toBe(1))
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
+  expect(sends).toBe(1)
+  act(() => stream.close())
+})
+
+it('首次消息拉取期间手动发送：忽略，输入框内容保留', async () => {
+  nav.path = '/chat/conv_1'
+  let open!: () => void
+  const gate = new Promise<void>((resolve) => (open = resolve))
+  onList({ first: { items: [], nextCursor: null } }, { gate })
+  onSend(() => HttpResponse.json({}))
+  const { user } = renderScreen()
+  await typeAndSend(user, '你好')
+  expect(sends).toBe(0)
+  expect(input()).toHaveValue('你好')
+  act(() => open())
+})
+
+it('回复完成后，流式气泡与需求卡片是同一个 DOM 节点（不重播入场动画）', async () => {
+  nav.path = '/chat/conv_1'
+  onList({ first: { items: [], nextCursor: null } })
+  const stream = sseController()
+  onSend(() => sseResponse(stream.body))
+  const { user } = renderScreen()
+  await waitFor(() => expect(screen.queryByTestId('skeleton-bubbles')).not.toBeInTheDocument())
+  await typeAndSend(user, '里斯本 5 天')
+  const sent = userMsg({ conversationId: 'conv_1' })
+  act(() => stream.push(ev.userMessage(sent), ev.delta('好的'), ev.requirement(requirement)))
+  // 用户消息写入缓存之后，流式气泡才有稳定的 key
+  await screen.findByText('里斯本 5 天')
+  const bubble = await screen.findByText('好的')
+  const card = await screen.findByText('规划里斯本行程')
+  const cardWrapper = card.closest('[data-requirement]')
+
+  act(() =>
+    stream.push(
+      ev.done(
+        assistantMsg({
+          conversationId: 'conv_1',
+          content: '好的',
+          metadata: { requirements: [requirement] },
+        }),
+      ),
+    ),
+  )
+  await waitFor(() => expect(screen.getByRole('button', { name: '发送' })).toBeInTheDocument())
+  expect(screen.getByText('好的')).toBe(bubble)
+  expect(screen.getByText('规划里斯本行程').closest('[data-requirement]')).toBe(cardWrapper)
+})
+
 it('暂存输入的 conversationId 与当前会话不一致：丢弃，不发送', async () => {
   nav.path = '/chat/conv_1'
   sessionStorage.setItem(PENDING_KEY, JSON.stringify({ prompt: '里斯本 5 天', conversationId: 'other' }))
@@ -430,11 +494,15 @@ it('暂存输入的 conversationId 与当前会话不一致：丢弃，不发送
 describe('滚动', () => {
   class FakeObserver {
     static instances: FakeObserver[] = []
+    // 真实的 IntersectionObserver 在 observe() 之后会立刻报告当前可见状态
+    static autoFire = false
     disconnected = false
     constructor(readonly callback: (entries: { isIntersecting: boolean }[]) => void) {
       FakeObserver.instances.push(this)
     }
-    observe() {}
+    observe() {
+      if (FakeObserver.autoFire) queueMicrotask(() => this.callback([{ isIntersecting: true }]))
+    }
     unobserve() {}
     disconnect() {
       this.disconnected = true
@@ -446,6 +514,7 @@ describe('滚动', () => {
 
   beforeEach(() => {
     FakeObserver.instances = []
+    FakeObserver.autoFire = false
     vi.stubGlobal('IntersectionObserver', FakeObserver)
   })
 
@@ -468,6 +537,34 @@ describe('滚动', () => {
     await screen.findByText('old1')
     expect(listCursors).toEqual([null, 'c2'])
   })
+
+  it('加载更早消息失败：不再自动重试，顶部出现重试按钮，点击后才再次请求', async () => {
+    nav.path = '/chat/conv_1'
+    FakeObserver.autoFire = true
+    let olderOk = false
+    server.use(
+      http.get(apiUrl('/api/conversations/:id/messages'), ({ request }) => {
+        const cursor = new URL(request.url).searchParams.get('cursor')
+        listCursors.push(cursor)
+        if (cursor === null) return HttpResponse.json({ items: page(2, 'new'), nextCursor: 'c2' })
+        if (!olderOk) return HttpResponse.json({ code: 'INTERNAL_ERROR', message: '' }, { status: 500 })
+        return HttpResponse.json({ items: page(2, 'old'), nextCursor: null })
+      }),
+    )
+    const { user } = renderScreen()
+    await screen.findByText('new1')
+    // 查询自带的重试结束后才会出现重试按钮
+    const retry = await screen.findByRole('button', { name: '重试' }, { timeout: 12000 })
+    const settled = listCursors.length
+    await act(() => new Promise((resolve) => setTimeout(resolve, 300)))
+    expect(listCursors).toHaveLength(settled)
+    expect(screen.getByText('加载失败')).toBeInTheDocument()
+
+    olderOk = true
+    await user.click(retry)
+    await screen.findByText('old1')
+    expect(listCursors.length).toBeGreaterThan(settled)
+  }, 20000)
 
   const scrollTo = (el: HTMLElement, scrollTop: number) => {
     for (const [key, value] of Object.entries({ scrollTop, scrollHeight: 2000, clientHeight: 500 })) {
