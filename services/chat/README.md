@@ -43,6 +43,54 @@ bun run db:generate
 全局 `PrismaModule` 已接入 `AppModule`，服务启动时连接数据库，关闭时断开连接。
 启动前必须配置 `DATABASE_URL`。用户由 user-system 维护，此服务只保存字符串 `userId`。
 
+## 用户层：环境变量与测试库
+
+认证、会话与对话接口（`/api/auth/*`、`/api/users/me`、`/api/conversations/*`）读取下列环境变量，
+开发环境写在 `services/chat/.env`：
+
+| 变量                | 默认                    | 说明                                                            |
+| ------------------- | ----------------------- | --------------------------------------------------------------- |
+| `JWT_ACCESS_SECRET` | 无                      | 必填，至少 32 字符；缺失或过短时启动失败                        |
+| `JWT_ACCESS_TTL`    | `15m`                   | access token 有效期                                             |
+| `REFRESH_TTL_DAYS`  | `30`                    | refresh token 有效期                                            |
+| `COOKIE_SECURE`     | `false`                 | 生产环境设为 `true`                                             |
+| `TRUST_PROXY`       | `false`                 | 是否信任反向代理传来的客户端 IP                                 |
+| `LLM_FAKE`          | 未设置                  | 设为 `1` 时使用假模型，不需要模型密钥；与 `NODE_ENV=production` 同时出现时启动失败 |
+| `CORS_ORIGIN`       | `http://localhost:3002` | 允许携带 Cookie 的前端来源                                      |
+
+**首次启动前**，必须在自己的 `services/chat/.env` 里加上 `JWT_ACCESS_SECRET`（32 个字符以上的随机串，
+例如 `openssl rand -base64 48` 的输出），否则 `bun run dev` 会报出 `JWT_ACCESS_SECRET` 相关错误并退出。
+`.env` 不提交 Git。
+
+### 对话接口
+
+`POST /api/conversations/:id/messages`，请求体 `{ "content": "..." }`（去首尾空白后 1–4000 字符），
+需要 `Authorization: Bearer <accessToken>`，每个用户每分钟 20 次。校验通过后响应为
+`text/event-stream`，每个事件写成 `event: <名>\ndata: <JSON>\n\n`，事件依次为 `user_message`、
+若干 `delta`、可选的 `requirement`，最后是 `done` 或 `error` 之一。流开始前的失败
+（401、`VALIDATION_FAILED`、`CONVERSATION_NOT_FOUND`、`RATE_LIMITED`）是普通 JSON 错误。
+
+### 测试库
+
+名字以 `.int.spec.ts` 结尾的测试连接真实的 PostgreSQL，使用独立的测试库，每个测试文件会清表。
+
+1. 把 `.env.test.example` 复制为 `.env.test`（不提交 Git），把 `DATABASE_URL` 换成本机的连接信息。
+   库名必须以 `_test` 结尾（约定为 `travel_agent_test`），否则测试拒绝运行，以免误清开发库。
+   `.env.test` 里的 `LLM_FAKE=1` 让这些测试使用假模型。
+2. 创建测试库并应用迁移（建在开发库所在的 PostgreSQL 上；Schema 有变化后重新执行）：
+
+   ```sh
+   bun run db:test:prepare
+   ```
+
+3. 运行数据库测试：
+
+   ```sh
+   bun run test:int
+   ```
+
+`bun run test` 只跑不依赖数据库的单元测试，`bun run test:e2e` 跑端到端测试。
+
 ## LangChain 工具调用
 
 两个接口均用于需求抽取，接收相同的请求体：

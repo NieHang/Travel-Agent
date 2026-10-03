@@ -7,6 +7,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
+import { ChatModule } from './chat/chat.module.js';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import { ConversationsModule } from './conversations/conversations.module.js';
 import { ConfigModule } from './config/config.module.js';
@@ -26,6 +27,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     AuthModule,
     UsersModule,
     ConversationsModule,
+    ChatModule,
     LlmModule,
     // Distributed tracing, auto-correlated logs, request/job metrics, error
     // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
