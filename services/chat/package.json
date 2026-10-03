@@ -9,6 +9,7 @@
   "scripts": {
     "db:migrate": "prisma migrate dev --name init",
     "db:generate": "prisma generate",
+    "db:test:prepare": "bun run scripts/prepare-test-db.ts",
     "db:studio": "prisma studio",
     "dev": "nest start --watch --exec bun",
     "build": "rm -rf dist tsconfig.tsbuildinfo && nest build",
@@ -23,6 +24,7 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
+    "test:int": "vitest run --config vitest.config.int.ts",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "typecheck": "tsc --noEmit"
   },

@@ -15,11 +15,71 @@ enum MessageRole {
   ASSISTANT
 }
 
+enum MessageStatus {
+  complete
+  partial
+  error
+}
+
+enum AuditEvent {
+  REGISTER
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  LOGOUT
+  TOKEN_REFRESH
+  TOKEN_REUSE
+}
+
 enum TaskStatus {
   pending
   processing
   done
   error
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String
+  nickname      String
+  locale        String         @default("zh")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  familyId   String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedBy String?
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id        String     @id @default(cuid())
+  userId    String?
+  event     AuditEvent
+  ip        String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime   @default(now())
+
+  @@index([userId, createdAt])
+  @@map("audit_logs")
 }
 
 model Conversation {
@@ -28,20 +88,22 @@ model Conversation {
   title     String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages  Message[]
 
-  @@index([userId])
+  @@index([userId, updatedAt])
   @@map("conversations")
 }
 
 model Message {
-  id             String       @id @default(cuid())
+  id             String        @id @default(cuid())
   conversationId String
   role           MessageRole
   content        String
   metadata       Json?
-  createdAt      DateTime     @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  status         MessageStatus @default(complete)
+  createdAt      DateTime      @default(now())
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@map("messages")
