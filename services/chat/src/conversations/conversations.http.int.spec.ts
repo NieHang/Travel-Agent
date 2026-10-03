@@ -3,6 +3,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { bearer, createTestApp, createUser } from '../../test/helpers/app.js';
 import { resetDb } from '../../test/helpers/db.js';
+import { ConversationsService } from './conversations.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
 describe('conversations HTTP', () => {
@@ -111,6 +112,48 @@ describe('conversations HTTP', () => {
       'renamed',
     ]);
     await api.patch(`/api/conversations/${older.id}`).send({ title: '' }).expect(400);
+  });
+
+  it('重命名：并发的 updatedAt 更新不会被回写旧值覆盖，标题照常更新', async () => {
+    const c = await seed(me, 'before', 1, new Date('2026-01-01'));
+    const newer = new Date('2026-06-01T00:00:00.000Z');
+    // 模拟 rename 读到旧状态之后、写入之前，有消息发送把 updatedAt 推新。
+    // 实现无关：旧实现在 findFirst 之后触发，新实现在原子语句之前触发。
+    const bump = () =>
+      prisma.$executeRaw`UPDATE "conversations" SET "updatedAt" = ${newer} WHERE "id" = ${c.id}`;
+    const spied = new Proxy(prisma, {
+      get(target, prop) {
+        if (prop === 'conversation') {
+          return new Proxy(target.conversation, {
+            get(conv, key) {
+              const v = (conv as never)[key] as unknown;
+              if (key === 'findFirst') {
+                return async (...a: unknown[]) => {
+                  const r = await (v as (...x: unknown[]) => Promise<unknown>).apply(conv, a);
+                  await bump();
+                  return r;
+                };
+              }
+              return typeof v === 'function' ? (v as (...x: unknown[]) => unknown).bind(conv) : v;
+            },
+          });
+        }
+        if (prop === '$queryRaw') {
+          return async (...a: unknown[]) => {
+            await bump();
+            return (target.$queryRaw as (...x: unknown[]) => Promise<unknown>)(...a);
+          };
+        }
+        const v = (target as never)[prop] as unknown;
+        return typeof v === 'function' ? (v as (...x: unknown[]) => unknown).bind(target) : v;
+      },
+    });
+    const svc = new ConversationsService(spied);
+    const res = await svc.rename(me, c.id, 'after');
+    expect(res).toMatchObject({ title: 'after', updatedAt: newer.toISOString() });
+    const row = await prisma.conversation.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row.title).toBe('after');
+    expect(row.updatedAt.toISOString()).toBe(newer.toISOString());
   });
 
   it('删除：204，消息一并删除，再删是 404', async () => {

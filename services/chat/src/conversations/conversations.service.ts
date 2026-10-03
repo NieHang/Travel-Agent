@@ -80,12 +80,14 @@ export class ConversationsService {
   }
 
   async rename(userId: string, id: string, title: string): Promise<Conversation> {
-    const existing = await this.assertOwned(userId, id);
-    // 显式写回原 updatedAt，否则 @updatedAt 会把它刷新。
-    const row = await this.prisma.conversation.update({
-      where: { id: existing.id },
-      data: { title, updatedAt: existing.updatedAt },
-    });
+    // 单条语句同时限定 id 与 userId，且不写 updatedAt：原生 SQL 绕过 @updatedAt 的自动刷新，
+    // 也就不会用读到的旧值覆盖并发写入的新值。
+    const rows = await this.prisma.$queryRaw<ConversationRow[]>`
+      UPDATE "conversations" SET "title" = ${title}
+      WHERE "id" = ${id} AND "userId" = ${userId}
+      RETURNING "id", "userId", "title", "createdAt", "updatedAt"`;
+    const row = rows[0];
+    if (!row) throw new AppException('CONVERSATION_NOT_FOUND', 404);
     return toConversationContract(row);
   }
 
