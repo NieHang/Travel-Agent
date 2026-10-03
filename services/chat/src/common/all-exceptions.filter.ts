@@ -17,16 +17,20 @@ const GENERIC_MESSAGES: Partial<Record<ErrorCode, string>> = {
 };
 
 /**
- * 异常自带的 HTTP 状态码。除 HttpException 外，请求体解析等中间件抛出的错误
- * （例如请求体过大，413）也用数字 `status` / `statusCode` 携带状态码。
+ * 异常自带的、可以原样回给客户端的 HTTP 状态码。
+ *
+ * 除 HttpException 外，只认请求体解析（body-parser / raw-body）经 http-errors 造出的客户端错误，
+ * 例如请求体过大（413）：`expose === true`，数字 `status === statusCode` 且在 400–499，`type` 是字符串。
+ * 其他带 `status` 的错误不算：模型提供方 SDK 的错误也带 `status`（401、429、404）和 `type`，
+ * 那是上游故障，要按 INTERNAL_ERROR 处理并记日志。这些字段可能在原型上，所以不用 own 判断。
  */
 function statusOf(exception: unknown): number | undefined {
   if (exception instanceof HttpException) return exception.getStatus();
   if (typeof exception !== 'object' || exception === null) return undefined;
-  const { status, statusCode } = exception as { status?: unknown; statusCode?: unknown };
-  if (typeof status === 'number') return status;
-  if (typeof statusCode === 'number') return statusCode;
-  return undefined;
+  const { expose, status, statusCode, type } = exception as Record<string, unknown>;
+  if (expose !== true || typeof type !== 'string') return undefined;
+  if (typeof status !== 'number' || status !== statusCode) return undefined;
+  return status >= 400 && status < 500 ? status : undefined;
 }
 
 function codeForStatus(status: number | undefined): ErrorCode {

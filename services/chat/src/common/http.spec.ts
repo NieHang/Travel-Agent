@@ -39,6 +39,18 @@ class TestController {
   limited() {
     throw new HttpException('slow down', 429);
   }
+  @Get('status-only')
+  statusOnly() {
+    throw Object.assign(new Error('x'), { status: 401 });
+  }
+  @Get('provider')
+  provider() {
+    // 模型提供方 SDK 的错误形状：有 status 和字符串 type，没有 expose 与 statusCode。
+    throw Object.assign(new Error('quota exceeded'), {
+      status: 429,
+      type: 'insufficient_quota',
+    });
+  }
 }
 
 describe('common http', () => {
@@ -143,4 +155,23 @@ describe('common http', () => {
       spy.mockRestore();
     }
   });
+
+  it.each(['status-only', 'provider'])(
+    '非请求体解析的错误即使带 4xx status 也是 500 INTERNAL_ERROR，并记日志（%s）',
+    async (route) => {
+      const spy = vi
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation(() => undefined);
+      try {
+        const res = await request(server).get(`/t/${route}`).expect(500);
+        expect(res.body).toEqual({
+          code: 'INTERNAL_ERROR',
+          message: 'Internal server error',
+        });
+        expect(spy).toHaveBeenCalledTimes(1);
+      } finally {
+        spy.mockRestore();
+      }
+    },
+  );
 });
