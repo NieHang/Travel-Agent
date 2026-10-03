@@ -173,6 +173,7 @@ type ChatTurn = { role: 'user' | 'assistant'; content: string };
 | `REFRESH_INVALID` | 401 | refresh token 缺失、不存在、过期，或处于并发宽限期 |
 | `REFRESH_REUSED` | 401 | 检测到 refresh token 被重用，整条链已吊销 |
 | `CONVERSATION_NOT_FOUND` | 404 | 会话不存在或不属于当前用户 |
+| `NOT_FOUND` | 404 | 路由不存在或其他未找到 |
 | `EMAIL_TAKEN` | 409 | 邮箱已注册 |
 | `RATE_LIMITED` | 429 | 触发限流 |
 | `MODEL_FAILED` | 无（仅出现在 SSE `error` 事件中） | 上游模型出错 |
@@ -307,6 +308,8 @@ Page<T>      { items: T[], nextCursor: string | null }
 3. 更新行数为 0，且该记录的 `revokedAt` 距今不超过 10 秒：视为多标签页并发。返回 `REFRESH_INVALID`，不吊销链，不清除 Cookie（另一个请求已写入新 Cookie，前端重试即可）。
 4. 更新行数为 0，且超出 10 秒：视为被盗用。吊销整个 `familyId`，记 `TOKEN_REUSE`，返回 `REFRESH_REUSED` 并清除 Cookie。
 
+已吊销且 `replacedBy` 为空的记录（随登出或整链吊销而失效）：返回 `REFRESH_INVALID` 并清除 Cookie，不记 `TOKEN_REUSE`。第 3、4 步只适用于 `replacedBy` 非空的记录。
+
 第 2 步的条件更新保证两个并发刷新不会都成功。
 
 ### 8.4 登录与注册
@@ -369,7 +372,7 @@ CORS 增加 `credentials: true`。需要引入 Cookie 解析。
 | 审计 | 六种事件各在对应操作后写入；审计写入失败时主流程仍成功 |
 | 现有测试 | `advanced.http.spec`、`filesystem.http.spec` 等补上鉴权后保持通过 |
 
-数据库相关测试连接真实的 PostgreSQL，使用独立测试库 `travel_agent_test`，每个测试文件开始前清表，不模拟 Prisma。测试启动时若数据库名不以 `_test` 结尾则拒绝运行，防止误清开发库。
+数据库相关测试连接真实的 PostgreSQL，使用测试库 `travel_agent_test`（建在开发库所在的 PostgreSQL 上，由 `bun run db:test:prepare` 创建并迁移），每个测试文件开始前清表，不模拟 Prisma。测试启动时若数据库名不以 `_test` 结尾则拒绝运行，防止误清开发库。
 
 ## 14. 需要新增的依赖
 
