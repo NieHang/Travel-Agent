@@ -1,0 +1,130 @@
+{
+  "common": {
+    "brand": "Hilda",
+    "localeZh": "中",
+    "localeEn": "EN",
+    "cancel": "Cancel",
+    "close": "Close",
+    "retry": "Retry",
+    "loadFailed": "Couldn't load",
+    "sample": "Sample"
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again",
+    "network": "Something went wrong. Try again",
+    "INVALID_CREDENTIALS": "Incorrect email or password",
+    "EMAIL_TAKEN": "This email is already registered",
+    "RATE_LIMITED": "Too many attempts. Try again in {n}s",
+    "sessionEnded": "Your session ended. Please sign in again"
+  },
+  "landing": {
+    "signIn": "Sign in",
+    "openChat": "Open chat",
+    "badge": "Your AI travel agent",
+    "title": "Where to next?",
+    "subtitle": "Tell Hilda where you want to go. Get a day-by-day plan, hotels that fit, and the routes locals actually walk.",
+    "placeholder": "5 days in Lisbon, food and views…",
+    "submit": "Plan it",
+    "chips": {
+      "0": "5 days in Lisbon",
+      "1": "Boutique stays in Lisbon",
+      "2": "Best walk through Alfama",
+      "3": "Where Lisbon locals drink"
+    }
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "registerTitle": "Create your account",
+    "email": "Email",
+    "password": "Password",
+    "nickname": "Nickname",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "loginSubmit": "Sign in",
+    "registerSubmit": "Create account",
+    "toRegister": "New here? Create an account",
+    "toLogin": "Already have an account? Sign in",
+    "goLogin": "Sign in",
+    "ruleLength": "At least 8 characters",
+    "ruleMixed": "Letters and numbers",
+    "invalidEmail": "Enter a valid email",
+    "required": "This field is required",
+    "nicknameTooLong": "Nickname can be up to 20 characters",
+    "pendingHint": "After you sign in, Hilda will plan: \"{prompt}\""
+  },
+  "chat": {
+    "history": "History",
+    "accountMenu": "Account menu",
+    "signOut": "Sign out",
+    "assistantName": "Hilda",
+    "online": "your travel agent · online",
+    "typing": "typing…",
+    "stopped": "Stopped",
+    "failed": "Failed",
+    "jumpToLatest": "Jump to latest",
+    "chips": {
+      "0": "Hotels under €150",
+      "1": "Best walk in Alfama",
+      "2": "Where do locals eat?",
+      "3": "Swap day 3 for the beach"
+    },
+    "placeholder": "Ask Hilda anything…",
+    "send": "Send",
+    "stop": "Stop",
+    "rateLimited": "Slow down. Try again in {n}s",
+    "greeting": "Hi {nickname}, where to?",
+    "notFound": "Conversation not found",
+    "startNew": "Start a new chat",
+    "sendFailed": "Couldn't send. Try again",
+    "viewTrip": "View trip"
+  },
+  "drawer": {
+    "newChat": "New chat",
+    "search": "Search chats",
+    "clear": "Clear",
+    "noMatch": "No matching chats",
+    "empty": "No chats yet. Start with a destination",
+    "more": "More",
+    "rename": "Rename",
+    "delete": "Delete",
+    "renameFailed": "Couldn't rename",
+    "deleteFailed": "Couldn't delete",
+    "confirmTitle": "Delete this chat?",
+    "confirmBody": "This can't be undone"
+  },
+  "panels": {
+    "tabs": {
+      "plan": "Plan",
+      "hotels": "Hotels",
+      "routes": "Routes",
+      "hotspots": "Hot spots"
+    },
+    "saveTrip": "Save trip",
+    "saveTripSoon": "Saving trips is coming soon",
+    "kicker": {
+      "plan": "Your itinerary",
+      "hotels": "Where to stay",
+      "routes": "Best walking route",
+      "hotspots": "Where locals go"
+    },
+    "day": "Day {n}",
+    "stops": "{count} stops",
+    "perNight": "Per night",
+    "fullStay": "Full stay",
+    "book": "Book {hotel}",
+    "bookSoon": "Booking is coming soon",
+    "walk": "Walk",
+    "tram": "Tram 28",
+    "mapAlt": "Map sketch: the route passes six stops in order, from 1 to 6",
+    "filters": {
+      "all": "All",
+      "food": "Food",
+      "views": "Views",
+      "nightlife": "Nightlife",
+      "hidden": "Hidden"
+    },
+    "add": "+ Add",
+    "added": "Added ✓",
+    "emptyFilter": "Nothing here yet"
+  }
+}

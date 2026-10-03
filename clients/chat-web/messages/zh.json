@@ -1,0 +1,130 @@
+{
+  "common": {
+    "brand": "Hilda",
+    "localeZh": "中",
+    "localeEn": "EN",
+    "cancel": "取消",
+    "close": "关闭",
+    "retry": "重试",
+    "loadFailed": "加载失败",
+    "sample": "示例"
+  },
+  "errors": {
+    "generic": "出了点问题，请重试",
+    "network": "网络异常，请重试",
+    "INVALID_CREDENTIALS": "邮箱或密码不正确",
+    "EMAIL_TAKEN": "这个邮箱已注册",
+    "RATE_LIMITED": "尝试过于频繁，请 {n} 秒后再试",
+    "sessionEnded": "登录状态已失效，请重新登录"
+  },
+  "landing": {
+    "signIn": "登录",
+    "openChat": "进入对话",
+    "badge": "你的 AI 旅行助手",
+    "title": "下一站，去哪？",
+    "subtitle": "告诉 Hilda 你想去哪，每天的行程、合适的酒店和当地人常走的路线都会安排好。",
+    "placeholder": "里斯本 5 天，吃好看好…",
+    "submit": "开始规划",
+    "chips": {
+      "0": "里斯本 5 天",
+      "1": "里斯本精品酒店",
+      "2": "阿尔法玛最佳步行路线",
+      "3": "里斯本人去哪喝一杯"
+    }
+  },
+  "auth": {
+    "loginTitle": "欢迎回来",
+    "registerTitle": "创建账号",
+    "email": "邮箱",
+    "password": "密码",
+    "nickname": "昵称",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码",
+    "loginSubmit": "登录",
+    "registerSubmit": "创建账号",
+    "toRegister": "还没有账号？注册",
+    "toLogin": "已有账号？登录",
+    "goLogin": "去登录",
+    "ruleLength": "至少 8 位",
+    "ruleMixed": "包含字母和数字",
+    "invalidEmail": "请输入有效的邮箱",
+    "required": "请填写此项",
+    "nicknameTooLong": "昵称最多 20 个字",
+    "pendingHint": "登录后将为你规划：「{prompt}」"
+  },
+  "chat": {
+    "history": "历史对话",
+    "accountMenu": "账号菜单",
+    "signOut": "退出登录",
+    "assistantName": "Hilda",
+    "online": "你的旅行助手 · 在线",
+    "typing": "正在输入…",
+    "stopped": "已停止",
+    "failed": "生成失败",
+    "jumpToLatest": "回到最新",
+    "chips": {
+      "0": "150 欧以内的酒店",
+      "1": "阿尔法玛最佳步行路线",
+      "2": "当地人去哪吃",
+      "3": "把第 3 天换成海滩"
+    },
+    "placeholder": "问 Hilda 任何事…",
+    "send": "发送",
+    "stop": "停止",
+    "rateLimited": "发送太快了，请 {n} 秒后再试",
+    "greeting": "嗨，{nickname}，想去哪？",
+    "notFound": "找不到这段对话",
+    "startNew": "开始新对话",
+    "sendFailed": "发送失败，请重试",
+    "viewTrip": "查看行程"
+  },
+  "drawer": {
+    "newChat": "新对话",
+    "search": "搜索对话",
+    "clear": "清空",
+    "noMatch": "没有匹配的对话",
+    "empty": "还没有对话，从一个目的地开始吧",
+    "more": "更多操作",
+    "rename": "重命名",
+    "delete": "删除",
+    "renameFailed": "重命名失败",
+    "deleteFailed": "删除失败",
+    "confirmTitle": "删除这段对话？",
+    "confirmBody": "删除后无法恢复"
+  },
+  "panels": {
+    "tabs": {
+      "plan": "行程",
+      "hotels": "酒店",
+      "routes": "路线",
+      "hotspots": "热点"
+    },
+    "saveTrip": "保存行程",
+    "saveTripSoon": "保存行程即将上线",
+    "kicker": {
+      "plan": "你的行程",
+      "hotels": "住在哪",
+      "routes": "最佳步行路线",
+      "hotspots": "当地人去哪"
+    },
+    "day": "第 {n} 天",
+    "stops": "{count} 个站点",
+    "perNight": "每晚",
+    "fullStay": "全程",
+    "book": "预订 {hotel}",
+    "bookSoon": "预订功能即将上线",
+    "walk": "步行",
+    "tram": "28 路电车",
+    "mapAlt": "地图示意：路线依次经过六个站点，从 1 号到 6 号",
+    "filters": {
+      "all": "全部",
+      "food": "美食",
+      "views": "风景",
+      "nightlife": "夜生活",
+      "hidden": "小众"
+    },
+    "add": "+ 添加",
+    "added": "已添加 ✓",
+    "emptyFilter": "这个分类下暂时没有地点"
+  }
+}
