@@ -7,11 +7,14 @@ import request from 'supertest';
 import type { RequirementResult } from '@autix/contracts';
 import { RequirementService } from '../src/llm/requirement.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { AccessTokenService } from '../src/auth/access-token.service.js';
+import { loadAuthConfig } from '../src/config/auth.config.js';
 
 describe('requirement extraction', () => {
   const input = '用户注册时必须绑定手机号，密码至少8位';
   let server: Server;
   let app: INestApplication;
+  let auth: [string, string];
   let service: RequirementService;
   let modelResult: RequirementResult;
   let messages: Array<{ role: string; content: string }>;
@@ -67,6 +70,11 @@ describe('requirement extraction', () => {
     );
     vi.stubEnv('HTTPS_PROXY', '');
     vi.stubEnv('HTTP_PROXY', '');
+    vi.stubEnv('JWT_ACCESS_SECRET', 'test-access-secret-at-least-32-chars-long');
+    auth = [
+      'Authorization',
+      `Bearer ${await new AccessTokenService(loadAuthConfig()).sign('test-user')}`,
+    ];
     const { AppModule } = await import('../src/app.module.js');
     const module = await Test.createTestingModule({
       imports: [AppModule],
@@ -111,6 +119,7 @@ describe('requirement extraction', () => {
   it('POST /requirement/extract returns the model result and uses the supplied input', async () => {
     await request(app.getHttpServer())
       .post('/requirement/extract')
+      .set(...auth)
       .send({ input })
       .expect(201)
       .expect(modelResult);
@@ -122,6 +131,7 @@ describe('requirement extraction', () => {
     modelResult = { requirements: [] };
     await request(app.getHttpServer())
       .post('/requirement/extract')
+      .set(...auth)
       .send({ input: '' })
       .expect(201)
       .expect({ requirements: [] });
@@ -133,6 +143,7 @@ describe('requirement extraction', () => {
       const requestsBefore = modelRequests;
       await request(app.getHttpServer())
         .post('/requirement/extract')
+        .set(...auth)
         .send(body)
         .expect(400);
       expect(modelRequests).toBe(requestsBefore);

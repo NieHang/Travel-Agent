@@ -11,6 +11,8 @@ import { RunnableMemoryService } from './memory/runnable-memory.service.js';
 import { TrimmedMemoryService } from './memory/trimmed-memory.service.js';
 import type { FilesystemService } from './filesystem/filesystem.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AccessTokenService } from '../auth/access-token.service.js';
+import { loadAuthConfig } from '../config/auth.config.js';
 
 const state = vi.hoisted(() => ({ root: '' }));
 vi.mock('./tools/business.tools.js', async (importOriginal) => {
@@ -34,6 +36,7 @@ const report =
 describe('advanced analysis HTTP integration', () => {
   let app: INestApplication;
   let server: Server;
+  let auth: [string, string];
   let clarification = false;
   let fail = false;
   const calls: Array<{ agent: string; context: string }> = [];
@@ -95,6 +98,11 @@ describe('advanced analysis HTTP integration', () => {
     );
     vi.stubEnv('HTTPS_PROXY', '');
     vi.stubEnv('HTTP_PROXY', '');
+    vi.stubEnv('JWT_ACCESS_SECRET', 'test-access-secret-at-least-32-chars-long');
+    auth = [
+      'Authorization',
+      `Bearer ${await new AccessTokenService(loadAuthConfig()).sign('test-user')}`,
+    ];
     const { AppModule } = await import('../app.module.js');
     const module = await Test.createTestingModule({
       imports: [AppModule],
@@ -125,6 +133,7 @@ describe('advanced analysis HTTP integration', () => {
   const analyze = (sessionId: string) =>
     request(app.getHttpServer())
       .post('/api/advanced/analyze')
+      .set(...auth)
       .send({ sessionId, input });
   const files = () => readdir(join(state.root, 'reports')).catch(() => []);
 
@@ -133,6 +142,7 @@ describe('advanced analysis HTTP integration', () => {
     for (const input of rounds)
       await request(app.getHttpServer())
         .post('/api/memory/chat')
+        .set(...auth)
         .send({ sessionId, input })
         .expect(201);
     await app
@@ -165,6 +175,7 @@ describe('advanced analysis HTTP integration', () => {
     expect(append).toHaveBeenCalledExactlyOnceWith(sessionId, input, report);
     const { body: history } = await request(app.getHttpServer())
       .get(`/api/memory/history/${sessionId}`)
+      .set(...auth)
       .expect(200);
     expect(history).toHaveLength(8);
     expect(history.slice(-2)).toEqual([
@@ -237,6 +248,7 @@ describe('advanced analysis HTTP integration', () => {
   ])('rejects invalid analyze bodies: %j', async (body) => {
     await request(app.getHttpServer())
       .post('/api/advanced/analyze')
+      .set(...auth)
       .send(body ?? undefined)
       .expect(400);
     expect(calls).toEqual([]);

@@ -49,10 +49,12 @@
         "@nestjs/jwt": "^12.0.2",
         "@nestjs/observe": "^0.3.0",
         "@nestjs/platform-express": "^12.0.1",
+        "@nestjs/throttler": "^6.7.1",
         "@node-rs/argon2": "^2.2.1",
         "@prisma/adapter-pg": "7",
         "@prisma/client": "7",
         "@xenova/transformers": "^2.17.2",
+        "cookie-parser": "^1.4.7",
         "dotenv": "^18.0.5",
         "js-yaml": "^5.4.2",
         "langchain": "^1.5.15",
@@ -67,6 +69,7 @@
         "@nestjs/mau": "^0.2.6",
         "@nestjs/schematics": "^12.0.0",
         "@nestjs/testing": "^12.0.1",
+        "@types/cookie-parser": "^1.4.10",
         "@types/express": "^5.0.0",
         "@types/node": "^24.0.0",
         "@types/pg": "^8.23.1",
@@ -330,6 +333,8 @@
     "@nestjs/schematics": ["@nestjs/schematics@12.0.6", "https://registry.npmmirror.com/@nestjs/schematics/-/schematics-12.0.6.tgz", { "dependencies": { "@angular-devkit/core": "22.2.0", "@angular-devkit/schematics": "22.2.0", "comment-json": "5.0.0", "jsonc-parser": "3.3.1", "pluralize": "8.0.0" }, "peerDependencies": { "prettier": "^3.0.0", "typescript": ">=6.0.0" }, "optionalPeers": ["prettier"] }, "sha512-2OG0BUhGPJqVvWFhiy+7oaQa4VQUvTS9Dw8YRfvweznl4KS3YyZrdPi4cVGuRAThoEIsbdfguZzSOv1+t8U1tg=="],
 
     "@nestjs/testing": ["@nestjs/testing@12.1.1", "https://registry.npmmirror.com/@nestjs/testing/-/testing-12.1.1.tgz", { "dependencies": { "tslib": "2.8.1" }, "peerDependencies": { "@nestjs/common": "^12.0.0", "@nestjs/core": "^12.0.0", "@nestjs/microservices": "^12.0.0", "@nestjs/platform-express": "^12.0.0" }, "optionalPeers": ["@nestjs/microservices", "@nestjs/platform-express"] }, "sha512-kMCTifsIlvfdCs/4F495HY0tjmwHu0d5JoXpr9BsT8CJ1NScfbrx24mlkevFNpq26jTQKR5e82hOfqikad1gSg=="],
+
+    "@nestjs/throttler": ["@nestjs/throttler@6.7.1", "https://registry.npmmirror.com/@nestjs/throttler/-/throttler-6.7.1.tgz", { "peerDependencies": { "@nestjs/common": "^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0", "@nestjs/core": "^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0", "reflect-metadata": "^0.1.13 || ^0.2.0" } }, "sha512-gAyY1AkU+cSK5DCjFOB43xax9oakameH4xZa9kAgqBqSBQZgmv3DZylLV8KyZNzOGhceL3kDVtby+CF8VAdmEA=="],
 
     "@next/env": ["@next/env@16.3.6", "https://registry.npmmirror.com/@next/env/-/env-16.3.6.tgz", {}, "sha512-x9Vblze1EbtltQYnNH38xCPWU3TVfBd1eXqA3+w9+BTpedkkdNpAaltXlGQ/nsc1+E0mVTNrtcbX3GoO09zeLQ=="],
 
@@ -596,6 +601,8 @@
     "@types/chai": ["@types/chai@5.2.3", "https://registry.npmmirror.com/@types/chai/-/chai-5.2.3.tgz", { "dependencies": { "@types/deep-eql": "*", "assertion-error": "^2.0.1" } }, "sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA=="],
 
     "@types/connect": ["@types/connect@3.4.38", "https://registry.npmmirror.com/@types/connect/-/connect-3.4.38.tgz", { "dependencies": { "@types/node": "*" } }, "sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug=="],
+
+    "@types/cookie-parser": ["@types/cookie-parser@1.4.10", "https://registry.npmmirror.com/@types/cookie-parser/-/cookie-parser-1.4.10.tgz", { "peerDependencies": { "@types/express": "*" } }, "sha512-B4xqkqfZ8Wek+rCOeRxsjMS9OgvzebEzzLYw7NHYuvzb7IdxOkI0ZHGgeEBX4PUM7QGVvNSK60T3OvWj3YfBRg=="],
 
     "@types/cookiejar": ["@types/cookiejar@2.1.5", "https://registry.npmmirror.com/@types/cookiejar/-/cookiejar-2.1.5.tgz", {}, "sha512-he+DHOWReW0nghN24E1WUqM0efK4kI9oTqDm6XmK8ZPe2djZ90BSNdGnIyCLzCPw7/pogPlGbzI2wHGGmi4O/Q=="],
 
@@ -940,6 +947,8 @@
     "convert-source-map": ["convert-source-map@2.0.0", "https://registry.npmmirror.com/convert-source-map/-/convert-source-map-2.0.0.tgz", {}, "sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg=="],
 
     "cookie": ["cookie@0.7.2", "https://registry.npmmirror.com/cookie/-/cookie-0.7.2.tgz", {}, "sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w=="],
+
+    "cookie-parser": ["cookie-parser@1.4.7", "https://registry.npmmirror.com/cookie-parser/-/cookie-parser-1.4.7.tgz", { "dependencies": { "cookie": "0.7.2", "cookie-signature": "1.0.6" } }, "sha512-nGUvgXnotP3BsjiLX2ypbQnWoGUPIIfHQNZkkC668ntrzGWEZVW70HDEB1qnNGMicPje6EttlIgzo51YSwNQGw=="],
 
     "cookie-signature": ["cookie-signature@1.2.2", "https://registry.npmmirror.com/cookie-signature/-/cookie-signature-1.2.2.tgz", {}, "sha512-D76uU73ulSXrD1UXF4KE2TMxVVwhsnCgfAyTg9k8P6KGZjlXKrOLe4dJQKI3Bxi5wjesZoFXJWElNWBjPZMbhg=="],
 
@@ -2078,6 +2087,8 @@
     "body-parser/content-type": ["content-type@2.1.0", "https://registry.npmmirror.com/content-type/-/content-type-2.1.0.tgz", {}, "sha512-mj7UPXE0jaqaOsukNZRUEfEi2AcL7C/vwmwcHV0O97eO1E1pxBZuyjlZrx5seTaNBg1U6+o35wpa35Qfcc+7ag=="],
 
     "c12/dotenv": ["dotenv@17.4.2", "https://registry.npmmirror.com/dotenv/-/dotenv-17.4.2.tgz", {}, "sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw=="],
+
+    "cookie-parser/cookie-signature": ["cookie-signature@1.0.6", "https://registry.npmmirror.com/cookie-signature/-/cookie-signature-1.0.6.tgz", {}, "sha512-QADzlaHc8icV8I7vbaJXJwod9HWYp8uCqf1xa4OfNu1T7JVxQIrUgOWtHdNDtPiywmFbiS12VjotIXLrKM3orQ=="],
 
     "eslint/minimatch": ["minimatch@3.1.5", "https://registry.npmmirror.com/minimatch/-/minimatch-3.1.5.tgz", { "dependencies": { "brace-expansion": "^1.1.7" } }, "sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w=="],
 

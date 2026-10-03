@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import type { RequirementResult } from '@autix/contracts';
 import { AppService } from './app.service.js';
+import { Public } from './auth/decorators.js';
 import { RequirementService } from './llm/requirement.service.js';
 
 @Controller()
@@ -28,6 +29,7 @@ export class AppController {
     return this.requirementService.extract(body.input);
   }
 
+  @Public()
   @Get('health')
   getHealth() {
     return this.appService.getHealth();
