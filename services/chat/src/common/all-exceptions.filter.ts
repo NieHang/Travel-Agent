@@ -16,6 +16,26 @@ const GENERIC_MESSAGES: Partial<Record<ErrorCode, string>> = {
   INTERNAL_ERROR: 'Internal server error',
 };
 
+/**
+ * 异常自带的 HTTP 状态码。除 HttpException 外，请求体解析等中间件抛出的错误
+ * （例如请求体过大，413）也用数字 `status` / `statusCode` 携带状态码。
+ */
+function statusOf(exception: unknown): number | undefined {
+  if (exception instanceof HttpException) return exception.getStatus();
+  if (typeof exception !== 'object' || exception === null) return undefined;
+  const { status, statusCode } = exception as { status?: unknown; statusCode?: unknown };
+  if (typeof status === 'number') return status;
+  if (typeof statusCode === 'number') return statusCode;
+  return undefined;
+}
+
+function codeForStatus(status: number | undefined): ErrorCode {
+  if (status === 429) return 'RATE_LIMITED';
+  if (status === 404) return 'NOT_FOUND';
+  if (status !== undefined && status >= 400 && status < 500) return 'VALIDATION_FAILED';
+  return 'INTERNAL_ERROR';
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
@@ -32,25 +52,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message: exception.code,
         ...(exception.details !== undefined && { details: exception.details }),
       };
-    } else if (exception instanceof HttpException) {
-      status = exception.getStatus();
-      const code: ErrorCode =
-        status === 429
-          ? 'RATE_LIMITED'
-          : status === 404
-            ? 'NOT_FOUND'
-            : status >= 400 && status < 500
-              ? 'VALIDATION_FAILED'
-              : 'INTERNAL_ERROR';
+    } else {
+      const code = codeForStatus(statusOf(exception));
       if (code === 'INTERNAL_ERROR') {
         status = 500;
         this.logger.error(exception);
+      } else {
+        status = statusOf(exception)!;
       }
       body = { code, message: GENERIC_MESSAGES[code] ?? 'Error' };
-    } else {
-      status = 500;
-      this.logger.error(exception);
-      body = { code: 'INTERNAL_ERROR', message: GENERIC_MESSAGES.INTERNAL_ERROR! };
     }
 
     // SSE in progress: headers already sent, cannot write a JSON error body.

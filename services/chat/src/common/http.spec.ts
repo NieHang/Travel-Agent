@@ -124,4 +124,23 @@ describe('common http', () => {
       .get('/nope')
       .expect(404)
       .expect((r) => expect(r.body.code).toBe('NOT_FOUND')));
+
+  it('超出解析上限的请求体是 413 VALIDATION_FAILED，不记错误日志', async () => {
+    const spy = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    try {
+      const res = await request(server)
+        .post('/t/body')
+        .send({ n: 1, pad: 'x'.repeat(200 * 1024) })
+        .expect(413);
+      expect(res.body).toEqual({
+        code: 'VALIDATION_FAILED',
+        message: 'Invalid request',
+      });
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });
