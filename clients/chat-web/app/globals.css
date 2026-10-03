@@ -1,26 +1,48 @@
-@import "tailwindcss";
+@import "@heroui/styles";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-ink: #1b1535;
+  --color-lime: #c6e82f;
+  --color-paper: #ffffff;
+  --color-stage-yellow: #ffc93c;
+  --color-stage-orange: #ff7a1a;
+  --color-stage-purple: #7b61ff;
+  --color-stage-green: #0fae7b;
+  --color-stage-pink: #ff5fa2;
+  --color-danger: #e5484d;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --radius-card: 20px;
+  --radius-panel: 40px;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --shadow-float: 0 12px 32px rgba(27, 21, 53, 0.18);
+
+  --font-sans: var(--font-plus-jakarta), var(--font-noto-sc), sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+[data-on-ink] :focus-visible,
+[data-on-ink]:focus-visible {
+  outline-color: var(--color-lime);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.04em;
+}
+
+html:lang(zh) h1,
+html:lang(zh) h2,
+html:lang(zh) h3 {
+  letter-spacing: -0.02em;
 }
