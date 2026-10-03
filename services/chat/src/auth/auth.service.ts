@@ -108,11 +108,16 @@ export class AuthService {
     const outcome = await this.prisma.$transaction(async (tx): Promise<RefreshOutcome> => {
       const now = new Date();
 
-      // 1. 查不到或已过期。
-      const row = await tx.refreshToken.findUnique({ where: { tokenHash } });
-      if (!row || row.expiresAt.getTime() <= now.getTime()) {
+      // 1. 查不到或已过期。这次读取只用不可变的字段（familyId、expiresAt）。
+      const found = await tx.refreshToken.findUnique({ where: { tokenHash } });
+      if (!found || found.expiresAt.getTime() <= now.getTime()) {
         return { kind: 'invalid', clearCookie: true };
       }
+
+      // 同一条链上的操作串行执行；拿到锁之后再读取会变的状态。
+      await this.lockFamily(tx, found.familyId);
+      const row = await tx.refreshToken.findUnique({ where: { id: found.id } });
+      if (!row) return { kind: 'invalid', clearCookie: true };
 
       // 2. 条件吊销：并发的两个请求里只有一个能拿到 count === 1。
       const { count } = await tx.refreshToken.updateMany({
@@ -126,24 +131,23 @@ export class AuthService {
         return { kind: 'rotated', user, issued };
       }
 
-      // 已被吊销。重新读取：条件更新可能等过另一个事务提交，之前读到的行已经过时。
-      const current = await tx.refreshToken.findUnique({ where: { id: row.id } });
-      if (!current?.revokedAt || !current.replacedBy) {
-        // 随登出或整链吊销而失效（或已被删除）：不算盗用。
+      // 已被吊销。持有链锁，row 就是当前状态。
+      if (!row.revokedAt || !row.replacedBy) {
+        // 随登出或整链吊销而失效：不算盗用。
         return { kind: 'invalid', clearCookie: true };
       }
 
       // 3. 被轮换掉不久：多标签页并发，另一个请求已经写入新 Cookie。
-      if (now.getTime() - current.revokedAt.getTime() <= REUSE_GRACE_MS) {
+      if (now.getTime() - row.revokedAt.getTime() <= REUSE_GRACE_MS) {
         return { kind: 'invalid', clearCookie: false };
       }
 
       // 4. 被轮换掉的 token 在宽限期之后再次出现：盗用，吊销整条链。
       await tx.refreshToken.updateMany({
-        where: { familyId: current.familyId, revokedAt: null },
+        where: { familyId: row.familyId, revokedAt: null },
         data: { revokedAt: now },
       });
-      return { kind: 'reused', userId: current.userId, familyId: current.familyId };
+      return { kind: 'reused', userId: row.userId, familyId: row.familyId };
     });
 
     switch (outcome.kind) {
@@ -168,12 +172,24 @@ export class AuthService {
       where: { tokenHash: hashRefreshToken(raw) },
     });
     if (!row) return;
-    const { count } = await this.prisma.refreshToken.updateMany({
-      where: { familyId: row.familyId, revokedAt: null },
-      data: { revokedAt: new Date() },
+    const { count } = await this.prisma.$transaction(async (tx) => {
+      // 与并发的轮换串行，保证它新发的 token 也被吊销。
+      await this.lockFamily(tx, row.familyId);
+      return tx.refreshToken.updateMany({
+        where: { familyId: row.familyId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
     });
     // 链已经整体吊销时是重复登出，不再记审计。
     if (count > 0) await this.audit.record('LOGOUT', { ...ctx, userId: row.userId });
+  }
+
+  /**
+   * 事务级咨询锁，提交或回滚时自动释放。轮换会插入新行，行锁锁不住尚不存在的行，
+   * 所以按 familyId 加锁。哈希冲突只会让两条无关的链多串行一次。
+   */
+  private async lockFamily(tx: Prisma.TransactionClient, familyId: string): Promise<void> {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${familyId}, 0))`;
   }
 
   private async issueRefreshToken(

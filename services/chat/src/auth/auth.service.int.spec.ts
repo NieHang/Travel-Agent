@@ -164,6 +164,34 @@ describe('AuthService', () => {
     expect(await prisma.refreshToken.count({ where: { revokedAt: null } })).toBe(1);
   });
 
+  // 竞态不一定每次都出现，所以每个用例用全新的数据重复多轮。
+  const RACE_ROUNDS = 20;
+
+  it('并发：刷新与登出竞争后，链上没有存活的 token', async () => {
+    for (let round = 0; round < RACE_ROUNDS; round++) {
+      await resetDb(prisma);
+      const s1 = await auth.register(input, ctx);
+      const s2 = await auth.refresh(s1.refreshToken, ctx);
+      await Promise.allSettled([auth.refresh(s2.refreshToken, ctx), auth.logout(s2.refreshToken, ctx)]);
+      expect(await prisma.refreshToken.count({ where: { revokedAt: null } }), `round ${round}`).toBe(0);
+    }
+  });
+
+  it('并发：刷新与超出宽限期的重复使用竞争后，链上没有存活的 token', async () => {
+    for (let round = 0; round < RACE_ROUNDS; round++) {
+      await resetDb(prisma);
+      const s1 = await auth.register(input, ctx);
+      const s2 = await auth.refresh(s1.refreshToken, ctx);
+      vi.setSystemTime(Date.now() + 11_000);
+      const [, reuse] = await Promise.allSettled([
+        auth.refresh(s2.refreshToken, ctx),
+        auth.refresh(s1.refreshToken, ctx),
+      ]);
+      expect(reuse, `round ${round}`).toMatchObject({ status: 'rejected', reason: { code: 'REFRESH_REUSED' } });
+      expect(await prisma.refreshToken.count({ where: { revokedAt: null } }), `round ${round}`).toBe(0);
+    }
+  });
+
   it('吊销只影响本条链', async () => {
     const a = await auth.register(input, ctx);
     const b = await auth.login(input, ctx);
