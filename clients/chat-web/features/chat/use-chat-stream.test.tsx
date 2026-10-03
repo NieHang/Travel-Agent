@@ -6,6 +6,7 @@ import type {
 } from '@autix/contracts'
 import { QueryClient, type InfiniteData } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { authStore } from '@/features/auth/auth-store'
@@ -286,26 +287,6 @@ describe('useChatStream', () => {
     openListGate()
   })
 
-  it('停止之后迟到的数据：不改状态也不写缓存', async () => {
-    const stream = sseController()
-    useStreamHandler(() => sseResponse(stream.body))
-    const hook = setup()
-    holdMessageList()
-    const p = start(hook)
-    await act(async () => stream.push(userMessage(), delta('好')))
-    await waitFor(() => expect(hook.result.current.stream.text).toBe('好'))
-    act(() => hook.result.current.stream.stop())
-    await settle(p)
-    const before = cached()
-    await act(async () => {
-      stream.push(delta('迟到'), done())
-      await new Promise((resolve) => setTimeout(resolve, 20))
-    })
-    expect(cached()).toEqual(before)
-    expect(hook.result.current.stream).toMatchObject({ phase: 'idle', text: '' })
-    openListGate()
-  })
-
   it('收到 user_message 之前停止：不写缓存，返回 ABORTED', async () => {
     const stream = sseController()
     useStreamHandler(() => sseResponse(stream.body))
@@ -564,6 +545,150 @@ describe('useChatStream', () => {
       await settle(p)
       expect(state.aborted).toBe(true)
       openListGate()
+    })
+  })
+
+  describe('与服务端对齐与加固', () => {
+    // 没有 useMessages 观察者时（页面已卸载或已切走），invalidate 只会标记失效，
+    // 之后再 setQueryData 会清掉失效标记；因此必须先写本地消息再 invalidate
+    function setupBare() {
+      const { Wrapper, queryClient: qc } = createWrapper()
+      queryClient = qc
+      qc.setQueryData<InfiniteData<Page<Message>>>(messagesKey('c1'), {
+        pages: [{ items: [], nextCursor: null }],
+        pageParams: [undefined],
+      })
+      return renderHook(() => useChatStream('c1'), { wrapper: Wrapper })
+    }
+
+    async function expectReconciledOnRemount() {
+      expect(queryClient.getQueryState(messagesKey('c1'))?.isInvalidated).toBe(true)
+      expect(cached()[0].id).toMatch(/^local-/)
+      const serverRow = makeMessage({ id: 'srv1', conversationId: 'c1', role: 'ASSISTANT' })
+      server.use(
+        http.get(apiUrl('/api/conversations/:id/messages'), () => {
+          messageListCalls += 1
+          return HttpResponse.json({ items: [serverRow, u], nextCursor: null })
+        }),
+      )
+      const { Wrapper } = createWrapper({ queryClient })
+      renderHook(() => useMessages('c1'), { wrapper: Wrapper })
+      await waitFor(() => expect(cachedIds()).toEqual(['srv1', u.id]))
+      expect(messageListCalls).toBe(1)
+    }
+
+    it('卸载导致的停止：本地 partial 之后消息查询仍处于失效，重新进入时被服务端数据替换', async () => {
+      const stream = sseController()
+      useStreamHandler(() => sseResponse(stream.body))
+      const hook = setupBare()
+      let p!: Promise<SendOutcome>
+      act(() => {
+        p = hook.result.current.send('c1', 'x')
+      })
+      await act(async () => stream.push(userMessage(), delta('好')))
+      hook.unmount()
+      await expect(p).resolves.toEqual({ ok: true })
+      await expectReconciledOnRemount()
+    })
+
+    it('流没有 done 就结束（无观察者）：本地 error 消息之后查询仍处于失效', async () => {
+      useStreamHandler(() => sseResponse(sseBody([userMessage(), delta('好')])))
+      const hook = setupBare()
+      await act(() => hook.result.current.send('c1', 'x'))
+      await expectReconciledOnRemount()
+    })
+
+    it('StrictMode 下挂载后 send：phase 到达 streaming 并正常完成', async () => {
+      const stream = sseController()
+      useStreamHandler(() => sseResponse(stream.body))
+      const { Wrapper, queryClient: qc } = createWrapper()
+      queryClient = qc
+      const hook = renderHook(() => useChatStream('c1'), {
+        wrapper: ({ children }) => (
+          <StrictMode>
+            <Wrapper>{children}</Wrapper>
+          </StrictMode>
+        ),
+      })
+      let p!: Promise<SendOutcome>
+      act(() => {
+        p = hook.result.current.send('c1', 'x')
+      })
+      expect(hook.result.current).toMatchObject({ phase: 'sending', activeConversationId: 'c1' })
+      await act(async () => stream.push(userMessage(), delta('好')))
+      await waitFor(() => expect(hook.result.current.phase).toBe('streaming'))
+      expect(hook.result.current.text).toBe('好')
+      await act(async () => stream.push(done()))
+      expect(await settle(p)).toEqual({ ok: true })
+      expect(hook.result.current).toMatchObject({ phase: 'idle', activeConversationId: null })
+    })
+
+    it('处理事件时的程序错误不被吞掉：send 以该错误结束，phase 回 idle', async () => {
+      useStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
+      const hook = setup()
+      const boom = new Error('boom')
+      vi.spyOn(queryClient, 'setQueryData').mockImplementationOnce(() => {
+        throw boom
+      })
+      let caught: unknown
+      await act(async () => {
+        try {
+          await hook.result.current.stream.send('c1', 'x')
+        } catch (e) {
+          caught = e
+        }
+      })
+      expect(caught).toBe(boom)
+      expect(hook.result.current.stream).toMatchObject({ phase: 'idle', text: '' })
+    })
+
+    // 同一个网络块里的两个事件：处理第一个时调用 stop，第二个必须不生效
+    function stopAfterFirstCacheWrite(hook: Hook) {
+      let fired = false
+      const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+        if (!fired && event.type === 'updated' && event.action.type === 'success') {
+          fired = true
+          hook.result.current.stream.stop()
+        }
+      })
+      return unsubscribe
+    }
+
+    it('同一块里 stop 之后的 delta 不累计到本地 partial 消息', async () => {
+      useStreamHandler(() =>
+        sseResponse(sseBody([userMessage(), delta('迟到')])),
+      )
+      const hook = setup()
+      holdMessageList()
+      stopAfterFirstCacheWrite(hook)
+      const outcome = await act(() => hook.result.current.stream.send('c1', 'x'))
+      expect(outcome).toEqual({ ok: true })
+      expect(cached()[0]).toMatchObject({ status: 'partial', content: '' })
+      expect(hook.result.current.stream).toMatchObject({ phase: 'idle', text: '' })
+      openListGate()
+    })
+
+    it('同一块里 stop 之后的 done 不写入缓存', async () => {
+      useStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
+      const hook = setup()
+      holdMessageList()
+      stopAfterFirstCacheWrite(hook)
+      await act(() => hook.result.current.stream.send('c1', 'x'))
+      expect(cachedIds()).not.toContain(a.id)
+      expect(cached()[0]).toMatchObject({ status: 'partial' })
+      openListGate()
+    })
+
+    it('done 之后同一块里的事件被忽略', async () => {
+      const a3 = makeMessage({ id: 'a3', conversationId: 'c1', role: 'ASSISTANT' })
+      useStreamHandler(() =>
+        sseResponse(sseBody([userMessage(), done(), delta('x'), done(a3)])),
+      )
+      const hook = setup()
+      const outcome = await act(() => hook.result.current.stream.send('c1', 'x'))
+      expect(outcome).toEqual({ ok: true })
+      expect(cachedIds()).toEqual([a.id, u.id])
+      expect(hook.result.current.stream).toMatchObject({ phase: 'idle', text: '' })
     })
   })
 })

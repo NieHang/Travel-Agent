@@ -81,6 +81,27 @@ describe('createSseParser', () => {
     ])
   })
 
+  it('多行 data：用换行连接后再按 JSON 解析', () => {
+    const p = createSseParser()
+    expect(p.push(enc('event: delta\ndata: {"text":\ndata: "a"}\n\n'))).toEqual([
+      { event: 'delta', data: { text: 'a' } },
+    ])
+  })
+
+  it('开头的 BOM 被忽略', () => {
+    const p = createSseParser()
+    expect(
+      p.push(Uint8Array.from([0xef, 0xbb, 0xbf, ...enc(delta('a'))])),
+    ).toEqual([{ event: 'delta', data: { text: 'a' } }])
+  })
+
+  it('done 之后同一块里的事件照常解析（由调用方决定是否忽略）', () => {
+    const p = createSseParser()
+    const message = makeMessage({ role: 'ASSISTANT' })
+    const raw = `event: done\ndata: ${JSON.stringify({ message })}\n\n` + delta('x')
+    expect(p.push(enc(raw)).map((e) => e.event)).toEqual(['done', 'delta'])
+  })
+
   it('解析带完整消息的 done 事件', () => {
     const p = createSseParser()
     const message = makeMessage({ role: 'ASSISTANT' })

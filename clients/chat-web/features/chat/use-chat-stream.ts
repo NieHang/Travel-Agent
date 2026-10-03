@@ -73,7 +73,8 @@ export function useChatStream(conversationId: string | null): {
   const phaseRef = useRef<StreamPhase>('idle')
   const activeRef = useRef<string | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
-  const mountedRef = useRef(false)
+  // 初始为 true：挂载 effect 之前发起的 send 也要能更新状态；只有卸载清理把它置 false
+  const mountedRef = useRef(true)
 
   const stop = useCallback(() => {
     controllerRef.current?.abort()
@@ -159,7 +160,14 @@ export function useChatStream(conversationId: string | null): {
 
         try {
           while (reader && !completed) {
-            const chunk = await abortable(reader.read(), signal)
+            let chunk: ReadableStreamReadResult<Uint8Array>
+            try {
+              chunk = await abortable(reader.read(), signal)
+            } catch {
+              // 只吞读流本身的失败：中止走下面的 stop 分支，其余按「流提前结束」处理。
+              // 事件处理里的异常不在此捕获，会在清理后向上抛出
+              break
+            }
             if (chunk.done) break
             for (const event of parser.push(chunk.value)) {
               if (signal.aborted) break
@@ -189,8 +197,6 @@ export function useChatStream(conversationId: string | null): {
             }
             if (signal.aborted) break
           }
-        } catch {
-          // 读流出错：中止走下面的 stop 分支，其余按「流提前结束」处理
         } finally {
           void reader?.cancel().catch(() => {})
         }
@@ -203,24 +209,31 @@ export function useChatStream(conversationId: string | null): {
         }
 
         if (signal.aborted) {
-          void invalidateMessages(queryClient, targetId)
-          if (!gotUserMessage) return { ok: false, error: aborted() }
+          if (!gotUserMessage) {
+            void invalidateMessages(queryClient, targetId)
+            return { ok: false, error: aborted() }
+          }
+          // 先写本地消息再失效：setQueryData 会清掉失效标记，顺序反了则没有观察者时永远不会重新拉取
           upsertMessage(
             queryClient,
             targetId,
             localAssistantMessage(targetId, accText, 'partial', accRequirements),
           )
+          void invalidateMessages(queryClient, targetId)
           return { ok: true }
         }
 
         // 流结束但没有 done / error：不能把已收到的 delta 当成完整回复
-        void invalidateMessages(queryClient, targetId)
-        if (!gotUserMessage) return { ok: false, error: new ApiRequestError('NETWORK', 0) }
+        if (!gotUserMessage) {
+          void invalidateMessages(queryClient, targetId)
+          return { ok: false, error: new ApiRequestError('NETWORK', 0) }
+        }
         upsertMessage(
           queryClient,
           targetId,
           localAssistantMessage(targetId, accText, 'error', accRequirements),
         )
+        void invalidateMessages(queryClient, targetId)
         return { ok: true }
       } finally {
         finish()
