@@ -1,11 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
 import type { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { RegisterRequestSchema, type User } from '@autix/contracts';
 import { AppModule } from '../../src/app.module.js';
 import { AppThrottlerGuard } from '../../src/auth/app-throttler.guard.js';
 import { AuthService } from '../../src/auth/auth.service.js';
+import { AUTH_CONFIG, type AuthConfig } from '../../src/config/auth.config.js';
+import { applyTrustProxy } from '../../src/config/trust-proxy.js';
 import { PrismaService } from '../../src/prisma/prisma.service.js';
 
 /**
@@ -21,7 +24,9 @@ export async function createTestApp(
     builder.overrideGuard(AppThrottlerGuard).useValue({ canActivate: () => true });
   }
   const module = await builder.compile();
-  const app = module.createNestApplication();
+  const app = module.createNestApplication<NestExpressApplication>();
+  // 与 main.ts 相同的代理信任设置，使测试应用里的 req.ip 与线上一致。
+  applyTrustProxy(app, app.get<AuthConfig>(AUTH_CONFIG));
   await app.init();
   return { app, prisma: app.get(PrismaService), server: app.getHttpServer() as Server };
 }
