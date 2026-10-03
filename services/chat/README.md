@@ -41,7 +41,10 @@ bun run db:generate
 初始化迁移包含 `CREATE EXTENSION IF NOT EXISTS "vector"`，迁移用户需要相应权限。
 客户端生成到 `src/generated/prisma`（不提交 Git），构建前需执行 `db:generate`。
 全局 `PrismaModule` 已接入 `AppModule`，服务启动时连接数据库，关闭时断开连接。
-启动前必须配置 `DATABASE_URL`。用户由 user-system 维护，此服务只保存字符串 `userId`。
+启动前必须配置 `DATABASE_URL`。用户由本服务自己维护（`users` 表），会话通过外键 `userId` 归属到用户。
+
+**注意**：迁移 `20261003083124_user_layer` 在加用户外键之前会清空（`TRUNCATE`）`conversations` 与
+`messages` 两张表。不要把它应用到会话数据还有用的数据库上；确需保留时先自行备份。
 
 ## 用户层：环境变量与测试库
 
@@ -51,16 +54,35 @@ bun run db:generate
 | 变量                | 默认                    | 说明                                                            |
 | ------------------- | ----------------------- | --------------------------------------------------------------- |
 | `JWT_ACCESS_SECRET` | 无                      | 必填，至少 32 字符；缺失或过短时启动失败                        |
-| `JWT_ACCESS_TTL`    | `15m`                   | access token 有效期                                             |
+| `JWT_ACCESS_TTL`    | `15m`                   | access token 有效期：正整数加单位 `s`/`m`/`h`/`d`（如 `900s`、`1h`）；格式不对时启动失败 |
 | `REFRESH_TTL_DAYS`  | `30`                    | refresh token 有效期                                            |
 | `COOKIE_SECURE`     | `false`                 | 生产环境设为 `true`                                             |
-| `TRUST_PROXY`       | `false`                 | 是否信任反向代理传来的客户端 IP                                 |
-| `LLM_FAKE`          | 未设置                  | 设为 `1` 时使用假模型，不需要模型密钥；与 `NODE_ENV=production` 同时出现时启动失败 |
+| `TRUST_PROXY`       | `false`                 | 是否信任反向代理传来的客户端 IP；设为 `true` 时只信任紧邻的一跳反向代理 |
+| `LLM_FAKE`          | 未设置                  | 设为 `1` 或 `true` 时使用假模型，不需要模型密钥；与 `NODE_ENV=production` 同时出现时启动失败 |
 | `CORS_ORIGIN`       | `http://localhost:3002` | 允许携带 Cookie 的前端来源                                      |
 
 **首次启动前**，必须在自己的 `services/chat/.env` 里加上 `JWT_ACCESS_SECRET`（32 个字符以上的随机串，
 例如 `openssl rand -base64 48` 的输出），否则 `bun run dev` 会报出 `JWT_ACCESS_SECRET` 相关错误并退出。
 `.env` 不提交 Git。
+
+### 哪些接口需要登录
+
+除 `/api/auth/*` 下的四个接口（`register`、`login`、`refresh`、`logout`）和 `/health` 之外，所有路由都需要
+`Authorization: Bearer <access token>`，原有的演示接口（`/requirement/extract`、`/api/langchain/*`、
+`/api/files/chat`、`/api/embedding/*` 等）也不例外；下文的 curl 示例需要自行加上这个请求头。
+
+`clients/chat-web` 里现有的演示页面调用 `/requirement/extract` 时不带 token，在前端用户层做完之前会收到 401。
+
+`TRUST_PROXY=true` 只信任一跳反向代理：`req.ip` 取紧邻的那一跳代理追加在 `X-Forwarded-For` 末尾的地址。
+服务前面有不止一层代理时，限流与审计里的 IP 会是内层代理的地址。
+
+### 前端接入须知
+
+- refresh token 放在 `SameSite=Lax` 的 Cookie 里。前端与 API 必须同站（same-site），浏览器才会带上它；
+  请求还要加 `credentials: 'include'`，并且前端来源要与 `CORS_ORIGIN` 一致。
+- 只在错误码为 `TOKEN_EXPIRED` 时刷新 access token，其他 401 不要触发刷新。
+- 刷新返回 `REFRESH_INVALID` 而响应没有清除 Cookie 时（多标签页并发刷新，另一个请求已经写入新 Cookie），
+  重试一次；Cookie 被清除了则按未登录处理。
 
 ### 对话接口
 
@@ -69,6 +91,10 @@ bun run db:generate
 `text/event-stream`，每个事件写成 `event: <名>\ndata: <JSON>\n\n`，事件依次为 `user_message`、
 若干 `delta`、可选的 `requirement`，最后是 `done` 或 `error` 之一。流开始前的失败
 （401、`VALIDATION_FAILED`、`CONVERSATION_NOT_FOUND`、`RATE_LIMITED`）是普通 JSON 错误。
+
+客户端的义务：流在没有收到 `done` 或 `error` 事件的情况下结束（连接中断、服务重启等），要当作失败处理，
+不能把已收到的 `delta` 当成完整回复；access token 的刷新与重试规则同上面的"前端接入须知"。
+客户端中途断开时，服务端会把已生成的部分以 `partial` 状态保存。
 
 ### 测试库
 
