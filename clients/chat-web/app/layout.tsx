@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Noto_Sans_SC } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { IntlProvider } from "./intl-provider";
+import { Providers } from "./providers";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/locale";
 import { loadMessages } from "@/i18n/messages";
 import "./globals.css";
@@ -37,7 +38,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <IntlProvider locale={locale} messages={loadMessages(locale)}>
-          {children}
+          <Providers>{children}</Providers>
         </IntlProvider>
       </body>
     </html>
