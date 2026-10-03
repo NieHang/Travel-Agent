@@ -63,6 +63,18 @@ describe('conversations HTTP', () => {
     expect(Object.keys(res.body).sort()).toEqual(['createdAt', 'id', 'title', 'updatedAt']);
   });
 
+  it('创建：没有请求体、空请求体与 {} 都是 201，标题为空串', async () => {
+    const none = await api.post('/api/conversations').expect(201);
+    const empty = await api
+      .post('/api/conversations')
+      .set('Content-Type', 'application/json')
+      .send('')
+      .expect(201);
+    const object = await api.post('/api/conversations').send({}).expect(201);
+    for (const res of [none, empty, object]) expect(res.body).toMatchObject({ title: '' });
+    expect(await prisma.conversation.count({ where: { userId: me, title: '' } })).toBe(3);
+  });
+
   it('列表：只含有消息的会话，按 updatedAt 倒序', async () => {
     await seed(me, 'old', 1, new Date('2026-01-01'));
     await seed(me, 'new', 1, new Date('2026-02-01'));

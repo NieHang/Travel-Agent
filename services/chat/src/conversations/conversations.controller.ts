@@ -42,7 +42,9 @@ export class ConversationsController {
   @Post()
   create(
     @CurrentUser() current: AuthUser,
-    @Body(new ZodValidationPipe(CreateConversationRequestSchema)) body: CreateConversationRequest,
+    // 所有字段都可选：没有请求体（此时 body 为 undefined）等同于 `{}`。
+    @Body(new ZodValidationPipe(CreateConversationRequestSchema.default({})))
+    body: CreateConversationRequest,
   ): Promise<Conversation> {
     return this.conversations.create(current.userId, body.title);
   }
