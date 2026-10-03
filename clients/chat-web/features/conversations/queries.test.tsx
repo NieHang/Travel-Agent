@@ -294,3 +294,159 @@ describe('useDeleteConversation', () => {
     expect(toast).toHaveBeenCalledWith('删除失败', { tone: 'danger' })
   })
 })
+
+describe('并发变更与对齐', () => {
+  const ok204 = () => new HttpResponse(null, { status: 204 })
+  const fail500 = () =>
+    HttpResponse.json({ code: 'INTERNAL_ERROR' }, { status: 500 })
+
+  it('重命名失败（延迟）与并发删除 c2（成功）：c1 恢复旧标题，c2 仍被删除', async () => {
+    server.use(
+      http.patch(apiUrl('/api/conversations/c1'), async () => {
+        await delay(200)
+        return fail500()
+      }),
+      http.delete(apiUrl('/api/conversations/c2'), ok204),
+    )
+    const { Wrapper, queryClient } = createWrapper()
+    seed(queryClient)
+    const rename = renderHook(() => useRenameConversation(), { wrapper: Wrapper })
+    const del = renderHook(() => useDeleteConversation(), { wrapper: Wrapper })
+    act(() => rename.result.current.mutate({ id: 'c1', title: '新标题' }))
+    await waitFor(() =>
+      expect(titleIn(queryClient, conversationsKey(''), 'c1')).toBe('新标题'),
+    )
+    act(() => del.result.current.mutate({ id: 'c2' }))
+    await waitFor(() => expect(rename.result.current.isError).toBe(true))
+    await waitFor(() => expect(del.result.current.isSuccess).toBe(true))
+    for (const q of ['', '里']) {
+      expect(titleIn(queryClient, conversationsKey(q), 'c1')).toBe('旧标题')
+      expect(idsIn(queryClient, conversationsKey(q))).toEqual(['c1'])
+    }
+  })
+
+  it('删除 c2 失败（延迟）与并发重命名 c1（成功）：c2 回到原位，c1 保持新标题', async () => {
+    server.use(
+      http.delete(apiUrl('/api/conversations/c2'), async () => {
+        await delay(200)
+        return fail500()
+      }),
+      http.patch(apiUrl('/api/conversations/c1'), () =>
+        HttpResponse.json(makeConversation({ id: 'c1', title: '新标题' })),
+      ),
+    )
+    const { Wrapper, queryClient } = createWrapper()
+    seed(queryClient)
+    const rename = renderHook(() => useRenameConversation(), { wrapper: Wrapper })
+    const del = renderHook(() => useDeleteConversation(), { wrapper: Wrapper })
+    act(() => del.result.current.mutate({ id: 'c2' }))
+    await waitFor(() =>
+      expect(idsIn(queryClient, conversationsKey(''))).toEqual(['c1']),
+    )
+    act(() => rename.result.current.mutate({ id: 'c1', title: '新标题' }))
+    await waitFor(() => expect(rename.result.current.isSuccess).toBe(true))
+    await waitFor(() => expect(del.result.current.isError).toBe(true))
+    for (const q of ['', '里']) {
+      expect(idsIn(queryClient, conversationsKey(q))).toEqual(['c1', 'c2'])
+      expect(titleIn(queryClient, conversationsKey(q), 'c1')).toBe('新标题')
+    }
+  })
+
+  it('目标在第二页：乐观重命名与删除都作用于该页；删除失败后回到第二页原位', async () => {
+    server.use(
+      http.patch(apiUrl('/api/conversations/c4'), async () => {
+        await delay(50)
+        return HttpResponse.json(makeConversation({ id: 'c4', title: '改' }))
+      }),
+      http.delete(apiUrl('/api/conversations/c4'), async () => {
+        await delay(100)
+        return fail500()
+      }),
+    )
+    const { Wrapper, queryClient } = createWrapper()
+    queryClient.setQueryData<InfiniteData<Page<Conversation>>>(
+      conversationsKey(''),
+      {
+        pages: [
+          page([makeConversation({ id: 'c1' }), makeConversation({ id: 'c2' })], 'x'),
+          page([
+            makeConversation({ id: 'c3' }),
+            makeConversation({ id: 'c4', title: '原' }),
+            makeConversation({ id: 'c5' }),
+          ]),
+        ],
+        pageParams: [undefined, 'x'],
+      },
+    )
+    const rename = renderHook(() => useRenameConversation(), { wrapper: Wrapper })
+    const del = renderHook(() => useDeleteConversation(), { wrapper: Wrapper })
+    act(() => rename.result.current.mutate({ id: 'c4', title: '改' }))
+    await waitFor(() =>
+      expect(titleIn(queryClient, conversationsKey(''), 'c4')).toBe('改'),
+    )
+    await waitFor(() => expect(rename.result.current.isSuccess).toBe(true))
+    act(() => del.result.current.mutate({ id: 'c4' }))
+    await waitFor(() =>
+      expect(idsIn(queryClient, conversationsKey(''))).toEqual(['c1', 'c2', 'c3', 'c5']),
+    )
+    await waitFor(() => expect(del.result.current.isError).toBe(true))
+    const data = queryClient.getQueryData<InfiniteData<Page<Conversation>>>(
+      conversationsKey(''),
+    )
+    expect(data?.pages[0].items.map((c) => c.id)).toEqual(['c1', 'c2'])
+    expect(data?.pages[1].items.map((c) => c.id)).toEqual(['c3', 'c4', 'c5'])
+  })
+
+  describe('对齐', () => {
+    function countList() {
+      const count = { n: 0 }
+      server.use(
+        http.get(apiUrl('/api/conversations'), () => {
+          count.n += 1
+          return HttpResponse.json(page([makeConversation({ id: 'c1' })]))
+        }),
+      )
+      return count
+    }
+
+    it('删除成功后重新请求列表', async () => {
+      const count = countList()
+      server.use(http.delete(apiUrl('/api/conversations/c1'), ok204))
+      const { Wrapper } = createWrapper()
+      const list = renderHook(() => useConversations(''), { wrapper: Wrapper })
+      const del = renderHook(() => useDeleteConversation(), { wrapper: Wrapper })
+      await waitFor(() => expect(list.result.current.isSuccess).toBe(true))
+      expect(count.n).toBe(1)
+      act(() => del.result.current.mutate({ id: 'c1' }))
+      await waitFor(() => expect(count.n).toBe(2))
+    })
+
+    it('重命名失败后重新请求列表', async () => {
+      const count = countList()
+      server.use(http.patch(apiUrl('/api/conversations/c1'), fail500))
+      const { Wrapper } = createWrapper()
+      const list = renderHook(() => useConversations(''), { wrapper: Wrapper })
+      const rename = renderHook(() => useRenameConversation(), { wrapper: Wrapper })
+      await waitFor(() => expect(list.result.current.isSuccess).toBe(true))
+      act(() => rename.result.current.mutate({ id: 'c1', title: 'x' }))
+      await waitFor(() => expect(count.n).toBe(2))
+    })
+
+    it('重命名成功后不重新请求列表', async () => {
+      const count = countList()
+      server.use(
+        http.patch(apiUrl('/api/conversations/c1'), () =>
+          HttpResponse.json(makeConversation({ id: 'c1', title: 'x' })),
+        ),
+      )
+      const { Wrapper } = createWrapper()
+      const list = renderHook(() => useConversations(''), { wrapper: Wrapper })
+      const rename = renderHook(() => useRenameConversation(), { wrapper: Wrapper })
+      await waitFor(() => expect(list.result.current.isSuccess).toBe(true))
+      act(() => rename.result.current.mutate({ id: 'c1', title: 'x' }))
+      await waitFor(() => expect(rename.result.current.isSuccess).toBe(true))
+      await new Promise((r) => setTimeout(r, 100))
+      expect(count.n).toBe(1)
+    })
+  })
+})

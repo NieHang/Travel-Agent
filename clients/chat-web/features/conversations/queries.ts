@@ -22,14 +22,21 @@ import {
 } from './api'
 
 type ConversationPages = InfiniteData<Page<Conversation>>
-type Snapshot = [QueryKey, ConversationPages | undefined][]
+type RenameContext = { previousTitle: string | undefined }
+type Removed = {
+  key: QueryKey
+  pageIndex: number
+  index: number
+  item: Conversation
+}
+type DeleteContext = { removed: Removed[] }
 
 const CONVERSATIONS_ROOT = ['conversations'] as const
 const MAX_RETRIES = 3
 
 export const conversationsKey = (q: string) =>
   ['conversations', { q }] as const
-export const messagesKey = (id: string) => ['messages', id] as const
+export const messagesKey = (id: string | null) => ['messages', id] as const
 
 function retryUnlessNotFound(count: number, error: Error): boolean {
   if (error instanceof ApiRequestError && error.code === 'CONVERSATION_NOT_FOUND') {
@@ -62,10 +69,10 @@ export function useMessages(
     Page<Message>,
     ApiRequestError,
     InfiniteData<Page<Message>>,
-    readonly ['messages', string | null],
+    ReturnType<typeof messagesKey>,
     string | undefined
   >({
-    queryKey: ['messages', id],
+    queryKey: messagesKey(id),
     queryFn: ({ pageParam }) => listMessages(id as string, { cursor: pageParam }),
     initialPageParam: undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
@@ -75,15 +82,10 @@ export function useMessages(
   })
 }
 
-/** 取消在途的列表查询、快照所有 ['conversations', *] 缓存，再套用乐观变换。 */
-async function applyOptimistic(
+function mapItems(
   queryClient: QueryClient,
   transform: (items: Conversation[]) => Conversation[],
-): Promise<Snapshot> {
-  await queryClient.cancelQueries({ queryKey: CONVERSATIONS_ROOT })
-  const snapshot = queryClient.getQueriesData<ConversationPages>({
-    queryKey: CONVERSATIONS_ROOT,
-  })
+) {
   queryClient.setQueriesData<ConversationPages>(
     { queryKey: CONVERSATIONS_ROOT },
     (data) =>
@@ -95,18 +97,26 @@ async function applyOptimistic(
         })),
       },
   )
-  return snapshot
 }
 
-function restore(queryClient: QueryClient, snapshot: Snapshot | undefined) {
-  for (const [key, data] of snapshot ?? []) queryClient.setQueryData(key, data)
+function findTitle(queryClient: QueryClient, id: string): string | undefined {
+  const entries = queryClient.getQueriesData<ConversationPages>({
+    queryKey: CONVERSATIONS_ROOT,
+  })
+  for (const [, data] of entries) {
+    for (const page of data?.pages ?? []) {
+      const found = page.items.find((c) => c.id === id)
+      if (found) return found.title
+    }
+  }
+  return undefined
 }
 
 export function useRenameConversation(): UseMutationResult<
   Conversation,
   ApiRequestError,
   { id: string; title: string },
-  Snapshot
+  RenameContext
 > {
   const queryClient = useQueryClient()
   const t = useTranslations('drawer')
@@ -114,16 +124,28 @@ export function useRenameConversation(): UseMutationResult<
     Conversation,
     ApiRequestError,
     { id: string; title: string },
-    Snapshot
+    RenameContext
   >({
     mutationFn: ({ id, title }) => renameConversation(id, title),
-    onMutate: ({ id, title }) =>
-      applyOptimistic(queryClient, (items) =>
+    onMutate: async ({ id, title }) => {
+      await queryClient.cancelQueries({ queryKey: CONVERSATIONS_ROOT })
+      const previousTitle = findTitle(queryClient, id)
+      mapItems(queryClient, (items) =>
         items.map((c) => (c.id === id ? { ...c, title } : c)),
-      ),
-    onError: (_error, _vars, snapshot) => {
-      restore(queryClient, snapshot)
+      )
+      return { previousTitle }
+    },
+    onError: (_error, { id }, context) => {
+      // 只还原本条的标题，不动并发变更对其他条目的修改
+      const previous = context?.previousTitle
+      if (previous !== undefined) {
+        mapItems(queryClient, (items) =>
+          items.map((c) => (c.id === id ? { ...c, title: previous } : c)),
+        )
+      }
       toast(t('renameFailed'), { tone: 'danger' })
+      // 被取消的请求不会自动补回，失败后与服务端对齐
+      void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_ROOT })
     },
   })
 }
@@ -132,20 +154,52 @@ export function useDeleteConversation(): UseMutationResult<
   void,
   ApiRequestError,
   { id: string },
-  Snapshot
+  DeleteContext
 > {
   const queryClient = useQueryClient()
   const t = useTranslations('drawer')
-  return useMutation<void, ApiRequestError, { id: string }, Snapshot>({
+  return useMutation<void, ApiRequestError, { id: string }, DeleteContext>({
     mutationFn: ({ id }) => deleteConversation(id),
-    onMutate: ({ id }) =>
-      applyOptimistic(queryClient, (items) => items.filter((c) => c.id !== id)),
-    onError: (_error, _vars, snapshot) => {
-      restore(queryClient, snapshot)
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: CONVERSATIONS_ROOT })
+      const removed: Removed[] = []
+      for (const [key, data] of queryClient.getQueriesData<ConversationPages>({
+        queryKey: CONVERSATIONS_ROOT,
+      })) {
+        data?.pages.forEach((page, pageIndex) => {
+          const index = page.items.findIndex((c) => c.id === id)
+          if (index >= 0) {
+            removed.push({ key, pageIndex, index, item: page.items[index] })
+          }
+        })
+      }
+      mapItems(queryClient, (items) => items.filter((c) => c.id !== id))
+      return { removed }
+    },
+    onError: (_error, _vars, context) => {
+      // 只把本条放回原页原位，不动其他条目
+      for (const { key, pageIndex, index, item } of context?.removed ?? []) {
+        queryClient.setQueryData<ConversationPages>(key, (data) => {
+          if (!data || data.pages.length === 0) return data
+          const target = Math.min(pageIndex, data.pages.length - 1)
+          const pages = data.pages.map((page, i) => {
+            if (i !== target || page.items.some((c) => c.id === item.id)) {
+              return page
+            }
+            const items = [...page.items]
+            items.splice(Math.min(index, items.length), 0, item)
+            return { ...page, items }
+          })
+          return { ...data, pages }
+        })
+      }
       toast(t('deleteFailed'), { tone: 'danger' })
     },
     onSuccess: (_data, { id }) => {
       queryClient.removeQueries({ queryKey: messagesKey(id) })
     },
+    // 取消过的请求不会自动补回；无论成败都重新对齐分页
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: CONVERSATIONS_ROOT }),
   })
 }
