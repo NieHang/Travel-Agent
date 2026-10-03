@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ChatStreamEvent, MessageMetadata, Requirement } from '@autix/contracts';
 import { AppException } from '../common/app.exception.js';
+import { errorName } from '../common/error-name.js';
 import { toMessageContract, type MessageRow } from '../conversations/conversations.service.js';
 import { Prisma, type MessageStatus } from '../generated/prisma/client.js';
 import {
@@ -119,7 +120,9 @@ export class ChatService {
         (error: unknown) => {
           // 被我们自己中止而失败的不算抽取失败：metadata 只反映中止之前真正到达的结果。
           if (abort.signal.aborted) return;
-          this.logger.warn(`Requirement extraction failed: ${String(error)}`);
+          this.logger.warn(
+            `Requirement extraction failed (${errorName(error)}) conversation=${conversationId}`,
+          );
           extraction ??= 'failed';
         },
       );
@@ -149,7 +152,7 @@ export class ChatService {
       } catch (error) {
         // 信号中止之后抛出的任何错误都算客户端中止，由 finally 存成 partial。
         if (abort.signal.aborted) return;
-        this.logger.error(`Model stream failed: ${String(error)}`);
+        this.logger.error(`Model stream failed (${errorName(error)}) conversation=${conversationId}`);
         failed = true;
         // 抽取结果已经用不上了，连同它一起中止。从这里起不再用信号区分出口，只看 failed。
         abort.abort();

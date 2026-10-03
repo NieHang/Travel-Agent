@@ -4,6 +4,7 @@ import { SendMessageRequestSchema, type SendMessageRequest } from '@autix/contra
 import type { Response } from 'express';
 import { AppThrottlerGuard } from '../auth/app-throttler.guard.js';
 import { CurrentUser, type AuthUser } from '../auth/decorators.js';
+import { errorName } from '../common/error-name.js';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { ConversationsService } from '../conversations/conversations.service.js';
 import { ChatService } from './chat.service.js';
@@ -37,6 +38,8 @@ export class ChatController {
     const abort = new AbortController();
     const onClose = () => abort.abort();
     res.on('close', onClose);
+    // 归属校验期间连接就断开的话，close 事件已经错过了。
+    if (res.destroyed || res.closed) abort.abort();
     try {
       for await (const event of this.chat.send(id, body.content, abort.signal)) {
         if (abort.signal.aborted) break;
@@ -53,7 +56,7 @@ export class ChatController {
     } catch (error) {
       // 流还没开始：交给全局异常过滤器，按普通 JSON 错误返回。
       if (!res.headersSent && !abort.signal.aborted) throw error;
-      this.logger.error(error);
+      this.logger.error(`Chat stream failed (${errorName(error)}) conversation=${id}`);
       if (!abort.signal.aborted) res.end();
     } finally {
       res.off('close', onClose);

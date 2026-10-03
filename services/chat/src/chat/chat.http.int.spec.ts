@@ -1,9 +1,11 @@
-import type { Server } from 'node:http';
+import { request as httpRequest, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ChatStreamEventSchema } from '@autix/contracts';
 import { bearer, createTestApp, createUser } from '../../test/helpers/app.js';
 import { resetDb } from '../../test/helpers/db.js';
+import { CHAT_REPLY_PORT, type ChatReplyPort } from '../llm/chat-reply/chat-reply.port.js';
 import { FAKE_REPLY_CHUNKS, FAKE_REQUIREMENTS } from '../llm/chat-reply/fakes.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
@@ -18,6 +20,44 @@ function parseSse(text: string): { event: string; data: any }[] {
       const data = lines.find((l) => l.startsWith('data: '))!.slice('data: '.length);
       return { event, data: JSON.parse(data) };
     });
+}
+
+const FIRST_CHUNK = '第一块';
+const SLOW_WAIT_MS = 10_000;
+
+/** 输出首块后一直等到信号中止（或很久之后），记下收到的信号。 */
+function slowPort(): ChatReplyPort & { signal: AbortSignal | undefined } {
+  const fake: ChatReplyPort & { signal: AbortSignal | undefined } = {
+    signal: undefined,
+    async *streamReply(_history, signal) {
+      fake.signal = signal;
+      yield FIRST_CHUNK;
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, SLOW_WAIT_MS);
+        timer.unref();
+        const onAbort = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+        if (signal.aborted) onAbort();
+        else signal.addEventListener('abort', onAbort, { once: true });
+      });
+      if (signal.aborted) return;
+      yield '不该出现的第二块';
+    },
+  };
+  return fake;
+}
+
+/** 轮询直到 `read` 给出非空结果，超时则抛错。 */
+async function eventually<T>(read: () => Promise<T | null>, timeoutMs = 5_000): Promise<T> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const value = await read();
+    if (value !== null) return value;
+    if (Date.now() > deadline) throw new Error(`condition not met within ${timeoutMs}ms`);
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
 }
 
 describe('chat HTTP', () => {
@@ -129,6 +169,61 @@ describe('chat HTTP', () => {
       .expect(200);
     expect(page.body.items.map((m: { role: string }) => m.role)).toEqual(['ASSISTANT', 'USER']);
   });
+
+  it('客户端中途断开：助手消息以 partial 落库，模型调用被中止', async () => {
+    const slow = slowPort();
+    const slowApp = await createTestApp({
+      configure: (builder) => builder.overrideProvider(CHAT_REPLY_PORT).useValue(slow),
+    });
+    try {
+      // supertest 会把整个响应读完；这里要在流的中途断开，所以监听真实端口并用原生请求。
+      await slowApp.app.listen(0, '127.0.0.1');
+      const { port } = slowApp.server.address() as AddressInfo;
+      const payload = JSON.stringify({ content: '去里斯本' });
+
+      let received = '';
+      await new Promise<void>((resolve, reject) => {
+        const req = httpRequest(
+          {
+            host: '127.0.0.1',
+            port,
+            method: 'POST',
+            path: `/api/conversations/${id}/messages`,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(payload),
+            },
+          },
+          (res) => {
+            res.setEncoding('utf8');
+            res.on('error', () => undefined);
+            res.on('end', () => reject(new Error('stream ended before the client disconnected')));
+            res.on('data', (chunk: string) => {
+              received += chunk;
+              if (!received.includes('event: delta')) return;
+              req.destroy();
+              resolve();
+            });
+          },
+        );
+        req.on('error', reject);
+        req.end(payload);
+      });
+
+      const assistant = await eventually(() =>
+        prisma.message.findFirst({ where: { conversationId: id, role: 'ASSISTANT' } }),
+      );
+      expect(assistant).toMatchObject({ status: 'partial', content: FIRST_CHUNK });
+      expect(await prisma.message.count({ where: { conversationId: id } })).toBe(2);
+      expect(slow.signal?.aborted).toBe(true);
+      expect(received).toContain('event: user_message');
+      expect(received).not.toContain('event: done');
+      expect(received).not.toContain('event: error');
+    } finally {
+      await slowApp.app.close();
+    }
+  }, 20_000);
 
   it('限流：每用户每分钟 20 次，互不影响', async () => {
     const throttled = await createTestApp({ throttling: true });

@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { inspect } from 'node:util';
 import { Logger } from '@nestjs/common';
 import type { ChatStreamEvent, RequirementResult } from '@autix/contracts';
 import { createTestPrisma, resetDb } from '../../test/helpers/db.js';
@@ -193,6 +194,42 @@ describe('ChatService.send', () => {
     expect(events.map((e) => e.event)).not.toContain('requirement');
     expect(events.at(-1)!.event).toBe('done');
     expect((await lastAssistant()).metadata).toEqual({ requirementError: true });
+  });
+
+  it('抽取失败的日志只有固定描述、错误类名与会话 id，不含错误消息', async () => {
+    const sentinel = 'SENTINEL-user-text-41c9';
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const failing: Extractor = {
+      extract: () => Promise.reject(new SyntaxError(`could not parse model output: ${sentinel}`)),
+    };
+    const events = await collect(chat(port(['ok']), failing).send(id, sentinel, signal));
+    expect(events.at(-1)!.event).toBe('done');
+    expect(warn).toHaveBeenCalledTimes(1);
+    const logged = inspect(warn.mock.calls, { depth: 10 });
+    expect(logged).not.toContain(sentinel);
+    expect(logged).toContain('SyntaxError');
+    expect(logged).toContain(id);
+    for (const arg of warn.mock.calls[0]) expect(typeof arg).toBe('string');
+  });
+
+  it('上游出错的日志只有固定描述、错误类名与会话 id，不含错误消息', async () => {
+    const sentinel = 'SENTINEL-user-text-9d02';
+    const error = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const failing: ChatReplyPort = {
+      streamReply: () => ({
+        [Symbol.asyncIterator]: () => ({
+          next: () => Promise.reject(new RangeError(`upstream rejected: ${sentinel}`)),
+        }),
+      }),
+    };
+    const events = await collect(chat(failing, extractEmpty).send(id, sentinel, signal));
+    expect(events.at(-1)!.event).toBe('error');
+    expect(error).toHaveBeenCalledTimes(1);
+    const logged = inspect(error.mock.calls, { depth: 10 });
+    expect(logged).not.toContain(sentinel);
+    expect(logged).toContain('RangeError');
+    expect(logged).toContain(id);
+    for (const arg of error.mock.calls[0]) expect(typeof arg).toBe('string');
   });
 
   it('抽取结果为空：无 requirement 事件，metadata 为 null', async () => {

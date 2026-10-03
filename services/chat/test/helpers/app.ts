@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
 import type { INestApplication } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { Test } from '@nestjs/testing';
+import { Test, type TestingModuleBuilder } from '@nestjs/testing';
 import { RegisterRequestSchema, type User } from '@autix/contracts';
 import { AppModule } from '../../src/app.module.js';
 import { AppThrottlerGuard } from '../../src/auth/app-throttler.guard.js';
@@ -14,15 +14,17 @@ import { PrismaService } from '../../src/prisma/prisma.service.js';
 /**
  * 完整的 AppModule 加真实测试库。只能在 test/setup-int.ts 加载 .env.test 之后调用。
  * 每次调用都是一个新应用，限流计数从零开始；默认关闭限流。
+ * `configure` 在编译前拿到 builder，用来替换个别 provider。
  */
 export async function createTestApp(
-  opts: { throttling?: boolean } = {},
+  opts: { throttling?: boolean; configure?: (builder: TestingModuleBuilder) => void } = {},
 ): Promise<{ app: INestApplication; prisma: PrismaService; server: Server }> {
   const builder = Test.createTestingModule({ imports: [AppModule] });
   if (!opts.throttling) {
     // 它通过 @UseGuards 绑定，是 enhancer 而不是 provider：overrideProvider 换不掉它。
     builder.overrideGuard(AppThrottlerGuard).useValue({ canActivate: () => true });
   }
+  opts.configure?.(builder);
   const module = await builder.compile();
   const app = module.createNestApplication<NestExpressApplication>();
   // 与 main.ts 相同的代理信任设置，使测试应用里的 req.ip 与线上一致。
