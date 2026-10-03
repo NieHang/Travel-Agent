@@ -146,3 +146,6 @@ vite.config.ts.timestamp-*
 
 # Turborepo local cache
 .turbo
+
+# claude
+.claude
