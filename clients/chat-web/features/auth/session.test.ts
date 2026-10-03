@@ -5,7 +5,14 @@ import { makeUser } from '@/test/fixtures'
 import { ApiRequestError } from './api-client'
 import { authStore } from './auth-store'
 import { resetRefreshForTests } from './refresh'
-import { listenForLogout, login, logout, register } from './session'
+import {
+  LOGOUT_TIMEOUT_MS,
+  listenForLogout,
+  login,
+  logout,
+  register,
+  resetChannelForTests,
+} from './session'
 
 const user = makeUser()
 
@@ -13,18 +20,28 @@ class FakeChannel {
   static instances: FakeChannel[] = []
   posted: unknown[] = []
   closed = false
-  onmessage: ((event: { data: unknown }) => void) | null = null
+  private listeners = new Set<(event: { data: unknown }) => void>()
   constructor(readonly name: string) {
     FakeChannel.instances.push(this)
   }
+  // like the real one: delivered to sibling instances of the same name, never to the sender
   postMessage(data: unknown) {
     this.posted.push(data)
+    for (const other of FakeChannel.instances) {
+      if (other !== this && other.name === this.name && !other.closed) other.receive(data)
+    }
+  }
+  addEventListener(_type: string, fn: (event: { data: unknown }) => void) {
+    this.listeners.add(fn)
+  }
+  removeEventListener(_type: string, fn: (event: { data: unknown }) => void) {
+    this.listeners.delete(fn)
   }
   close() {
     this.closed = true
   }
-  deliver(data: unknown) {
-    this.onmessage?.({ data })
+  receive(data: unknown) {
+    for (const fn of [...this.listeners]) fn({ data })
   }
 }
 
@@ -33,6 +50,7 @@ let queryClient: QueryClient
 beforeEach(() => {
   authStore.reset()
   resetRefreshForTests()
+  resetChannelForTests()
   FakeChannel.instances = []
   vi.stubGlobal('BroadcastChannel', FakeChannel)
   queryClient = new QueryClient()
@@ -113,19 +131,18 @@ it('收到广播：置为 guest 并清空缓存，且不再广播', () => {
   authStore.setAuthed({ accessToken: 't', user })
   seedCache()
   const off = listenForLogout(queryClient)
-  const channel = FakeChannel.instances[0]
-  channel.deliver({ type: 'logout' })
+  const other = new FakeChannel('hilda:auth')
+  other.postMessage({ type: 'logout' })
   expect(authStore.getState()).toEqual({ status: 'guest', reason: null })
   expect(queryClient.getQueryCache().getAll()).toHaveLength(0)
-  expect(FakeChannel.instances.flatMap((c) => c.posted)).toEqual([])
+  expect(FakeChannel.instances.filter((c) => c !== other).flatMap((c) => c.posted)).toEqual([])
   off()
-  expect(channel.closed).toBe(true)
 })
 
 it('无关消息被忽略', () => {
   authStore.setAuthed({ accessToken: 't', user })
   listenForLogout(queryClient)
-  FakeChannel.instances[0].deliver({ type: 'other' })
+  new FakeChannel('hilda:auth').postMessage({ type: 'other' })
   expect(authStore.getState().status).toBe('authed')
 })
 
@@ -138,4 +155,55 @@ it('BroadcastChannel 不存在时 logout 与 listenForLogout 都不抛错', asyn
   expect(() => off()).not.toThrow()
   await expect(logout(queryClient)).resolves.toBeUndefined()
   expect(authStore.getState().status).toBe('guest')
+})
+
+it('同一标签页既监听又登出：不会收到自己的广播，只置 guest 与清缓存各一次', async () => {
+  server.use(
+    http.post(apiUrl('/api/auth/logout'), () => new HttpResponse(null, { status: 204 })),
+  )
+  authStore.setAuthed({ accessToken: 't', user })
+  seedCache()
+  const clear = vi.spyOn(queryClient, 'clear')
+  const off = listenForLogout(queryClient)
+  const before = authStore.getGeneration()
+  await logout(queryClient)
+  expect(authStore.getGeneration()).toBe(before + 1)
+  expect(clear).toHaveBeenCalledTimes(1)
+  off()
+})
+
+it('logout 请求不带 Authorization，也不触发刷新', async () => {
+  let auth: string | null = 'unset'
+  let refreshCalls = 0
+  server.use(
+    http.post(apiUrl('/api/auth/logout'), ({ request }) => {
+      auth = request.headers.get('Authorization')
+      return HttpResponse.json({ code: 'TOKEN_EXPIRED', message: '' }, { status: 401 })
+    }),
+    http.post(apiUrl('/api/auth/refresh'), () => {
+      refreshCalls += 1
+      return HttpResponse.json({ accessToken: 'new', user })
+    }),
+  )
+  authStore.setAuthed({ accessToken: 'secret', user })
+  await logout(queryClient)
+  expect(auth).toBeNull()
+  expect(refreshCalls).toBe(0)
+  expect(authStore.getState().status).toBe('guest')
+})
+
+it('logout 请求无响应：超时后仍置为 guest', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  try {
+    server.use(http.post(apiUrl('/api/auth/logout'), () => new Promise<Response>(() => {})))
+    authStore.setAuthed({ accessToken: 't', user })
+    const done = logout(queryClient)
+    for (let i = 0; i < 20; i += 1) await new Promise((r) => setImmediate(r))
+    expect(authStore.getState().status).toBe('authed')
+    await vi.advanceTimersByTimeAsync(LOGOUT_TIMEOUT_MS)
+    await done
+    expect(authStore.getState().status).toBe('guest')
+  } finally {
+    vi.useRealTimers()
+  }
 })
