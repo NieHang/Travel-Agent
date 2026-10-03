@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, type ReactNode } from 'react'
+import { Toaster } from '@/components/ui/toast'
 import { useAccountLocaleSync } from '@/features/auth/use-account-locale-sync'
 import { bootstrapAuth } from '@/features/auth/refresh'
 import { listenForLogout } from '@/features/auth/session'
@@ -35,6 +36,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <AuthEffects />
       <LogoutListener queryClient={queryClient} />
       {children}
+      <Toaster />
     </QueryClientProvider>
   )
 }

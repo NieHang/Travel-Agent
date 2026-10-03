@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'motion/react'
 import { useTranslations } from 'next-intl'
+import { LogoDot } from './Logo'
 
 export function BrandLoader() {
   const t = useTranslations('common')
@@ -14,10 +15,12 @@ export function BrandLoader() {
     >
       <motion.span
         aria-hidden
-        className="block size-6 rounded-full bg-lime"
+        className="block"
         animate={reduced ? { opacity: [1, 0.5, 1] } : { scale: [1, 1.5, 1] }}
         transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-      />
+      >
+        <LogoDot className="bg-lime" />
+      </motion.span>
     </div>
   )
 }

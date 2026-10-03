@@ -31,6 +31,15 @@
     outline-offset: 2px;
   }
 
+  /* HeroUI 的聚焦环读取 --focus；映射到 ink，ink 底上为 lime（spec 8.6） */
+  :root {
+    --focus: var(--color-ink);
+  }
+
+  [data-on-ink] {
+    --focus: var(--color-lime);
+  }
+
   [data-on-ink] :focus-visible,
   [data-on-ink]:focus-visible {
     outline-color: var(--color-lime);
