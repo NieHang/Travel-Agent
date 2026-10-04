@@ -57,3 +57,9 @@
     letter-spacing: -0.02em;
   }
 }
+
+@layer components {
+  .image-placeholder {
+    background: repeating-linear-gradient(135deg, var(--color-paper) 0 10px, color-mix(in srgb, var(--color-ink) 10%, var(--color-paper)) 10px 20px);
+  }
+}

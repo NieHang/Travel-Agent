@@ -18,7 +18,7 @@ export function staggerDelay(index: number): number {
 export function enter(
   index = 0,
   reduced = false,
-): { initial: object; animate: object; transition: object } {
+) {
   return {
     initial: reduced ? { opacity: 0 } : { opacity: 0, y: 12 },
     animate: reduced ? { opacity: 1 } : { opacity: 1, y: 0 },

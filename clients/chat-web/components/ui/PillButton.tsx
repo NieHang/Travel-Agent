@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, useReducedMotion } from 'motion/react'
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { springs } from '@/lib/motion'
 
 type Variant = 'ink' | 'lime' | 'pink' | 'ghost' | 'danger'
@@ -38,6 +38,7 @@ export type PillButtonProps = {
   type?: 'button' | 'submit'
   onClick?: () => void
   autoFocus?: boolean
+  ref?: Ref<HTMLButtonElement>
   children: ReactNode
 }
 
@@ -50,6 +51,7 @@ export function PillButton({
   type = 'button',
   onClick,
   autoFocus,
+  ref,
   children,
   ...aria
 }: PillButtonProps) {
@@ -58,6 +60,7 @@ export function PillButton({
   const feedback = !inert && !reduced
   return (
     <motion.button
+      ref={ref}
       type={loading ? 'button' : type}
       disabled={disabled}
       autoFocus={autoFocus}

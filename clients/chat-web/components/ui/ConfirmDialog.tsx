@@ -1,6 +1,7 @@
 'use client'
 
 import { AlertDialog } from '@heroui/react'
+import { useEffect, useRef } from 'react'
 import { PillButton } from './PillButton'
 
 export function ConfirmDialog({
@@ -20,6 +21,13 @@ export function ConfirmDialog({
   onConfirm(): void
   onCancel(): void
 }) {
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!open) return
+    // 菜单关闭与嵌套模态框都会恢复焦点；最后把焦点放在安全的取消操作上。
+    const timer = setTimeout(() => cancelRef.current?.focus(), 0)
+    return () => clearTimeout(timer)
+  }, [open])
   return (
     <AlertDialog.Backdrop
       isOpen={open}
@@ -37,7 +45,7 @@ export function ConfirmDialog({
             <p>{body}</p>
           </AlertDialog.Body>
           <AlertDialog.Footer className="flex justify-end gap-2">
-            <PillButton variant="ghost" size="sm" autoFocus onClick={onCancel}>
+            <PillButton ref={cancelRef} variant="ghost" size="sm" autoFocus onClick={onCancel}>
               {cancelLabel}
             </PillButton>
             <PillButton variant="danger" size="sm" onClick={onConfirm}>

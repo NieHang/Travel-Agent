@@ -4,7 +4,7 @@ import type { Message, Page } from '@autix/contracts'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { ArrowDown } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Chip } from '@/components/ui/Chip'
 import { LogoDot } from '@/components/ui/Logo'
@@ -14,16 +14,19 @@ import { ApiRequestError } from '@/features/auth/api-client'
 import { useAuth } from '@/features/auth/auth-store'
 import { usePendingPrompt } from '@/features/auth/pending-prompt'
 import { createConversation } from '@/features/conversations/api'
+import { HistoryDrawer } from '@/features/conversations/HistoryDrawer'
 import { messagesKey, useMessages } from '@/features/conversations/queries'
 import { useCountdown } from '@/lib/use-countdown'
 import { BG_TRANSITION } from '@/lib/motion'
+import { PanelTabs, SaveTripButton, TripPanels } from '@/features/panels/TripPanels'
+import { getTripMock } from '@/features/panels/mock'
+import { STAGE_COLOR, type PanelTab } from '@/features/panels/mock/types'
 import { Composer } from './Composer'
 import { MessageList, SkeletonBubbles } from './MessageList'
 import { TopBar } from './TopBar'
 import { useChatStream, type SendOutcome } from './use-chat-stream'
 import { useStickToBottom } from './use-stick-to-bottom'
 
-const DEFAULT_BACKGROUND = 'var(--color-stage-orange)'
 const CHIP_COUNT = 4
 
 /** '/chat' → null；'/chat/abc' → 'abc'；多于一段取第一段。 */
@@ -63,11 +66,14 @@ export function ChatScreen(): ReactNode {
 
   const [input, setInput] = useState('')
   const [drawerOpen, setDrawerOpen] = useState(false)
-  // 背景色只在这里持有；任务 13 按右侧主标签驱动它
-  const [background] = useState(DEFAULT_BACKGROUND)
+  const [panelTab, setPanelTab] = useState<PanelTab>('plan')
+  const background = STAGE_COLOR[panelTab]
+  const locale = useLocale()
+  const panelData = getTripMock(locale === 'en' ? 'en' : 'zh')
   const [missingId, setMissingId] = useState<string | null>(null)
   const countdown = useCountdown()
   const composerRef = useRef<HTMLTextAreaElement>(null)
+  const drawerButtonRef = useRef<HTMLButtonElement>(null)
   const busyRef = useRef(false)
 
   const stream = useChatStream(id)
@@ -213,9 +219,14 @@ export function ChatScreen(): ReactNode {
       style={{ backgroundColor: background, transition: BG_TRANSITION }}
     >
       <TopBar
+        center={<div className="hidden lg:block"><PanelTabs tab={panelTab} onChange={setPanelTab} /></div>}
+        right={<div className="hidden lg:block"><SaveTripButton /></div>}
+        drawerButtonRef={drawerButtonRef}
         drawerOpen={drawerOpen}
         onToggleDrawer={() => setDrawerOpen((open) => !open)}
       />
+      <HistoryDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} activeId={viewId}
+        isBlankNewChat={viewId === null && input === ''} returnFocusRef={drawerButtonRef} />
       <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 sm:px-6">
         <section className="flex min-h-0 w-full flex-col gap-3 lg:w-[42%]">
           <div className="flex items-center gap-3">
@@ -261,7 +272,7 @@ export function ChatScreen(): ReactNode {
             onStop={stream.stop}
           />
         </section>
-        <aside className="hidden min-h-0 flex-1 rounded-panel bg-ink lg:block" />
+        <aside className="hidden min-h-0 flex-1 overflow-y-auto rounded-panel bg-ink lg:block"><TripPanels tab={panelTab} data={panelData} /></aside>
       </div>
     </div>
   )

@@ -595,9 +595,14 @@ describe('滚动', () => {
 })
 
 it('顶栏：抽屉开关切换图标但标签不变；头像菜单在顶栏里', async () => {
+  server.use(http.get(apiUrl('/api/conversations'), () => HttpResponse.json({ items: [], nextCursor: null })))
   const { user } = renderScreen()
   const toggle = screen.getByRole('button', { name: '历史对话' })
   await user.click(toggle)
+  expect(await screen.findByRole('dialog', { name: '历史对话' })).toBeInTheDocument()
+  await user.keyboard('{Escape}')
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  expect(toggle).toHaveFocus()
   expect(screen.getByRole('button', { name: '历史对话' })).toBeInTheDocument()
   expect(within(screen.getByRole('banner')).getByRole('button', { name: '账号菜单' })).toBeInTheDocument()
 })

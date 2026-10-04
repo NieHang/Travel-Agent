@@ -41,3 +41,4 @@ if (!globalThis.ResizeObserver) {
   globalThis.ResizeObserver = NoopObserver as unknown as typeof ResizeObserver
 }
 Element.prototype.scrollTo = () => {}
+window.scrollTo = () => {}
