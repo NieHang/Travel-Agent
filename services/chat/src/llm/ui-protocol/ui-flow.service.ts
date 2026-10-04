@@ -1,4 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import type { SendMessageRequest, TripSnapshot } from '@autix/contracts';
+import {
+  buildTripSnapshot,
+  type PreparedUITurn,
+  type UIFlowSnapshot,
+  type TurnStreaming,
+} from './ui-session.js';
 import {
   BadRequestException,
   ConflictException,
@@ -20,6 +27,7 @@ import {
 } from './ui-response.service.js';
 import { getPlanningFields, planningResponse } from './ui-flow.components.js';
 import { validateForm } from './ui-form.validation.js';
+import { validateUIAction } from './ui-action.validation.js';
 import { mergePlanningRequirements } from './ui-requirements.validation.js';
 import {
   getUICopy,
@@ -35,6 +43,8 @@ import type {
 } from './ui-types.js';
 
 interface Session {
+  streaming?: TurnStreaming;
+  planDays?: TripSnapshot['days'];
   context: UIFlowContext;
   history: BaseMessage[];
   response: AIUIResponse;
@@ -49,6 +59,60 @@ export class UIFlowService {
   constructor(
     @Inject(UIResponseService) private readonly responses: UIResponseService,
   ) {}
+
+  async prepareTurn(
+    snapshot: UIFlowSnapshot | null,
+    request: SendMessageRequest,
+    history: BaseMessage[],
+    signal: AbortSignal,
+    onChunk?: (content: string) => void,
+  ): Promise<PreparedUITurn> {
+    signal.throwIfAborted();
+    if (
+      'action' in request &&
+      (!snapshot || request.revision !== snapshot.revision)
+    )
+      throw new ConflictException('UI revision is no longer active');
+    // An isolated candidate reuses the existing deterministic flow without committing shared memory.
+    const candidate = new UIFlowService(this.responses);
+    const session = candidate.copy();
+    if (snapshot) {
+      session.context = structuredClone(snapshot.context);
+      session.response = structuredClone(snapshot.response);
+      session.planDays = snapshot.trip?.days;
+    }
+    session.history = [...history];
+    if (onChunk) session.streaming = { signal, onChunk };
+    candidate.sessions.set('candidate', session);
+    const response =
+      'content' in request
+        ? await candidate.chat('candidate', request.content, request.locale)
+        : await candidate.handleAction(
+            'candidate',
+            request.action,
+            request.locale,
+          );
+    signal.throwIfAborted();
+    const final = candidate.sessions.get('candidate')!;
+    const revision = (snapshot?.revision ?? 0) + 1;
+    return {
+      response,
+      markdownInput: null,
+      snapshot: {
+        version: 1,
+        revision,
+        context: final.context,
+        response,
+        trip: buildTripSnapshot(
+          final.context,
+          response,
+          revision,
+          snapshot?.trip ?? null,
+          final.planDays,
+        ),
+      },
+    };
+  }
 
   async chat(
     sessionId: string,
@@ -160,6 +224,7 @@ export class UIFlowService {
       if (!previous) throw new NotFoundException('UI session not found');
       const candidate = this.copy(previous);
       this.applyLocale(candidate.context, locale);
+      validateUIAction(candidate, action);
       const copy = getUICopy(candidate.context.replyLanguage);
       const component = candidate.response.components.find(
         (c) => c.id === action.componentId,
@@ -367,6 +432,8 @@ export class UIFlowService {
           context: structuredClone(session.context),
           response: structuredClone(session.response),
           history: [...session.history],
+          streaming: session.streaming,
+          planDays: session.planDays,
           touched: session.touched,
         }
       : {
@@ -426,8 +493,34 @@ export class UIFlowService {
         input,
         session.history.slice(-20),
         context,
+        session.streaming?.signal,
+        Boolean(session.streaming),
       );
-      return validateUIModelOutput(output, context);
+      const validated = validateUIModelOutput(output, context);
+      if (
+        session.streaming &&
+        validated.semantics.intent === 'general' &&
+        validated.semantics.operation === 'answer'
+      ) {
+        let text = '';
+        for await (const chunk of this.responses.streamMarkdown(
+          input,
+          session.history,
+          { ...context, replyLanguage: validated.semantics.replyLanguage },
+          session.streaming.signal,
+        )) {
+          text += chunk;
+          session.streaming.onChunk(chunk);
+        }
+        validated.response = {
+          intent: 'general',
+          message: text,
+          components: [
+            { id: 'answer', type: 'text', content: text, format: 'markdown' },
+          ],
+        };
+      }
+      return validated;
     } catch {
       throw new AppException('INTERNAL_ERROR', 502);
     }
@@ -449,6 +542,31 @@ export class UIFlowService {
       )
     )
       return planningResponse(context);
+    if (session.streaming) {
+      session.planDays = await this.responses.generateTripDays(
+        context,
+        session.streaming.signal,
+      );
+      let text = '';
+      for await (const chunk of this.responses.streamMarkdown(
+        JSON.stringify({
+          operation: 'render_itinerary',
+          requirements: context.requirements,
+          days: session.planDays,
+        }),
+        session.history,
+        context,
+        session.streaming.signal,
+      )) {
+        text += chunk;
+        session.streaming.onChunk(chunk);
+      }
+      if (!text.trim()) throw new AppException('INTERNAL_ERROR', 502);
+      context.itinerary = text;
+      context.editingRequirements = false;
+      context.stage = 'reviewing_itinerary';
+      return planningResponse(context);
+    }
     const preview = await this.generate(
       session,
       JSON.stringify({ operation: 'preview_itinerary' }),

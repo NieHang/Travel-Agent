@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Conversation, Message, MessageMetadata, Page } from '@autix/contracts';
+import type {
+  Conversation,
+  Message,
+  Page,
+} from '@autix/contracts';
 import { AppException } from '../common/app.exception.js';
 import { decodeCursor, encodeCursor } from '../common/cursor.js';
 import type {
@@ -8,6 +12,7 @@ import type {
   Prisma,
 } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { toPublicMessageMetadata } from '../llm/ui-protocol/ui-session.js';
 
 export type { ConversationRow, MessageRow };
 
@@ -27,7 +32,7 @@ export function toMessageContract(row: MessageRow): Message {
     role: row.role,
     content: row.content,
     status: row.status,
-    metadata: (row.metadata as MessageMetadata | null) ?? null,
+    metadata: toPublicMessageMetadata(row.metadata),
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -43,7 +48,9 @@ export class ConversationsService {
 
   /** 不存在或不属于该用户一律 404，不泄露存在性。 */
   async assertOwned(userId: string, id: string): Promise<ConversationRow> {
-    const row = await this.prisma.conversation.findFirst({ where: { id, userId } });
+    const row = await this.prisma.conversation.findFirst({
+      where: { id, userId },
+    });
     if (!row) throw new AppException('CONVERSATION_NOT_FOUND', 404);
     return row;
   }
@@ -56,10 +63,18 @@ export class ConversationsService {
       userId,
       messages: { some: {} },
     };
-    if (query.q) where.title = { contains: escapeLike(query.q), mode: 'insensitive' };
+    if (query.q)
+      where.title = { contains: escapeLike(query.q), mode: 'insensitive' };
     if (query.cursor) {
       const { sortKey, id } = decodeCursor(query.cursor);
-      where.AND = [{ OR: [{ updatedAt: { lt: sortKey } }, { updatedAt: sortKey, id: { lt: id } }] }];
+      where.AND = [
+        {
+          OR: [
+            { updatedAt: { lt: sortKey } },
+            { updatedAt: sortKey, id: { lt: id } },
+          ],
+        },
+      ];
     }
     const rows = await this.prisma.conversation.findMany({
       where,
@@ -70,16 +85,25 @@ export class ConversationsService {
     const last = items[items.length - 1];
     return {
       items: items.map(toConversationContract),
-      nextCursor: rows.length > query.limit && last ? encodeCursor(last.updatedAt, last.id) : null,
+      nextCursor:
+        rows.length > query.limit && last
+          ? encodeCursor(last.updatedAt, last.id)
+          : null,
     };
   }
 
   async create(userId: string, title?: string): Promise<Conversation> {
-    const row = await this.prisma.conversation.create({ data: { userId, title: title ?? '' } });
+    const row = await this.prisma.conversation.create({
+      data: { userId, title: title ?? '' },
+    });
     return toConversationContract(row);
   }
 
-  async rename(userId: string, id: string, title: string): Promise<Conversation> {
+  async rename(
+    userId: string,
+    id: string,
+    title: string,
+  ): Promise<Conversation> {
     // 单条语句同时限定 id 与 userId，且不写 updatedAt：原生 SQL 绕过 @updatedAt 的自动刷新，
     // 也就不会用读到的旧值覆盖并发写入的新值。
     const rows = await this.prisma.$queryRaw<ConversationRow[]>`
@@ -106,7 +130,12 @@ export class ConversationsService {
     if (query.cursor) {
       const { sortKey, id: cursorId } = decodeCursor(query.cursor);
       where.AND = [
-        { OR: [{ createdAt: { lt: sortKey } }, { createdAt: sortKey, id: { lt: cursorId } }] },
+        {
+          OR: [
+            { createdAt: { lt: sortKey } },
+            { createdAt: sortKey, id: { lt: cursorId } },
+          ],
+        },
       ];
     }
     const rows = await this.prisma.message.findMany({
@@ -118,7 +147,10 @@ export class ConversationsService {
     const last = items[items.length - 1];
     return {
       items: items.map(toMessageContract),
-      nextCursor: rows.length > query.limit && last ? encodeCursor(last.createdAt, last.id) : null,
+      nextCursor:
+        rows.length > query.limit && last
+          ? encodeCursor(last.createdAt, last.id)
+          : null,
     };
   }
 }

@@ -78,7 +78,16 @@
     "notFound": "Conversation not found",
     "startNew": "Start a new chat",
     "sendFailed": "Couldn't send. Try again",
-    "viewTrip": "View trip"
+    "viewTrip": "View trip",
+    "progress": {
+      "understand": "Understanding your request",
+      "generate": "Generating your answer and itinerary",
+      "panels": "Updating trip panels",
+      "save": "Saving results",
+      "completed": "Completed",
+      "failed": "Generation failed",
+      "cancelled": "Stopped"
+    }
   },
   "drawer": {
     "newChat": "New chat",
@@ -127,6 +136,19 @@
     },
     "add": "+ Add",
     "added": "Added ✓",
-    "emptyFilter": "Nothing here yet"
+    "emptyFilter": "Nothing here yet",
+    "live": {
+      "title": "Your trip",
+      "untitled": "Destination pending",
+      "collecting": "Collecting requirements",
+      "draft": "Itinerary draft",
+      "confirmed": "Confirmed",
+      "updating": "Awaiting update",
+      "travelers": "{count} travelers",
+      "budget": "Budget {amount} {currency}",
+      "waiting": "Complete your requirements to generate a draft",
+      "noResults": "No verified results available yet",
+      "empty": "Your itinerary will appear here when you start planning"
+    }
   }
 }

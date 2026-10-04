@@ -1,4 +1,8 @@
 'use client'
+import { memo } from 'react'
+import type { UIResponse, UIAction } from '@autix/contracts'
+import { ComponentRenderer } from '@/components/ai-ui/ComponentRenderer'
+import { Markdown } from '@/components/ui/Markdown'
 
 import { useReducedMotion } from '@/lib/use-reduced-motion'
 
@@ -10,7 +14,11 @@ import { RequirementCards } from './RequirementCards'
 
 function TypingDots({ label }: { label: string }) {
   return (
-    <span role="status" aria-label={label} className="flex items-center gap-1 py-2">
+    <span
+      role="status"
+      aria-label={label}
+      className="flex items-center gap-1 py-2"
+    >
       {[0, 1, 2].map((i) => (
         <span
           key={i}
@@ -23,13 +31,19 @@ function TypingDots({ label }: { label: string }) {
   )
 }
 
-export function MessageBubble({
+export const MessageBubble = memo(function MessageBubble({
   role,
   content,
   status = 'complete',
   requirements = [],
   typing = false,
+  components = [],
+  onAction,
+  disabled = false,
 }: {
+  components?: UIResponse[]
+  onAction?: (action: UIAction) => void
+  disabled?: boolean
   role: Message['role']
   content: string
   status?: Message['status']
@@ -40,7 +54,12 @@ export function MessageBubble({
   const t = useTranslations('chat')
   const reduced = useReducedMotion() ?? false
   const isUser = role === 'USER'
-  const label = status === 'partial' ? t('stopped') : status === 'error' ? t('failed') : null
+  const label =
+    status === 'partial'
+      ? t('stopped')
+      : status === 'error'
+        ? t('failed')
+        : null
 
   return (
     <motion.div
@@ -59,11 +78,34 @@ export function MessageBubble({
             isUser ? 'bg-ink text-white' : 'bg-paper text-ink'
           }`}
         >
-          {content}
+          {isUser ? content : <Markdown content={content} />}
         </div>
       ) : null}
-      {label ? <span className="px-2 text-xs font-bold text-ink">{label}</span> : null}
+      {label ? (
+        <span className="px-2 text-xs font-bold text-ink">{label}</span>
+      ) : null}
+      {!isUser &&
+        components
+          .filter((c) => c.type !== 'text' || c.content !== content)
+          .map((c) => (
+            <div
+              className="w-full max-w-[95%] rounded-card bg-paper p-4 text-ink"
+              key={c.id}
+            >
+              <ComponentRenderer
+                component={
+                  c.type === 'card' &&
+                  c.category === 'itinerary' &&
+                  c.description === content
+                    ? { ...c, description: '' }
+                    : c
+                }
+                disabled={disabled || !onAction}
+                onAction={onAction ?? (() => {})}
+              />
+            </div>
+          ))}
       {isUser ? null : <RequirementCards requirements={requirements} />}
     </motion.div>
   )
-}
+})

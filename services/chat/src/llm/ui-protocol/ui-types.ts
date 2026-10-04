@@ -1,4 +1,13 @@
 import type { z } from 'zod';
+export type {
+  StreamMessage,
+  MarkdownPayload,
+  UIPayload,
+  MetaPayload,
+  ProgressPayload,
+  ErrorPayload,
+  ComponentInteractionState,
+} from '@autix/contracts';
 import type {
   aiUIResponseSchema,
   uiResponseSchema,

@@ -17,7 +17,12 @@ import { createWrapper } from '@/test/render'
 import { apiUrl, server } from '@/test/server'
 import { useChatStream, type SendOutcome } from './use-chat-stream'
 
-const u = makeMessage({ id: 'u1', conversationId: 'c1', role: 'USER', content: '里斯本 5 天' })
+const u = makeMessage({
+  id: 'u1',
+  conversationId: 'c1',
+  role: 'USER',
+  content: '里斯本 5 天',
+})
 const a = makeMessage({
   id: 'a1',
   conversationId: 'c1',
@@ -31,18 +36,28 @@ const aError = makeMessage({
   content: '好的',
   status: 'error',
 })
-const r: Requirement = { action: '规划里斯本行程', constraints: ['5 天'], entities: ['里斯本'] }
+const r: Requirement = {
+  action: '规划里斯本行程',
+  constraints: ['5 天'],
+  entities: ['里斯本'],
+}
 
 const userMessage = (m: Message = u): ChatStreamEvent => ({
   event: 'user_message',
   data: { message: m },
 })
-const delta = (text: string): ChatStreamEvent => ({ event: 'delta', data: { text } })
+const delta = (text: string): ChatStreamEvent => ({
+  event: 'delta',
+  data: { text },
+})
 const requirement = (...requirements: Requirement[]): ChatStreamEvent => ({
   event: 'requirement',
   data: { requirements },
 })
-const done = (m: Message = a): ChatStreamEvent => ({ event: 'done', data: { message: m } })
+const done = (m: Message = a): ChatStreamEvent => ({
+  event: 'done',
+  data: { message: m },
+})
 const errorEvent = (m: Message = aError): ChatStreamEvent => ({
   event: 'error',
   data: { code: 'MODEL_FAILED', message: m },
@@ -50,8 +65,11 @@ const errorEvent = (m: Message = aError): ChatStreamEvent => ({
 
 const sseResponse = (body: ReadableStream<Uint8Array>) =>
   new HttpResponse(body, { headers: { 'Content-Type': 'text/event-stream' } })
-const json = (status: number, code: string, headers: Record<string, string> = {}) =>
-  HttpResponse.json({ code, message: '' }, { status, headers })
+const json = (
+  status: number,
+  code: string,
+  headers: Record<string, string> = {},
+) => HttpResponse.json({ code, message: '' }, { status, headers })
 
 let queryClient: QueryClient
 let messageListCalls = 0
@@ -141,41 +159,67 @@ describe('useChatStream', () => {
     let persisted = false
     useStreamHandler(() => sseResponse(stream.body))
     const hook = setup()
-    server.use(http.get(apiUrl('/api/conversations/:id/messages'), () => {
-      messageListCalls += 1
-      return HttpResponse.json({ items: persisted ? [a, u] : [u], nextCursor: null })
-    }))
+    server.use(
+      http.get(apiUrl('/api/conversations/:id/messages'), () => {
+        messageListCalls += 1
+        return HttpResponse.json({
+          items: persisted ? [a, u] : [u],
+          nextCursor: null,
+        })
+      }),
+    )
     const p = start(hook)
     await act(async () => stream.push(userMessage(), delta('保留部分')))
-    await waitFor(() => expect(hook.result.current.stream.text).toBe('保留部分'))
+    await waitFor(() =>
+      expect(hook.result.current.stream.text).toBe('保留部分'),
+    )
     act(() => hook.result.current.stream.stop())
     await settle(p)
     await waitFor(() => expect(messageListCalls).toBeGreaterThan(0))
-    expect(cached()[0]).toMatchObject({ status: 'partial', content: '保留部分' })
+    expect(cached()[0]).toMatchObject({
+      status: 'partial',
+      content: '保留部分',
+    })
     persisted = true
-    await waitFor(() => expect(cachedIds()).toEqual([a.id, u.id]), { timeout: 3500 })
+    await waitFor(() => expect(cachedIds()).toEqual([a.id, u.id]), {
+      timeout: 3500,
+    })
   })
 
   it('分页请求在发送前取消，迟到页不会覆盖流缓存', async () => {
     const stream = sseController()
     useStreamHandler(() => sseResponse(stream.body))
     const hook = setup()
-    queryClient.setQueryData(messagesKey('c1'), { pages: [{ items: [], nextCursor: 'older' }], pageParams: [undefined] })
+    queryClient.setQueryData(messagesKey('c1'), {
+      pages: [{ items: [], nextCursor: 'older' }],
+      pageParams: [undefined],
+    })
     let release!: () => void
-    const gate = new Promise<void>(resolve => { release = resolve })
-    server.use(http.get(apiUrl('/api/conversations/:id/messages'), async () => {
-      messageListCalls += 1
-      await gate
-      return HttpResponse.json({ items: [makeMessage({ id: 'old' })], nextCursor: null })
-    }))
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    server.use(
+      http.get(apiUrl('/api/conversations/:id/messages'), async () => {
+        messageListCalls += 1
+        await gate
+        return HttpResponse.json({
+          items: [makeMessage({ id: 'old' })],
+          nextCursor: null,
+        })
+      }),
+    )
     let pagination!: Promise<unknown>
-    act(() => { pagination = hook.result.current.messages.fetchNextPage() })
+    act(() => {
+      pagination = hook.result.current.messages.fetchNextPage()
+    })
     await waitFor(() => expect(messageListCalls).toBe(1))
     const p = start(hook)
     await act(async () => stream.push(userMessage(), done()))
     await settle(p)
     release()
-    await act(async () => { await pagination })
+    await act(async () => {
+      await pagination
+    })
     expect(cachedIds()).toContain(u.id)
     expect(cachedIds()).toContain(a.id)
   })
@@ -187,7 +231,9 @@ describe('useChatStream', () => {
     const hook = setup()
     const p = start(hook)
     await act(async () => stream.push(userMessage(), delta('私密回复')))
-    await waitFor(() => expect(hook.result.current.stream.text).toBe('私密回复'))
+    await waitFor(() =>
+      expect(hook.result.current.stream.text).toBe('私密回复'),
+    )
     authStore.setGuest()
     queryClient.clear()
     hook.unmount()
@@ -197,11 +243,19 @@ describe('useChatStream', () => {
   it('完成：缓存里先后出现用户消息与助手消息，本地状态清空', async () => {
     useStreamHandler(() =>
       sseResponse(
-        sseBody([userMessage(), delta('好的，'), delta('这是'), requirement(r), done()]),
+        sseBody([
+          userMessage(),
+          delta('好的，'),
+          delta('这是'),
+          requirement(r),
+          done(),
+        ]),
       ),
     )
     const hook = setup()
-    const outcome = await act(() => hook.result.current.stream.send('c1', '里斯本 5 天'))
+    const outcome = await act(() =>
+      hook.result.current.stream.send('c1', '里斯本 5 天'),
+    )
     expect(outcome).toEqual({ ok: true })
     expect(cachedIds()).toEqual([a.id, u.id])
     expect(hook.result.current.stream).toMatchObject({
@@ -228,12 +282,16 @@ describe('useChatStream', () => {
     })
     release()
     await act(async () => stream.push(userMessage()))
-    await waitFor(() => expect(hook.result.current.stream.phase).toBe('streaming'))
+    await waitFor(() =>
+      expect(hook.result.current.stream.phase).toBe('streaming'),
+    )
     expect(cachedIds()).toEqual([u.id])
     await act(async () => stream.push(delta('好的，')))
     await waitFor(() => expect(hook.result.current.stream.text).toBe('好的，'))
     await act(async () => stream.push(delta('这是'), requirement(r)))
-    await waitFor(() => expect(hook.result.current.stream.text).toBe('好的，这是'))
+    await waitFor(() =>
+      expect(hook.result.current.stream.text).toBe('好的，这是'),
+    )
     expect(hook.result.current.stream.requirements).toEqual([r])
     await act(async () => stream.push(done()))
     expect(await settle(p)).toEqual({ ok: true })
@@ -269,7 +327,9 @@ describe('useChatStream', () => {
     )
     const hook = setup()
     const p = start(hook)
-    await waitFor(() => expect(hook.result.current.stream.text).toBe('好的，这是'))
+    await waitFor(() =>
+      expect(hook.result.current.stream.text).toBe('好的，这是'),
+    )
     holdMessageList()
     act(() => hook.result.current.stream.stop())
     await settle(p)
@@ -282,7 +342,8 @@ describe('useChatStream', () => {
     const spy = vi.spyOn(queryClient, 'invalidateQueries')
     await act(() => hook.result.current.stream.send('c1', 'x'))
     const roots = spy.mock.calls.filter(
-      ([f]) => JSON.stringify(f?.queryKey) === JSON.stringify(['conversations']),
+      ([f]) =>
+        JSON.stringify(f?.queryKey) === JSON.stringify(['conversations']),
     )
     expect(roots).toHaveLength(2)
   })
@@ -296,7 +357,10 @@ describe('useChatStream', () => {
     expect(outcome).toEqual({ ok: true })
     expect(cached()[0]).toMatchObject({ id: 'a2', status: 'error' })
     expect(cachedIds()).toEqual(['a2', u.id])
-    expect(hook.result.current.stream).toMatchObject({ phase: 'idle', text: '' })
+    expect(hook.result.current.stream).toMatchObject({
+      phase: 'idle',
+      text: '',
+    })
   })
 
   it('手动停止（已有 delta）：缓存里多一条 partial 本地消息，内容为已累计文本，随后重新拉取消息', async () => {
@@ -334,7 +398,9 @@ describe('useChatStream', () => {
     holdMessageList()
     const p = start(hook)
     await act(async () => stream.push(userMessage(), requirement(r)))
-    await waitFor(() => expect(hook.result.current.stream.requirements).toEqual([r]))
+    await waitFor(() =>
+      expect(hook.result.current.stream.requirements).toEqual([r]),
+    )
     act(() => hook.result.current.stream.stop())
     await settle(p)
     expect(cached()[0]).toMatchObject({
@@ -412,7 +478,9 @@ describe('useChatStream', () => {
     const hook = setup()
     holdMessageList()
     const p = start(hook)
-    await waitFor(() => expect(hook.result.current.stream.phase).toBe('streaming'))
+    await waitFor(() =>
+      expect(hook.result.current.stream.phase).toBe('streaming'),
+    )
     fail(new TypeError('network'))
     expect(await settle(p)).toEqual({ ok: true })
     expect(cached()[0]).toMatchObject({ status: 'error', content: '' })
@@ -434,24 +502,38 @@ describe('useChatStream', () => {
 
   it.each([
     ['网络错误', () => HttpResponse.error(), 'NETWORK'],
-    ['404', () => json(404, 'CONVERSATION_NOT_FOUND'), 'CONVERSATION_NOT_FOUND'],
-    ['429', () => json(429, 'RATE_LIMITED', { 'Retry-After': '9' }), 'RATE_LIMITED'],
+    [
+      '404',
+      () => json(404, 'CONVERSATION_NOT_FOUND'),
+      'CONVERSATION_NOT_FOUND',
+    ],
+    [
+      '429',
+      () => json(429, 'RATE_LIMITED', { 'Retry-After': '9' }),
+      'RATE_LIMITED',
+    ],
     ['500', () => json(500, 'INTERNAL_ERROR'), 'INTERNAL_ERROR'],
-  ])('流开始前失败（%s）：不写缓存，返回对应错误', async (_name, respond, code) => {
-    useStreamHandler(respond)
-    const hook = setup()
-    const outcome = await act(() => hook.result.current.stream.send('c1', 'x'))
-    expect(outcome).toMatchObject({ ok: false, error: { code } })
-    if (code === 'RATE_LIMITED' && !outcome.ok) expect(outcome.error.retryAfter).toBe(9)
-    expect(cached()).toEqual([])
-    expect(messageListCalls).toBe(0)
-    expect(hook.result.current.stream).toMatchObject({
-      phase: 'idle',
-      text: '',
-      requirements: [],
-      activeConversationId: null,
-    })
-  })
+  ])(
+    '流开始前失败（%s）：不写缓存，返回对应错误',
+    async (_name, respond, code) => {
+      useStreamHandler(respond)
+      const hook = setup()
+      const outcome = await act(() =>
+        hook.result.current.stream.send('c1', 'x'),
+      )
+      expect(outcome).toMatchObject({ ok: false, error: { code } })
+      if (code === 'RATE_LIMITED' && !outcome.ok)
+        expect(outcome.error.retryAfter).toBe(9)
+      expect(cached()).toEqual([])
+      expect(messageListCalls).toBe(0)
+      expect(hook.result.current.stream).toMatchObject({
+        phase: 'idle',
+        text: '',
+        requirements: [],
+        activeConversationId: null,
+      })
+    },
+  )
 
   it('TOKEN_EXPIRED：刷新后重发，流照常完成', async () => {
     authStore.setAuthed({ accessToken: 'old', user: makeUser() })
@@ -502,7 +584,10 @@ describe('useChatStream', () => {
       first = hook.result.current.stream.send('c1', 'a')
       second = hook.result.current.stream.send('c1', 'b')
     })
-    expect(await second).toMatchObject({ ok: false, error: { code: 'ABORTED' } })
+    expect(await second).toMatchObject({
+      ok: false,
+      error: { code: 'ABORTED' },
+    })
     await waitFor(() => expect(postCalls).toBe(1))
     await act(async () => stream.push(userMessage(), done()))
     expect(await settle(first)).toEqual({ ok: true })
@@ -560,7 +645,10 @@ describe('useChatStream', () => {
       const p = start(hook)
       await waitFor(() => expect(postCalls).toBe(1))
       hook.unmount()
-      await expect(p).resolves.toMatchObject({ ok: false, error: { code: 'ABORTED' } })
+      await expect(p).resolves.toMatchObject({
+        ok: false,
+        error: { code: 'ABORTED' },
+      })
     })
 
     it('conversationId 由 c1 变为 c2：中止', async () => {
@@ -569,7 +657,9 @@ describe('useChatStream', () => {
       holdMessageList()
       const p = start(hook)
       await act(async () => stream.push(userMessage()))
-      await waitFor(() => expect(hook.result.current.stream.phase).toBe('streaming'))
+      await waitFor(() =>
+        expect(hook.result.current.stream.phase).toBe('streaming'),
+      )
       hook.rerender({ id: 'c2' })
       expect(await settle(p)).toEqual({ ok: true })
       expect(state.aborted).toBe(true)
@@ -588,7 +678,8 @@ describe('useChatStream', () => {
       expect(hook.result.current.stream.phase).toBe('streaming')
       await act(async () => stream.push(done()))
       expect(await settle(p)).toEqual({ ok: true })
-      expect(state.aborted).toBe(false)
+      // The SSE transport releases its connection after the terminal event.
+      expect(state.aborted).toBe(true)
       expect(cachedIds()).toEqual([a.id, u.id])
     })
 
@@ -598,7 +689,9 @@ describe('useChatStream', () => {
       holdMessageList()
       const p = start(hook)
       await act(async () => stream.push(userMessage()))
-      await waitFor(() => expect(hook.result.current.stream.phase).toBe('streaming'))
+      await waitFor(() =>
+        expect(hook.result.current.stream.phase).toBe('streaming'),
+      )
       hook.rerender({ id: 'c2' })
       await settle(p)
       expect(state.aborted).toBe(true)
@@ -620,9 +713,15 @@ describe('useChatStream', () => {
     }
 
     async function expectReconciledOnRemount() {
-      expect(queryClient.getQueryState(messagesKey('c1'))?.isInvalidated).toBe(true)
+      expect(queryClient.getQueryState(messagesKey('c1'))?.isInvalidated).toBe(
+        true,
+      )
       expect(cached()[0].id).toMatch(/^local-/)
-      const serverRow = makeMessage({ id: 'srv1', conversationId: 'c1', role: 'ASSISTANT' })
+      const serverRow = makeMessage({
+        id: 'srv1',
+        conversationId: 'c1',
+        role: 'ASSISTANT',
+      })
       server.use(
         http.get(apiUrl('/api/conversations/:id/messages'), () => {
           messageListCalls += 1
@@ -672,13 +771,19 @@ describe('useChatStream', () => {
       act(() => {
         p = hook.result.current.send('c1', 'x')
       })
-      expect(hook.result.current).toMatchObject({ phase: 'sending', activeConversationId: 'c1' })
+      expect(hook.result.current).toMatchObject({
+        phase: 'sending',
+        activeConversationId: 'c1',
+      })
       await act(async () => stream.push(userMessage(), delta('好')))
       await waitFor(() => expect(hook.result.current.phase).toBe('streaming'))
       expect(hook.result.current.text).toBe('好')
       await act(async () => stream.push(done()))
       expect(await settle(p)).toEqual({ ok: true })
-      expect(hook.result.current).toMatchObject({ phase: 'idle', activeConversationId: null })
+      expect(hook.result.current).toMatchObject({
+        phase: 'idle',
+        activeConversationId: null,
+      })
     })
 
     it('处理事件时的程序错误不被吞掉：send 以该错误结束，phase 回 idle', async () => {
@@ -697,14 +802,21 @@ describe('useChatStream', () => {
         }
       })
       expect(caught).toBe(boom)
-      expect(hook.result.current.stream).toMatchObject({ phase: 'idle', text: '' })
+      expect(hook.result.current.stream).toMatchObject({
+        phase: 'idle',
+        text: '',
+      })
     })
 
     // 同一个网络块里的两个事件：处理第一个时调用 stop，第二个必须不生效
     function stopAfterFirstCacheWrite(hook: Hook) {
       let fired = false
       const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-        if (!fired && event.type === 'updated' && event.action.type === 'success') {
+        if (
+          !fired &&
+          event.type === 'updated' &&
+          event.action.type === 'success'
+        ) {
           fired = true
           hook.result.current.stream.stop()
         }
@@ -719,10 +831,15 @@ describe('useChatStream', () => {
       const hook = setup()
       holdMessageList()
       stopAfterFirstCacheWrite(hook)
-      const outcome = await act(() => hook.result.current.stream.send('c1', 'x'))
+      const outcome = await act(() =>
+        hook.result.current.stream.send('c1', 'x'),
+      )
       expect(outcome).toEqual({ ok: true })
       expect(cached()[0]).toMatchObject({ status: 'partial', content: '' })
-      expect(hook.result.current.stream).toMatchObject({ phase: 'idle', text: '' })
+      expect(hook.result.current.stream).toMatchObject({
+        phase: 'idle',
+        text: '',
+      })
       openListGate()
     })
 
@@ -738,15 +855,24 @@ describe('useChatStream', () => {
     })
 
     it('done 之后同一块里的事件被忽略', async () => {
-      const a3 = makeMessage({ id: 'a3', conversationId: 'c1', role: 'ASSISTANT' })
+      const a3 = makeMessage({
+        id: 'a3',
+        conversationId: 'c1',
+        role: 'ASSISTANT',
+      })
       useStreamHandler(() =>
         sseResponse(sseBody([userMessage(), done(), delta('x'), done(a3)])),
       )
       const hook = setup()
-      const outcome = await act(() => hook.result.current.stream.send('c1', 'x'))
+      const outcome = await act(() =>
+        hook.result.current.stream.send('c1', 'x'),
+      )
       expect(outcome).toEqual({ ok: true })
       expect(cachedIds()).toEqual([a.id, u.id])
-      expect(hook.result.current.stream).toMatchObject({ phase: 'idle', text: '' })
+      expect(hook.result.current.stream).toMatchObject({
+        phase: 'idle',
+        text: '',
+      })
     })
   })
 })

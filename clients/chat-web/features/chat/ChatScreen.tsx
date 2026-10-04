@@ -5,7 +5,14 @@ import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { ArrowDown } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { Chip } from '@/components/ui/Chip'
 import { LogoDot } from '@/components/ui/Logo'
 import { PillButton } from '@/components/ui/PillButton'
@@ -18,8 +25,13 @@ import { HistoryDrawer } from '@/features/conversations/HistoryDrawer'
 import { messagesKey, useMessages } from '@/features/conversations/queries'
 import { useCountdown } from '@/lib/use-countdown'
 import { BG_TRANSITION } from '@/lib/motion'
-import { PanelTabs, SaveTripButton, TripPanels } from '@/features/panels/TripPanels'
-import { getTripMock } from '@/features/panels/mock'
+import {
+  PanelTabs,
+  SaveTripButton,
+  TripPanels,
+} from '@/features/panels/TripPanels'
+import { latestTripSnapshot } from '@/features/panels/trip-snapshot'
+import type { UIAction } from '@autix/contracts'
 import { STAGE_COLOR, type PanelTab } from '@/features/panels/mock/types'
 import { MobileSheet } from '@/features/panels/MobileSheet'
 import { useIsDesktop } from '@/lib/use-media-query'
@@ -28,6 +40,8 @@ import { MessageList, SkeletonBubbles } from './MessageList'
 import { TopBar } from './TopBar'
 import { useChatStream, type SendOutcome } from './use-chat-stream'
 import { useStickToBottom } from './use-stick-to-bottom'
+import { StreamProgress } from './StreamProgress'
+import { useUIState } from './ui-state'
 
 const CHIP_COUNT = 4
 
@@ -73,7 +87,7 @@ export function ChatScreen(): ReactNode {
   const [panelTab, setPanelTab] = useState<PanelTab>('plan')
   const background = STAGE_COLOR[panelTab]
   const locale = useLocale()
-  const panelData = getTripMock(locale === 'en' ? 'en' : 'zh')
+
   const [missingId, setMissingId] = useState<string | null>(null)
   const countdown = useCountdown()
   const composerRef = useRef<HTMLTextAreaElement>(null)
@@ -85,6 +99,7 @@ export function ChatScreen(): ReactNode {
   const viewId = id ?? stream.activeConversationId
   const generating = stream.phase !== 'idle'
   const query = useMessages(viewId, generating)
+  const uiState = useUIState(viewId)
   const nickname = auth.status === 'authed' ? auth.user.nickname : ''
 
   const notFound =
@@ -94,13 +109,26 @@ export function ChatScreen(): ReactNode {
     () =>
       notFound
         ? []
-        : (query.data?.pages.flatMap((page) => page.items) ?? []).slice().reverse(),
+        : (query.data?.pages.flatMap((page) => page.items) ?? [])
+            .slice()
+            .reverse(),
     [notFound, query.data],
   )
+  const panelData =
+    stream.streamConversationId === viewId && stream.trip !== undefined
+      ? stream.trip
+      : uiState.data
+        ? uiState.data.trip
+        : latestTripSnapshot(messages)
   const loadingInitial = viewId !== null && query.isPending && !notFound
   const pending =
     generating && stream.activeConversationId === viewId
-      ? { text: stream.text, requirements: stream.requirements }
+      ? {
+          text: stream.text,
+          requirements: stream.requirements,
+          components: stream.components,
+          interactionState: stream.interactionState,
+        }
       : null
 
   const stick = useStickToBottom(
@@ -111,7 +139,11 @@ export function ChatScreen(): ReactNode {
   const restoreInput = (raw: string) =>
     setInput((current) => (current === '' ? raw : current))
 
-  const handleFailure = (raw: string, targetId: string | null, error: ApiRequestError) => {
+  const handleFailure = (
+    raw: string,
+    targetId: string | null,
+    error: ApiRequestError,
+  ) => {
     restoreInput(raw)
     switch (error.code) {
       case 'RATE_LIMITED':
@@ -141,17 +173,23 @@ export function ChatScreen(): ReactNode {
         const created = await createConversation()
         conversationId = created.id
         // 预置空缓存：新会话不必拉取消息，也避免拉取结果盖掉流写入的消息
-        queryClient.setQueryData<InfiniteData<Page<Message>>>(messagesKey(created.id), {
-          pages: [{ items: [], nextCursor: null }],
-          pageParams: [undefined],
-        })
+        queryClient.setQueryData<InfiniteData<Page<Message>>>(
+          messagesKey(created.id),
+          {
+            pages: [{ items: [], nextCursor: null }],
+            pageParams: [undefined],
+          },
+        )
         window.history.replaceState(null, '', '/chat/' + created.id)
       }
-      outcome = await stream.send(conversationId, content)
+      outcome = await stream.send(conversationId, { content, locale })
     } catch (error) {
       outcome = {
         ok: false,
-        error: error instanceof ApiRequestError ? error : new ApiRequestError('NETWORK', 0),
+        error:
+          error instanceof ApiRequestError
+            ? error
+            : new ApiRequestError('NETWORK', 0),
       }
     } finally {
       busyRef.current = false
@@ -159,11 +197,37 @@ export function ChatScreen(): ReactNode {
     if (!outcome.ok) handleFailure(raw, conversationId, outcome.error)
   }
 
-  const deferredPrompt = useRef<{ prompt: string; conversationId: string } | null>(null)
+  const sendAction = useCallback(
+    async (sourceMessageId: string, revision: number, action: UIAction) => {
+      if (!viewId || busyRef.current || generating || loadingInitial) return
+      busyRef.current = true
+      try {
+        const outcome = await stream.send(viewId, {
+          action,
+          sourceMessageId,
+          revision,
+          locale,
+        })
+        if (!outcome.ok && outcome.error.code !== 'ABORTED')
+          toast(t('sendFailed'), { tone: 'danger' })
+      } finally {
+        busyRef.current = false
+      }
+    },
+    [viewId, generating, loadingInitial, stream.send, locale, t],
+  )
+
+  const deferredPrompt = useRef<{
+    prompt: string
+    conversationId: string
+  } | null>(null)
   useEffect(() => {
     // 不带依赖数组：每次渲染都检查，拉取结束后的那次渲染发出暂存的消息
     if (deferredPrompt.current === null) return
-    if (deferredPrompt.current.conversationId !== id) { deferredPrompt.current = null; return }
+    if (deferredPrompt.current.conversationId !== id) {
+      deferredPrompt.current = null
+      return
+    }
     if (loadingInitial || id === null) return
     const { prompt } = deferredPrompt.current
     deferredPrompt.current = null
@@ -173,7 +237,11 @@ export function ChatScreen(): ReactNode {
   usePendingPrompt(auth.status === 'authed', (pendingPrompt) => {
     if (pendingPrompt.conversationId !== undefined) {
       if (pendingPrompt.conversationId !== id) return
-      if (loadingInitial) deferredPrompt.current = { prompt: pendingPrompt.prompt, conversationId: pendingPrompt.conversationId }
+      if (loadingInitial)
+        deferredPrompt.current = {
+          prompt: pendingPrompt.prompt,
+          conversationId: pendingPrompt.conversationId,
+        }
       else void submit(pendingPrompt.prompt, id)
       return
     }
@@ -226,21 +294,32 @@ export function ChatScreen(): ReactNode {
       style={{ backgroundColor: background, transition: BG_TRANSITION }}
     >
       <TopBar
-        center={isDesktop ? <PanelTabs tab={panelTab} onChange={setPanelTab} /> : null}
+        center={
+          isDesktop ? <PanelTabs tab={panelTab} onChange={setPanelTab} /> : null
+        }
         right={isDesktop ? <SaveTripButton /> : null}
         drawerButtonRef={drawerButtonRef}
         drawerOpen={drawerOpen}
         onToggleDrawer={() => setDrawerOpen((open) => !open)}
       />
-      <HistoryDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} activeId={viewId}
-        isBlankNewChat={viewId === null && input === ''} returnFocusRef={drawerButtonRef} />
+      <HistoryDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        activeId={viewId}
+        isBlankNewChat={viewId === null && input === ''}
+        returnFocusRef={drawerButtonRef}
+      />
       <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 sm:px-6">
         <section className="flex min-h-0 w-full flex-col gap-3 lg:w-[42%]">
           <div className="flex items-center gap-3">
             <LogoDot className="bg-ink" />
             <div className="min-w-0">
-              <p className="text-base font-extrabold text-ink">{t('assistantName')}</p>
-              <p className="text-sm text-ink">{generating ? t('typing') : t('online')}</p>
+              <p className="text-base font-extrabold text-ink">
+                {t('assistantName')}
+              </p>
+              <p className="text-sm text-ink">
+                {generating ? t('typing') : t('online')}
+              </p>
             </div>
           </div>
           <div className="relative flex min-h-0 flex-1 flex-col">
@@ -248,10 +327,20 @@ export function ChatScreen(): ReactNode {
               scrollRef={stick.ref}
               messages={messages}
               pending={pending}
+              generating={generating}
+              onAction={sendAction}
+              activeSourceMessageId={
+                uiState.data?.activeMessage?.id ??
+                (uiState.data ? null : undefined)
+              }
               hasMore={!notFound && !generating && query.hasNextPage}
               loadingMore={query.isFetchingNextPage}
-              loadMoreFailed={query.isFetchNextPageError && !query.isFetchingNextPage}
-              onLoadMore={() => { if (!generating && !busyRef.current) void query.fetchNextPage() }}
+              loadMoreFailed={
+                query.isFetchNextPageError && !query.isFetchingNextPage
+              }
+              onLoadMore={() => {
+                if (!generating && !busyRef.current) void query.fetchNextPage()
+              }}
             >
               {body}
             </MessageList>
@@ -268,8 +357,24 @@ export function ChatScreen(): ReactNode {
               </div>
             )}
           </div>
-          {!isNewChat && showChips ? <SuggestionChips onPick={pickChip} /> : null}
-          {!isDesktop ? <PillButton variant="ghost" size="sm" onClick={() => setSheetOpen(true)}>{t('viewTrip')}</PillButton> : null}
+          {!isNewChat && showChips ? (
+            <SuggestionChips onPick={pickChip} />
+          ) : null}
+          {!isDesktop ? (
+            <PillButton
+              variant="ghost"
+              size="sm"
+              onClick={() => setSheetOpen(true)}
+            >
+              {t('viewTrip')}
+            </PillButton>
+          ) : null}
+          {stream.streamConversationId === viewId && (
+            <StreamProgress
+              progress={stream.progress}
+              outcome={stream.outcome}
+            />
+          )}
           <Composer
             ref={composerRef}
             value={input}
@@ -280,12 +385,23 @@ export function ChatScreen(): ReactNode {
             onStop={stream.stop}
           />
         </section>
-        {isDesktop ? <aside className="min-h-0 flex-1 overflow-y-auto rounded-panel bg-ink"><TripPanels tab={panelTab} data={panelData} /></aside> : null}
+        {isDesktop ? (
+          <aside className="min-h-0 flex-1 overflow-y-auto rounded-panel bg-ink">
+            <TripPanels tab={panelTab} data={panelData} />
+          </aside>
+        ) : null}
       </div>
-      {!isDesktop ? <MobileSheet open={sheetOpen} onClose={() => setSheetOpen(false)}>
-        <div className="flex items-center gap-3 px-4 py-3"><div className="min-w-0 flex-1"><PanelTabs tab={panelTab} onChange={setPanelTab} scrollable /></div><SaveTripButton /></div>
-        <TripPanels tab={panelTab} data={panelData} />
-      </MobileSheet> : null}
+      {!isDesktop ? (
+        <MobileSheet open={sheetOpen} onClose={() => setSheetOpen(false)}>
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <PanelTabs tab={panelTab} onChange={setPanelTab} scrollable />
+            </div>
+            <SaveTripButton />
+          </div>
+          <TripPanels tab={panelTab} data={panelData} />
+        </MobileSheet>
+      ) : null}
     </div>
   )
 }

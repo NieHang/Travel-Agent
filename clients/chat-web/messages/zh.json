@@ -78,7 +78,16 @@
     "notFound": "找不到这段对话",
     "startNew": "开始新对话",
     "sendFailed": "发送失败，请重试",
-    "viewTrip": "查看行程"
+    "viewTrip": "查看行程",
+    "progress": {
+      "understand": "理解需求",
+      "generate": "生成回答与行程",
+      "panels": "更新行程面板",
+      "save": "保存结果",
+      "completed": "已完成",
+      "failed": "生成失败",
+      "cancelled": "已停止"
+    }
   },
   "drawer": {
     "newChat": "新对话",
@@ -127,6 +136,19 @@
     },
     "add": "+ 添加",
     "added": "已添加 ✓",
-    "emptyFilter": "这个分类下暂时没有地点"
+    "emptyFilter": "这个分类下暂时没有地点",
+    "live": {
+      "title": "你的行程",
+      "untitled": "待定目的地",
+      "collecting": "完善需求中",
+      "draft": "行程草稿",
+      "confirmed": "已确认",
+      "updating": "待更新",
+      "travelers": "{count} 人",
+      "budget": "预算 {amount} {currency}",
+      "waiting": "完善需求后生成行程草稿",
+      "noResults": "暂时没有经过验证的结果",
+      "empty": "开始规划后，行程会显示在这里"
+    }
   }
 }

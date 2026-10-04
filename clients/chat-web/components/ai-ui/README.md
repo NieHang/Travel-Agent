@@ -14,7 +14,8 @@ import { AIChatContainer } from '@/components/ai-ui'
 - 文本请求体为 `{ sessionId, input, locale? }`，操作请求体为 `{ sessionId, action, locale? }`，响应为 `{ message, intent, components }`。
 - 仅最新 AI 响应中的控件可操作；请求期间锁定控件，失败后保留输入与最新控件以便重试。
 - 单选点击立即提交，多选勾选后点击“确认选择”。表单支持 input、textarea、date、number、select；数字发送 number，空可选值发送 null。
-- `types.ts` 通过 **type-only** 导入复用后端规范，避免维护第二份协议和打包服务端代码。`FormField` 是后端 `UIFormField` 的导出别名。
+- `types.ts` 通过 **type-only** 导入复用 `@autix/contracts` 共享规范，避免维护第二份协议和打包服务端代码。`FormField` 是共享 `UIFormField` 的导出别名。
 - `text` 的 plain/markdown 均以 React 文本安全展示，不解析 HTML 或 Markdown。确认组件内嵌于聊天历史，不作为模态窗口打开。
 
 也可单独使用 `ComponentRenderer`：传入 `component: UIResponse`、`onAction: (action: UIAction) => void` 和可选 `disabled`。每个基础组件均可从独立文件或本目录入口导入；基础样式集中在 `styles.ts`，便于替换。
+实际 `/chat` 页面现在通过 `ChatScreen`、`useChatStream` 和统一的 conversation SSE 消息接口接入 `ComponentRenderer`。下方 `AIChatContainer` 示例仍是旧 JSON 接口的兼容示例；新页面集成请使用 `features/chat/ui-stream-client.ts`，不要创建另一套会话历史。

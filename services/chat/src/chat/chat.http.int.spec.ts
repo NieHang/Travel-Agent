@@ -2,11 +2,11 @@ import { request as httpRequest, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ChatStreamEventSchema } from '@autix/contracts';
+import { StreamMessageSchema, type UIResponse } from '@autix/contracts';
 import { bearer, createTestApp, createUser } from '../../test/helpers/app.js';
 import { resetDb } from '../../test/helpers/db.js';
-import { CHAT_REPLY_PORT, type ChatReplyPort } from '../llm/chat-reply/chat-reply.port.js';
-import { FAKE_REPLY_CHUNKS, FAKE_REQUIREMENTS } from '../llm/chat-reply/fakes.js';
+import type { ChatReplyPort } from '../llm/chat-reply/chat-reply.port.js';
+import { UIStreamService } from '../llm/ui-protocol/ui-stream.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
 /** 把 SSE 响应体解析成 `{ event, data }[]`。 */
@@ -16,8 +16,12 @@ function parseSse(text: string): { event: string; data: any }[] {
     .filter((block) => block.trim() !== '')
     .map((block) => {
       const lines = block.split('\n');
-      const event = lines.find((l) => l.startsWith('event: '))!.slice('event: '.length);
-      const data = lines.find((l) => l.startsWith('data: '))!.slice('data: '.length);
+      const event = lines
+        .find((l) => l.startsWith('event: '))!
+        .slice('event: '.length);
+      const data = lines
+        .find((l) => l.startsWith('data: '))!
+        .slice('data: '.length);
       return { event, data: JSON.parse(data) };
     });
 }
@@ -50,12 +54,16 @@ function slowPort(): ChatReplyPort & { signal: AbortSignal | undefined } {
 }
 
 /** 轮询直到 `read` 给出非空结果，超时则抛错。 */
-async function eventually<T>(read: () => Promise<T | null>, timeoutMs = 5_000): Promise<T> {
+async function eventually<T>(
+  read: () => Promise<T | null>,
+  timeoutMs = 5_000,
+): Promise<T> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const value = await read();
     if (value !== null) return value;
-    if (Date.now() > deadline) throw new Error(`condition not met within ${timeoutMs}ms`);
+    if (Date.now() > deadline)
+      throw new Error(`condition not met within ${timeoutMs}ms`);
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
 }
@@ -77,12 +85,71 @@ describe('chat HTTP', () => {
     const a = await createUser(app);
     const b = await createUser(app);
     token = a.accessToken;
-    id = (await prisma.conversation.create({ data: { userId: a.user.id, title: '' } })).id;
-    othersId = (await prisma.conversation.create({ data: { userId: b.user.id, title: '' } })).id;
+    id = (
+      await prisma.conversation.create({
+        data: { userId: a.user.id, title: '' },
+      })
+    ).id;
+    othersId = (
+      await prisma.conversation.create({
+        data: { userId: b.user.id, title: '' },
+      })
+    ).id;
   });
 
   afterAll(async () => {
     await app?.close();
+  });
+
+  it('validates UI actions before SSE and restores public state beyond the latest history page', async () => {
+    const first = await request(server)
+      .post(`/api/conversations/${id}/messages`)
+      .set(...bearer(token))
+      .send({ content: '杭州', locale: 'zh' })
+      .expect(200);
+    const message = parseSse(first.text).at(-1)!.data.payload.message;
+    const component = message.metadata.components.find(
+      (c: UIResponse) => c.type === 'selection',
+    );
+    await request(server)
+      .post(`/api/conversations/${id}/messages`)
+      .set(...bearer(token))
+      .send({
+        action: {
+          type: 'selection',
+          componentId: component.id,
+          values: ['forged'],
+        },
+        sourceMessageId: message.id,
+        revision: message.metadata.interactionState.revision,
+      })
+      .expect(400)
+      .expect('Content-Type', /json/);
+    expect(await prisma.message.count({ where: { conversationId: id } })).toBe(
+      2,
+    );
+    await prisma.message.createMany({
+      data: Array.from({ length: 22 }, () => ({
+        conversationId: id,
+        role: 'ASSISTANT' as const,
+        content: '',
+        status: 'error',
+      })),
+    });
+    const restored = await request(server)
+      .get(`/api/conversations/${id}/ui-state`)
+      .set(...bearer(token))
+      .expect(200);
+    expect(restored.body.trip.destination).toBe('杭州');
+    expect(restored.body.activeMessage.id).toBe(message.id);
+    expect(restored.body.activeMessage.metadata).not.toHaveProperty(
+      'uiFlowSnapshot',
+    );
+    await request(server)
+      .get(`/api/conversations/${othersId}/ui-state`)
+      .set(...bearer(token))
+      .expect(404);
+    await request(server).get(`/api/conversations/${id}/ui-state`).expect(401);
   });
 
   it('SSE 响应头与事件格式', async () => {
@@ -94,23 +161,76 @@ describe('chat HTTP', () => {
     expect(res.headers['content-type']).toMatch(/^text\/event-stream/);
     expect(res.headers['cache-control']).toBe('no-cache');
     const events = parseSse(res.text);
-    expect(events[0].event).toBe('user_message');
+    expect(events.every((e) => e.event === 'message')).toBe(true);
+    expect(events[0].data.messageType).toBe('meta');
+    const batch = events.find((e) => e.data.messageType === 'ui')!.data;
     expect(
-      events
-        .filter((e) => e.event === 'delta')
-        .map((e) => e.data.text)
-        .join(''),
-    ).toBe(FAKE_REPLY_CHUNKS.join(''));
-    expect(events.find((e) => e.event === 'requirement')!.data).toEqual(FAKE_REQUIREMENTS);
-    expect(events.at(-1)).toMatchObject({ event: 'done', data: { message: { status: 'complete' } } });
-    for (const e of events) expect(ChatStreamEventSchema.safeParse(e).success).toBe(true);
-
-    // 每个事件都是 `event: <名>\ndata: <JSON>\n\n`。
+      batch.payload.components.some((c: UIResponse) => c.type === 'selection'),
+    ).toBe(true);
+    expect(events.at(-1)!.data).toMatchObject({
+      messageType: 'done',
+      payload: { message: { status: 'complete' } },
+    });
+    for (const e of events)
+      expect(StreamMessageSchema.safeParse(e.data).success).toBe(true);
+    expect(events.at(-1)!.data.payload.message.metadata).not.toHaveProperty(
+      'uiFlowSnapshot',
+    );
     const blocks = res.text.split('\n\n');
     expect(blocks.pop()).toBe('');
-    for (const block of blocks) expect(block).toMatch(/^event: [a-z_]+\ndata: \{.*\}$/);
-    expect(events.at(-1)!.data.message.content).toBe(FAKE_REPLY_CHUNKS.join(''));
-    expect(await prisma.message.count({ where: { conversationId: id } })).toBe(2);
+    for (const block of blocks)
+      expect(block).toMatch(/^event: message\ndata: \{.*\}$/);
+    expect(await prisma.message.count({ where: { conversationId: id } })).toBe(
+      2,
+    );
+  });
+
+  it('restores a persisted UI action in a fresh application instance', async () => {
+    const first = await request(server)
+      .post(`/api/conversations/${id}/messages`)
+      .set(...bearer(token))
+      .send({ content: '杭州', locale: 'zh' })
+      .expect(200);
+    const message = parseSse(first.text).at(-1)!.data.payload.message;
+    const state = message.metadata.interactionState;
+    const selection = message.metadata.components.find(
+      (c: UIResponse) => c.type === 'selection',
+    );
+    const restored = await createTestApp();
+    try {
+      const action = {
+        action: {
+          type: 'selection',
+          componentId: selection.id,
+          values: ['solo'],
+        },
+        sourceMessageId: message.id,
+        revision: state.revision,
+        locale: 'zh',
+      };
+      const response = await request(restored.server)
+        .post(`/api/conversations/${id}/messages`)
+        .set(...bearer(token))
+        .send(action)
+        .expect(200);
+      expect(
+        parseSse(response.text)
+          .at(-1)!
+          .data.payload.message.metadata.components.some(
+            (c: UIResponse) => c.type === 'form',
+          ),
+      ).toBe(true);
+      await request(restored.server)
+        .post(`/api/conversations/${id}/messages`)
+        .set(...bearer(token))
+        .send(action)
+        .expect(409);
+      expect(
+        await prisma.message.count({ where: { conversationId: id } }),
+      ).toBe(4);
+    } finally {
+      await restored.app.close();
+    }
   });
 
   it('流开始前的失败是普通 JSON 错误，且不落库', async () => {
@@ -150,7 +270,8 @@ describe('chat HTTP', () => {
         .expect(200);
     expect((await list()).body.items).toEqual([]);
 
-    const content = '想去里斯本玩五天，预算一万左右，喜欢海鲜和老城区，不想太赶，求一份行程安排';
+    const content =
+      '想去里斯本玩五天，预算一万左右，喜欢海鲜和老城区，不想太赶，求一份行程安排';
     expect(Array.from(content).length).toBeGreaterThan(30);
     await request(server)
       .post(`/api/conversations/${id}/messages`)
@@ -160,20 +281,37 @@ describe('chat HTTP', () => {
 
     const { items } = (await list()).body;
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ id, title: Array.from(content).slice(0, 30).join('') });
+    expect(items[0]).toMatchObject({
+      id,
+      title: Array.from(content).slice(0, 30).join(''),
+    });
 
     // 消息列表按时间倒序：助手消息在前，用户消息在后。
     const page = await request(server)
       .get(`/api/conversations/${id}/messages`)
       .set(...bearer(token))
       .expect(200);
-    expect(page.body.items.map((m: { role: string }) => m.role)).toEqual(['ASSISTANT', 'USER']);
+    expect(page.body.items.map((m: { role: string }) => m.role)).toEqual([
+      'ASSISTANT',
+      'USER',
+    ]);
   });
 
   it('客户端中途断开：助手消息以 partial 落库，模型调用被中止', async () => {
     const slow = slowPort();
     const slowApp = await createTestApp({
-      configure: (builder) => builder.overrideProvider(CHAT_REPLY_PORT).useValue(slow),
+      configure: (builder) =>
+        builder.overrideProvider(UIStreamService).useValue({
+          async *streamTurn(
+            _snapshot: unknown,
+            _request: unknown,
+            _history: unknown,
+            signal: AbortSignal,
+          ) {
+            for await (const content of slow.streamReply([], signal))
+              yield { type: 'markdown', content };
+          },
+        }),
     });
     try {
       // supertest 会把整个响应读完；这里要在流的中途断开，所以监听真实端口并用原生请求。
@@ -198,10 +336,12 @@ describe('chat HTTP', () => {
           (res) => {
             res.setEncoding('utf8');
             res.on('error', () => undefined);
-            res.on('end', () => reject(new Error('stream ended before the client disconnected')));
+            res.on('end', () =>
+              reject(new Error('stream ended before the client disconnected')),
+            );
             res.on('data', (chunk: string) => {
               received += chunk;
-              if (!received.includes('event: delta')) return;
+              if (!received.includes('"messageType":"markdown"')) return;
               req.destroy();
               resolve();
             });
@@ -212,14 +352,21 @@ describe('chat HTTP', () => {
       });
 
       const assistant = await eventually(() =>
-        prisma.message.findFirst({ where: { conversationId: id, role: 'ASSISTANT' } }),
+        prisma.message.findFirst({
+          where: { conversationId: id, role: 'ASSISTANT' },
+        }),
       );
-      expect(assistant).toMatchObject({ status: 'partial', content: FIRST_CHUNK });
-      expect(await prisma.message.count({ where: { conversationId: id } })).toBe(2);
+      expect(assistant).toMatchObject({
+        status: 'partial',
+        content: FIRST_CHUNK,
+      });
+      expect(
+        await prisma.message.count({ where: { conversationId: id } }),
+      ).toBe(2);
       expect(slow.signal?.aborted).toBe(true);
-      expect(received).toContain('event: user_message');
-      expect(received).not.toContain('event: done');
-      expect(received).not.toContain('event: error');
+      expect(received).toContain('"messageType":"meta"');
+      expect(received).not.toContain('"messageType":"done"');
+      expect(received).not.toContain('"messageType":"error"');
     } finally {
       await slowApp.app.close();
     }
@@ -230,23 +377,32 @@ describe('chat HTTP', () => {
     try {
       const a = await createUser(throttled.app);
       const b = await createUser(throttled.app);
-      const convA = await prisma.conversation.create({ data: { userId: a.user.id, title: '' } });
-      const convB = await prisma.conversation.create({ data: { userId: b.user.id, title: '' } });
+      const convA = await prisma.conversation.create({
+        data: { userId: a.user.id, title: '' },
+      });
+      const convB = await prisma.conversation.create({
+        data: { userId: b.user.id, title: '' },
+      });
       const send = (accessToken: string, conversationId: string) =>
         request(throttled.server)
           .post(`/api/conversations/${conversationId}/messages`)
           .set(...bearer(accessToken))
           .send({ content: 'x' });
 
-      for (let i = 0; i < 20; i++) await send(a.accessToken, convA.id).expect(200);
+      for (let i = 0; i < 20; i++)
+        await send(a.accessToken, convA.id).expect(200);
       await send(a.accessToken, convA.id)
         .expect(429)
         .expect('Content-Type', /json/)
         .expect((r) => expect(r.body.code).toBe('RATE_LIMITED'))
-        .expect((r) => expect(Number(r.headers['retry-after'])).toBeGreaterThan(0));
+        .expect((r) =>
+          expect(Number(r.headers['retry-after'])).toBeGreaterThan(0),
+        );
       await send(b.accessToken, convB.id).expect(200);
       // 被限流的那次请求没有落库：20 次 × 2 条。
-      expect(await prisma.message.count({ where: { conversationId: convA.id } })).toBe(40);
+      expect(
+        await prisma.message.count({ where: { conversationId: convA.id } }),
+      ).toBe(40);
     } finally {
       await throttled.app.close();
     }

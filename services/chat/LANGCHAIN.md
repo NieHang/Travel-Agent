@@ -1,5 +1,33 @@
 # LangChain 模型调用基础
 
+## 前端聊天的统一 UI 流
+
+实际 `/chat` 页面使用 `POST /api/conversations/:id/messages`（Bearer 登录及会话归属校验）。
+请求为 `{ content, locale? }`，或 `{ action, sourceMessageId, revision, locale? }`。
+服务端在 SSE 开始前校验来源、版本、选项及表单值；过期动作返回 409，无效值返回 400，均不创建消息。
+
+所有事件使用 `event: message`，JSON 信封为 `{ messageType, timestamp, payload }`：
+`markdown` 累积真实模型 token（`isChunk: true`），`ui` 仅发布完整组件数组，
+`progress` 表示理解、生成、更新面板、保存等阶段，`meta` 带用户消息或行程快照，
+`done` 带已持久化的助手消息及行程，`error` 表示失败。JSON 意图识别和结构化日程生成静默收集，
+不把未完成 JSON 推到界面；确定性的选择、表单及确认不增加模型调用。
+
+该路径复用旅游 UIFlowService 状态机，通过 UIStreamService 进行轻量编排；
+原有软件需求分析的五 Agent 不改作旅游用途。阶段百分比不是模型 token 的完成比例。
+
+助手成功消息同时保存公开组件、interactionState、trip 和私有 uiFlowSnapshot。
+组件在保存成功后才对外发布；中止/失败消息不会覆盖最近成功状态。
+私有快照不进入公共消息接口。`GET /api/conversations/:id/ui-state` 返回
+`{ trip, activeMessage }`，独立于消息分页，用于刷新后的面板恢复和有效组件定位。
+前端 Zustand 存储本次流，React Query 存储历史和最新持久化 UI 状态，账户切换会清理两者。
+
+`LLM_FAKE=1` 仅供非生产测试；正常配置仍调用真实模型。
+当前生成互斥锁是单进程实现；部署多个聊天服务实例前需要数据库或分布式锁。
+连接中断和停止会保留 partial；若数据库已提交成功则刷新展示提交的完整结果。
+酒店/航线/景点卡片仍是模型输出，不能当作已验证的实时库存或报价。
+
+以下 `/api/ui-chat/*` 是保留的 JSON 示例接口，实际聊天页面不使用它。
+
 ## 旅游 UI Structured Output
 
 `POST /api/ui-chat/chat` 与 `POST /api/ui-chat/action` 沿用全局 Bearer 登录保护。

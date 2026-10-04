@@ -1,17 +1,39 @@
 'use client'
 
-import type { Message, Requirement } from '@autix/contracts'
-import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react'
+import type {
+  Message,
+  Requirement,
+  UIResponse,
+  ComponentInteractionState,
+  UIAction,
+} from '@autix/contracts'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 import { useTranslations } from 'next-intl'
 import { PillButton } from '@/components/ui/PillButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { MessageBubble } from './MessageBubble'
 
-export type PendingReply = { text: string; requirements: Requirement[] }
+export type PendingReply = {
+  text: string
+  requirements: Requirement[]
+  components?: UIResponse[]
+  interactionState?: ComponentInteractionState
+}
 
 export function SkeletonBubbles({ count }: { count: number }) {
   return (
-    <div aria-hidden data-testid="skeleton-bubbles" className="flex flex-col gap-3">
+    <div
+      aria-hidden
+      data-testid="skeleton-bubbles"
+      className="flex flex-col gap-3"
+    >
       {Array.from({ length: count }, (_, i) => (
         <Skeleton
           key={i}
@@ -26,7 +48,10 @@ export function SkeletonBubbles({ count }: { count: number }) {
  * 助手回复与它所回应的那条用户消息共用一个 key：流式气泡被缓存里的消息
  * （先是本地消息，刷新后是服务端消息）替换时是同一个 DOM 节点，不重播入场动画。
  */
-function replyKeys(messages: Message[]): { keys: string[]; pendingKey: string } {
+function replyKeys(messages: Message[]): {
+  keys: string[]
+  pendingKey: string
+} {
   const keys: string[] = []
   const used = new Set<string>()
   let lastUserId: string | null = null
@@ -56,6 +81,9 @@ export function MessageList({
   loadMoreFailed,
   onLoadMore,
   children,
+  onAction,
+  generating = false,
+  activeSourceMessageId,
 }: {
   scrollRef: RefObject<HTMLDivElement | null>
   /** 时间正序 */
@@ -69,6 +97,13 @@ export function MessageList({
   onLoadMore(): void
   /** 没有消息时的内容（问候、骨架、错误状态） */
   children?: ReactNode
+  generating?: boolean
+  activeSourceMessageId?: string | null
+  onAction?: (
+    sourceMessageId: string,
+    revision: number,
+    action: UIAction,
+  ) => void
 }) {
   const tc = useTranslations('common')
   const sentinel = useRef<HTMLDivElement>(null)
@@ -116,16 +151,45 @@ export function MessageList({
   }
   const { keys, pendingKey } = replyKeys(messages)
   // 流式气泡与消息在同一个数组里，key 相同时才会被 React 当作同一个节点
-  const bubbles = messages.map((message, index) => (
-    <MessageBubble
-      key={keys[index]}
-      role={message.role}
-      content={message.content}
-      status={message.status}
-      requirements={message.metadata?.requirements}
-    />
-  ))
-  if (pending) {
+  const current =
+    activeSourceMessageId !== undefined
+      ? activeSourceMessageId
+      : [...messages]
+          .reverse()
+          .find((m) => m.status === 'complete' && m.metadata?.interactionState)
+          ?.id
+  const historyBubbles = useMemo(
+    () =>
+      messages.map((message, index) => (
+        <MessageBubble
+          key={keys[index]}
+          role={message.role}
+          content={message.content}
+          status={message.status}
+          requirements={message.metadata?.requirements}
+          components={message.metadata?.components}
+          disabled={generating || message.id !== current}
+          onAction={
+            onAction && message.metadata?.interactionState
+              ? (action) =>
+                  onAction(
+                    message.id,
+                    message.metadata!.interactionState!.revision,
+                    action,
+                  )
+              : undefined
+          }
+        />
+      )),
+    [messages, current, generating, onAction],
+  )
+  const bubbles = [...historyBubbles]
+  if (
+    pending &&
+    !messages.some(
+      (message) => message.id === pending.interactionState?.sourceMessageId,
+    )
+  ) {
     bubbles.push(
       <MessageBubble
         key={pendingKey}
@@ -133,6 +197,8 @@ export function MessageList({
         content={pending.text}
         typing={pending.text === ''}
         requirements={pending.requirements}
+        components={pending.components}
+        disabled
       />,
     )
   }
@@ -149,7 +215,9 @@ export function MessageList({
         {loadingMore ? <SkeletonBubbles count={1} /> : null}
         {loadMoreFailed && !loadingMore ? (
           <div className="flex items-center justify-center gap-3">
-            <span className="text-sm font-bold text-ink">{tc('loadFailed')}</span>
+            <span className="text-sm font-bold text-ink">
+              {tc('loadFailed')}
+            </span>
             <PillButton variant="ink" size="sm" onClick={retryLoadMore}>
               {tc('retry')}
             </PillButton>

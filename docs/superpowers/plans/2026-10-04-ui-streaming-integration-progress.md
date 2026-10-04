@@ -1,0 +1,24 @@
+# Execution ledger — plan: docs/superpowers/plans/2026-10-04-ui-streaming-integration.md
+
+- Native execution authorized; branch codex/ui-streaming-integration created in existing checkout.
+- Baseline: UI schemas + UI flow tests, 49/49 passed.
+- Pre-flight Tasks 1–7: shared contracts flow into server persistence, stream client and panels; private flow snapshot excluded from public metadata.
+- Ruling: use a feature branch in the current checkout — user chose current-session continuous execution; no extra checkout or dependency duplication needed.
+- Ruling: track durable progress in this document instead of Unix-only skill helper scripts — workspace shell is PowerShell.
+- Task 1: complete — shared wire/UI schemas, protocol tests 29/29; workspace typechecks now pass.
+- Task 2: complete — immutable candidate/restart/action/private-metadata tests; all UI tests 128/128.
+- Task 3: complete — UIChatService + lightweight coordinator, HTTP restart/stale/cancel cases; backend unit suite 334/334 and DB suite 103/103.
+- Task 4: complete — store and fetch-event-source integration; transport plus legacy rollout tests passed.
+- Task 5: complete — actual ChatScreen actions, live panels, Markdown, final-message/pending deduplication; frontend suite 355/355 before final memoization change.
+- Task 6: complete — stage-based purple circle, diagonal fill/check animation, done-only success and reduced motion test.
+- Task 7: complete — browser journey, real model smoke, final independent review and regression fixes; evidence in ../reports/2026-10-04-ui-streaming-integration.md.
+- Ruling: place persistence orchestration in focused UIChatService rather than expand legacy ChatService — preserves isolated old reply tests while the production controller uses the new service; optional controller fallback supports older test fixtures.
+- Ruling: keep AIChatContainer and sample panel fixtures for compatibility, document their legacy status — actual ChatScreen never uses their mock/JSON paths.
+- Ruling: add react-markdown/remark-gfm to render actual Markdown safely — plain escaped text did not satisfy the requested rendered stream.
+- Ruling: release SSE transport upon done/error using its own AbortController — avoids waiting for EOF; this is successful connection cleanup, not user cancellation.
+- Ruling: keep progress ledger and verification report in repository rather than deleting it — supports inspectable delivery and interrupted-session recovery.
+- Final review: normalize native transport failures, validate all action values before persistence, restore snapshots independently of pagination, and deduplicate itinerary body; RED reproduced, GREEN regression/full suites passed.
+- Verification: backend 336 unit + 104 DB; frontend 358 unit; both typechecks; Nest build; desktop/mobile E2E 2/2; real model 751 chunks, 3 days, first token 13406ms.
+- Ruling: reviewer Minor duplicate itinerary body handled in this pass because long trips repeat an entire article. Single-process locking and commit-during-disconnect semantics remain documented deployment boundaries.
+- Ruling: Windows default Playwright webServer teardown can hang; external test-owned server config verifies and exits successfully. Updated old journey/mobile assertions to real UI/empty-panel semantics.
+- Final verification: entire Playwright suite 9/9, 44.3s; backend lint warning-free; diff whitespace check passed. Test-owned server sessions closed after completion.

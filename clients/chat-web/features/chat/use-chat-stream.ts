@@ -1,6 +1,14 @@
 'use client'
 
-import type { Message, Requirement } from '@autix/contracts'
+import type {
+  Message,
+  Requirement,
+  SendMessageRequest,
+  UIResponse,
+  ComponentInteractionState,
+  ProgressPayload,
+  TripSnapshot,
+} from '@autix/contracts'
 import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiFetch, ApiRequestError } from '@/features/auth/api-client'
@@ -8,7 +16,10 @@ import { accountId } from '@/features/auth/account-cache'
 import { authStore } from '@/features/auth/auth-store'
 import { messagesKey } from '@/features/conversations/queries'
 import { upsertMessage } from './message-cache'
-import { createSseParser } from './sse'
+import { streamUIChat } from './ui-stream-client'
+import { uiStateKey } from './ui-state'
+import { createAIUIStore, type StreamOutcome } from '@/stores/ai-ui.store'
+import { useStore } from 'zustand'
 
 export type StreamPhase = 'idle' | 'sending' | 'streaming'
 export type SendOutcome = { ok: true } | { ok: false; error: ApiRequestError }
@@ -35,7 +46,10 @@ function localAssistantMessage(
 }
 
 function invalidateMessages(queryClient: QueryClient, conversationId: string) {
-  return queryClient.invalidateQueries({ queryKey: messagesKey(conversationId) })
+  void queryClient.invalidateQueries({ queryKey: uiStateKey(conversationId) })
+  return queryClient.invalidateQueries({
+    queryKey: messagesKey(conversationId),
+  })
 }
 
 /** signal 中止时让 promise 立即以 ABORTED 失败，把阻塞在 reader.read() 上的等待唤醒。 */
@@ -62,14 +76,27 @@ export function useChatStream(conversationId: string | null): {
   text: string
   requirements: Requirement[]
   activeConversationId: string | null
-  send(conversationId: string, content: string): Promise<SendOutcome>
+  components: UIResponse[]
+  interactionState?: ComponentInteractionState
+  progress: ProgressPayload | null
+  trip: TripSnapshot | null | undefined
+  streamConversationId: string | null
+  outcome: StreamOutcome
+  send(
+    conversationId: string,
+    content: string | SendMessageRequest,
+  ): Promise<SendOutcome>
   stop(): void
 } {
   const queryClient = useQueryClient()
+  const [uiStore] = useState(createAIUIStore)
+  const ui = useStore(uiStore)
   const [phase, setPhase] = useState<StreamPhase>('idle')
   const [text, setText] = useState('')
   const [requirements, setRequirements] = useState<Requirement[]>([])
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null)
 
   // 同步镜像：send 在同一个事件循环里被连续调用时，state 还没更新，必须靠 ref 判断
   const phaseRef = useRef<StreamPhase>('idle')
@@ -79,8 +106,10 @@ export function useChatStream(conversationId: string | null): {
   const mountedRef = useRef(true)
 
   const stop = useCallback(() => {
+    const requestId = uiStore.getState().requestId
+    if (requestId) uiStore.getState().cancel(requestId)
     controllerRef.current?.abort()
-  }, [])
+  }, [uiStore])
 
   useEffect(() => {
     mountedRef.current = true
@@ -93,17 +122,32 @@ export function useChatStream(conversationId: string | null): {
   useEffect(() => {
     if (activeRef.current !== null && conversationId !== activeRef.current) {
       controllerRef.current?.abort()
-    }
-  }, [conversationId])
+      uiStore.getState().reset()
+    } else if (
+      activeRef.current === null &&
+      uiStore.getState().conversationId !== conversationId
+    )
+      uiStore.getState().reset()
+  }, [conversationId, uiStore])
 
   const send = useCallback(
-    async (targetId: string, content: string): Promise<SendOutcome> => {
+    async (
+      targetId: string,
+      content: string | SendMessageRequest,
+    ): Promise<SendOutcome> => {
       if (phaseRef.current !== 'idle') return { ok: false, error: aborted() }
 
       const controller = new AbortController()
+      const requestId = crypto.randomUUID()
+      uiStore.getState().begin(requestId, targetId)
       const sourceAccount = accountId()
       const accountChanged = () => sourceAccount !== accountId()
-      const unsubscribeAccount = authStore.subscribe(() => { if (accountChanged()) controller.abort() })
+      const unsubscribeAccount = authStore.subscribe(() => {
+        if (accountChanged()) {
+          controller.abort()
+          uiStore.getState().reset()
+        }
+      })
       const { signal } = controller
       controllerRef.current = controller
       phaseRef.current = 'sending'
@@ -138,55 +182,71 @@ export function useChatStream(conversationId: string | null): {
       try {
         // InfiniteQuery 分页会按请求开始时的快照写回，发送前先取消它。
         await queryClient.cancelQueries({ queryKey: messagesKey(targetId) })
-        if (signal.aborted || accountChanged()) return { ok: false, error: aborted() }
-        let response: Response
-        try {
-          response = await apiFetch(
-            `/api/conversations/${encodeURIComponent(targetId)}/messages`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ content }),
-              signal,
-            },
-          )
-        } catch (error) {
-          if (signal.aborted) {
-            // 请求可能已到达服务端，重新拉取以对齐
-            if (!accountChanged()) void invalidateMessages(queryClient, targetId)
-            return { ok: false, error: aborted() }
-          }
-          return {
-            ok: false,
-            error: error instanceof ApiRequestError ? error : new ApiRequestError('NETWORK', 0),
-          }
-        }
-
-        const reader = response.body?.getReader()
-        const parser = createSseParser()
+        await queryClient.cancelQueries({ queryKey: uiStateKey(targetId) })
+        if (signal.aborted || accountChanged())
+          return { ok: false, error: aborted() }
         let completed = false
-
+        let failed = false
         try {
-          while (reader && !completed) {
-            let chunk: ReadableStreamReadResult<Uint8Array>
-            try {
-              chunk = await abortable(reader.read(), signal)
-            } catch {
-              // 只吞读流本身的失败：中止走下面的 stop 分支，其余按「流提前结束」处理。
-              // 事件处理里的异常不在此捕获，会在清理后向上抛出
-              break
-            }
-            if (chunk.done) break
-            for (const event of parser.push(chunk.value)) {
-              if (accountChanged()) { controller.abort(); break }
-              if (signal.aborted) break
+          await streamUIChat(
+            `/api/conversations/${encodeURIComponent(targetId)}/messages`,
+            typeof content === 'string' ? { content } : content,
+            signal,
+            (message) => {
+              if (accountChanged() || signal.aborted || completed) return
+              uiStore.getState().receive(requestId, message)
+              phaseRef.current = 'streaming'
+              live(() => setPhase('streaming'))
+              switch (message.messageType) {
+                case 'meta':
+                  if (message.payload.userMessage) {
+                    gotUserMessage = true
+                    upsertMessage(
+                      queryClient,
+                      targetId,
+                      message.payload.userMessage,
+                    )
+                    void queryClient.invalidateQueries({
+                      queryKey: CONVERSATIONS_ROOT,
+                    })
+                  }
+                  break
+                case 'markdown':
+                  accText = message.payload.isChunk
+                    ? accText + message.payload.content
+                    : message.payload.content
+                  break
+                case 'done':
+                  upsertMessage(queryClient, targetId, message.payload.message)
+                  queryClient.setQueryData(uiStateKey(targetId), {
+                    trip: message.payload.trip,
+                    activeMessage: message.payload.message,
+                  })
+                  completed = true
+                  break
+                case 'error':
+                  if (message.payload.message)
+                    upsertMessage(
+                      queryClient,
+                      targetId,
+                      message.payload.message,
+                    )
+                  completed = true
+                  failed = true
+                  break
+              }
+            },
+            (event) => {
+              if (accountChanged() || signal.aborted || completed) return
               phaseRef.current = 'streaming'
               live(() => setPhase('streaming'))
               switch (event.event) {
                 case 'user_message':
                   gotUserMessage = true
                   upsertMessage(queryClient, targetId, event.data.message)
-                  void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_ROOT })
+                  void queryClient.invalidateQueries({
+                    queryKey: CONVERSATIONS_ROOT,
+                  })
                   break
                 case 'delta':
                   accText += event.data.text
@@ -202,15 +262,35 @@ export function useChatStream(conversationId: string | null): {
                   completed = true
                   break
               }
-              if (completed) break
+            },
+          )
+        } catch (error) {
+          if (!signal.aborted && !(error instanceof ApiRequestError))
+            throw error
+          if (!gotUserMessage) {
+            if (
+              !accountChanged() &&
+              (signal.aborted ||
+                (
+                  (error as ApiRequestError).details as
+                    { streamOpened?: boolean } | undefined
+                )?.streamOpened)
+            )
+              void invalidateMessages(queryClient, targetId)
+            return {
+              ok: false,
+              error: signal.aborted
+                ? aborted()
+                : error instanceof ApiRequestError
+                  ? error
+                  : new ApiRequestError('NETWORK', 0),
             }
-            if (signal.aborted) break
           }
-        } finally {
-          void reader?.cancel().catch(() => {})
         }
 
         if (accountChanged()) return { ok: false, error: aborted() }
+        if (failed)
+          return { ok: false, error: new ApiRequestError('MODEL_FAILED', 502) }
         if (completed && !signal.aborted) {
           finish()
           // 助手消息已写入、顺序变了：列表重新排序
@@ -219,6 +299,7 @@ export function useChatStream(conversationId: string | null): {
         }
 
         if (signal.aborted) {
+          uiStore.getState().cancel(requestId)
           if (!gotUserMessage) {
             void invalidateMessages(queryClient, targetId)
             return { ok: false, error: aborted() }
@@ -227,7 +308,12 @@ export function useChatStream(conversationId: string | null): {
           upsertMessage(
             queryClient,
             targetId,
-            localAssistantMessage(targetId, accText, 'partial', accRequirements),
+            localAssistantMessage(
+              targetId,
+              accText,
+              'partial',
+              accRequirements,
+            ),
           )
           void invalidateMessages(queryClient, targetId)
           return { ok: true }
@@ -247,11 +333,31 @@ export function useChatStream(conversationId: string | null): {
         return { ok: true }
       } finally {
         unsubscribeAccount()
+        if (signal.aborted) uiStore.getState().cancel(requestId)
+        else if (!uiStore.getState().terminal)
+          uiStore.getState().receive(requestId, {
+            messageType: 'error',
+            timestamp: new Date().toISOString(),
+            payload: { code: 'NETWORK' },
+          })
         finish()
       }
     },
-    [queryClient],
+    [queryClient, uiStore],
   )
 
-  return { phase, text, requirements, activeConversationId, send, stop }
+  return {
+    phase,
+    text: phase === 'idle' ? '' : ui.text || text,
+    requirements,
+    activeConversationId,
+    send,
+    stop,
+    components: ui.components,
+    interactionState: ui.interactionState,
+    progress: ui.progress,
+    trip: ui.trip,
+    streamConversationId: ui.conversationId,
+    outcome: ui.outcome,
+  }
 }
