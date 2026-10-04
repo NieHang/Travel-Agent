@@ -69,6 +69,7 @@ describe('requirement chain routes', () => {
   it('chain-invoke returns parsed text using the fixed requirement', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/langchain/chain-invoke')
+      .send({ input: '用户注册时必须绑定手机号，密码至少8位' })
       .expect(201);
     expect(response.text).toBe('手机号；密码至少8位');
     expect(inputs.at(-1)).toContain('用户注册时必须绑定手机号，密码至少8位');
@@ -77,6 +78,7 @@ describe('requirement chain routes', () => {
   it('chain-stream sends parsed text chunks and SSE completion', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/langchain/chain-stream')
+      .send({ input: '用户注册时必须绑定手机号，密码至少8位' })
       .expect(200)
       .expect('Content-Type', /text\/event-stream/);
     expect(response.text).toContain('data: "手机号"');
@@ -88,6 +90,7 @@ describe('requirement chain routes', () => {
   it('chain-batch returns parsed strings using the fixed requirement', async () => {
     await request(app.getHttpServer())
       .post('/api/langchain/chain-batch')
+      .send({ inputs: ['用户注册时必须绑定手机号，密码至少8位'] })
       .expect(201)
       .expect(['手机号；密码至少8位']);
     expect(inputs.at(-1)).toContain('用户注册时必须绑定手机号，密码至少8位');

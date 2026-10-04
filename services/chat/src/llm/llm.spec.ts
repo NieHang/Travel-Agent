@@ -5,6 +5,7 @@ import type { Duplex } from 'node:stream';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { REQUIREMENT_SYSTEM_PROMPT, REQUIREMENT_USER_TEMPLATE } from './prompts/requirement.prompt.js';
 
 const input = '用户注册时必须绑定手机号，密码至少8位';
 
@@ -153,19 +154,10 @@ describe.each(['direct', 'HTTPS_PROXY', 'HTTP_PROXY'])(
       try {
         await request(app.getHttpServer())
           .post('/api/langchain/prompt-preview')
+          .send({ input })
           .expect(201)
           .expect({
-            messages: [
-              {
-                role: 'system',
-                content:
-                  '你是需求结构化抽取助手。请从用户需求中抽取实体、规则和约束。',
-              },
-              {
-                role: 'human',
-                content: `请逐步分析并输出结构化抽取结果：\n${input}`,
-              },
-            ],
+            rendered: `System: ${REQUIREMENT_SYSTEM_PROMPT}\nHuman: ${REQUIREMENT_USER_TEMPLATE.replace('{input}', input)}`,
           });
         expect(requests).toHaveLength(count);
       } finally {
@@ -176,6 +168,7 @@ describe.each(['direct', 'HTTPS_PROXY', 'HTTP_PROXY'])(
     it('prompt-to-model sends the rendered messages and returns model content', async () => {
       await request(app.getHttpServer())
         .post('/api/langchain/prompt-to-model')
+        .send({ input })
         .expect(201)
         .expect({ content: '手机号；密码至少8位' });
     });
@@ -189,17 +182,16 @@ describe.each(['direct', 'HTTPS_PROXY', 'HTTP_PROXY'])(
       for (const body of requests) {
         expect(body.model).toBe('gpt-5.4');
         expect(body.temperature).toBe(0);
-        expect(body.max_completion_tokens ?? body.max_tokens).toBe(800);
+        expect(body.max_completion_tokens ?? body.max_tokens).toBe(4096);
         expect(body.messages).toEqual([
           // ChatOpenAI maps SystemMessage to developer for GPT-5 models.
           {
             role: 'developer',
-            content:
-              '你是需求结构化抽取助手。请从用户需求中抽取实体、规则和约束。',
+            content: REQUIREMENT_SYSTEM_PROMPT,
           },
           {
             role: 'user',
-            content: `请逐步分析并输出结构化抽取结果：\n${input}`,
+            content: REQUIREMENT_USER_TEMPLATE.replace('{input}', input),
           },
         ]);
       }

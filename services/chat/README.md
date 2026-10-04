@@ -71,7 +71,7 @@ bun run db:generate
 `Authorization: Bearer <access token>`，原有的演示接口（`/requirement/extract`、`/api/langchain/*`、
 `/api/files/chat`、`/api/embedding/*` 等）也不例外；下文的 curl 示例需要自行加上这个请求头。
 
-`clients/chat-web` 里现有的演示页面调用 `/requirement/extract` 时不带 token，在前端用户层做完之前会收到 401。
+`clients/chat-web` 用户前端已接入注册、登录与对话接口；本地运行和浏览器验收见其 README。
 
 `TRUST_PROXY=true` 只信任一跳反向代理：`req.ip` 取紧邻的那一跳代理追加在 `X-Forwarded-For` 末尾的地址。
 服务前面有不止一层代理时，限流与审计里的 IP 会是内层代理的地址。
