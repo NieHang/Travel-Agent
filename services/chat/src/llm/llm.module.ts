@@ -7,16 +7,19 @@ import { ModelChatReply } from './chat-reply/model-chat-reply.js';
 import { LlmController } from './llm.controller.js';
 import { LlmService } from './llm.service.js';
 import { RequirementService } from './requirement.service.js';
+import { UIProtocolModule } from './ui-protocol/ui-protocol.module.js';
 
 @Module({
-  imports: [AdvancedModule],
+  imports: [AdvancedModule, UIProtocolModule],
   controllers: [LlmController],
   providers: [
     LlmService,
     {
       provide: RequirementService,
       useFactory: () =>
-        isLlmFakeEnabled() ? new FakeRequirementService() : new RequirementService(),
+        isLlmFakeEnabled()
+          ? new FakeRequirementService()
+          : new RequirementService(),
     },
     {
       provide: CHAT_REPLY_PORT,
@@ -24,6 +27,12 @@ import { RequirementService } from './requirement.service.js';
         isLlmFakeEnabled() ? new FakeChatReply() : new ModelChatReply(),
     },
   ],
-  exports: [LlmService, RequirementService, CHAT_REPLY_PORT, AdvancedModule],
+  exports: [
+    LlmService,
+    RequirementService,
+    CHAT_REPLY_PORT,
+    AdvancedModule,
+    UIProtocolModule,
+  ],
 })
 export class LlmModule {}

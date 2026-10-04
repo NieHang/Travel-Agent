@@ -1,5 +1,67 @@
 # LangChain 模型调用基础
 
+## 旅游 UI Structured Output
+
+`POST /api/ui-chat/chat` 与 `POST /api/ui-chat/action` 沿用全局 Bearer 登录保护。
+返回 `{ message, intent, components }`，组件由 `type` 区分 text、selection、form、
+confirmation、card、steps、table、action_buttons。所有组件都有服务端生成的 `id`。
+模型通过 `withStructuredOutput(aiUIResponseSchema, { method: 'functionCalling', strict: true })`
+生成响应，再校验业务场景和唯一标识。自定义校验不传入 SDK 的严格 JSON Schema。
+
+聊天请求：
+
+```json
+{ "sessionId": "travel-demo", "input": "我要去日本旅游" }
+```
+
+该请求缺少旅游类型时返回 selection；选择后只展示尚未收集的旅游需求表单。
+以下 Action 的 componentId 必须替换为最近一次响应中的真实组件 ID：
+
+```json
+{ "sessionId": "travel-demo", "action": { "type": "selection", "componentId": "返回的组件ID", "values": ["solo"] } }
+```
+
+表单只提交实际展示的字段。number 使用 JSON 数字，date 使用合法 YYYY-MM-DD。
+下例适用于目的地已从原始输入收集、表单要求日期/人数/预算的情况：
+
+```json
+{ "sessionId": "travel-demo", "action": { "type": "form_submit", "componentId": "返回的表单ID", "values": [
+  { "name": "departureDate", "value": "2026-11-01" },
+  { "name": "returnDate", "value": "2026-11-03" },
+  { "name": "travelers", "value": 1 },
+  { "name": "budget", "value": 5000 }
+] } }
+```
+
+完成需求后返回路线草案 card、steps 和操作按钮。可输入“确认旅游路线”，
+或提交真实按钮 ID，进入 confirmation + steps：
+
+```json
+{ "sessionId": "travel-demo", "action": { "type": "button_click", "componentId": "返回的按钮组ID", "buttonId": "confirm" } }
+```
+
+```json
+{ "sessionId": "travel-demo", "action": { "type": "confirmation", "componentId": "返回的确认ID", "confirmed": true } }
+```
+
+`confirmed: false` 返回路线预览。确认只保存会话中的路线，不进行预订或支付。
+
+“查看某某地点或者酒店”返回详情 card；“帮我找杭州西湖附近500米的酒店”直接进入
+hotel_search，不经过旅游类型向导，保留地点、距离、预算等完整原始查询条件。
+独立查询不会覆盖规划需求；已有规划时返回 resume_planning 按钮恢复原阶段。
+refine_search 展示筛选表单，view_details 继续查询详情。
+查询中的 selection 支持单选、多选筛选或候选选择，所选 value 与 label 会连同原始条件
+传入下一次查询，不改变路线规划阶段。普通旅游知识问答直接返回 text。
+
+本模块没有接入旅游供应商，card 标记 `sourceStatus: unverified`；没有可信搜索结果时
+table.rows 应为空。输出是说明、需求收集或建议，不能作为实时价格、库存或距离证明。
+
+会话按认证 userId 和客户端 sessionId 隔离，同会话请求串行，生成失败不提交状态。
+交互 ID 每轮更新，旧组件及重复提交返回 409；无效请求/字段返回 400，未知或过期会话的
+Action 返回 404，模型/输出校验失败返回 502。最多 1000 个活动会话，超限返回 429。
+会话闲置 30 分钟过期，历史仅保留最近 20 条消息。状态存于进程内存，重启清空，
+不支持多实例共享。过期条目在请求时清理。
+
 模型参数读取 `config/langchain.yaml` 的 `llm` 节点。模型工厂仅支持
 `provider: openai`，也可通过环境变量连接 OpenAI 兼容服务。
 
