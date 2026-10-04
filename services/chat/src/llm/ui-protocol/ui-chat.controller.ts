@@ -14,20 +14,25 @@ export class UIChatController {
   chat(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(chatRequestSchema))
-    body: { sessionId: string; input: string },
+    body: { sessionId: string; input: string; locale?: string },
   ): Promise<AIUIResponse> {
-    return this.flow.chat(this.scope(user, body.sessionId), body.input);
+    return this.flow.chat(
+      this.scope(user, body.sessionId),
+      body.input,
+      body.locale,
+    );
   }
 
   @Post('action')
   action(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(actionRequestSchema))
-    body: { sessionId: string; action: UIAction },
+    body: { sessionId: string; action: UIAction; locale?: string },
   ): Promise<AIUIResponse> {
     return this.flow.handleAction(
       this.scope(user, body.sessionId),
       body.action,
+      body.locale,
     );
   }
 

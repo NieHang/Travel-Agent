@@ -1,0 +1,26 @@
+# Execution ledger — plan: docs/superpowers/plans/2026-10-04-ui-protocol-multilingual.md
+
+- Baseline: ui-protocol 66/66 passed; feature branch codex/ui-protocol-multilingual.
+- Ruling: Use the existing checkout on a new feature branch; branch creation succeeded with approval. No additional worktree or dependency install is necessary. Cost: changes share the existing checkout.
+- Ruling: Keep this ledger in docs rather than shell-only SDD helpers; those scripts assume a Unix environment and commit-based task ranges, while this Windows task delivers uncommitted changes. Cost: manual progress tracking.
+- Pre-flight: Tasks 1/2/4/5 share PlanningRequirements and envelope; Task 3/5 share localized field builders; Task 5/6 share optional locale signatures. Interfaces match the approved spec.
+- Ruling: replyLanguage is a required string. The model returns the prior language for ambiguous short replies (or en without prior context), rather than using a separate language-detection confidence field. Cost: detection correctness remains model-dependent.
+- Task 1: complete — schema tests RED→GREEN, 26/26 passed.
+- Task 2/3: complete — shared requirement validation and locale/component tests RED→GREEN, combined schema/requirements/localization 46/46 passed.
+- Task 4: complete — strict envelope service tests RED→GREEN, 21/21 passed, including actual local HTTP SDK call and schema capture.
+- Task 5: complete — multilingual transitions RED→GREEN, 16/16 passed; original action/lifecycle suite updated to semantic fixtures, 23/23 passed.
+- Ruling: The initial model context cannot include newly classified query.intent before the single semantic call. Verify full input reaching the model and stored query constraints on subsequent actions instead of retaining the old preclassification assertion. Cost: initial intent classification remains model-dependent.
+- Task 6: in progress — locale propagation HTTP tests produced the expected three failures before Controller forwarding was implemented.
+- Verification: complete ui-protocol suite 119/119 passed; full services/chat suite 323/323 passed in 34 files; bun run typecheck exited 0. Production keyword scan found no legacy input/label business matching. git diff --check passed.
+- Final review: independent read-only reviewer dispatched after implementation (one review under inline execution).
+- Final review findings: two P2 regressions, no minors. Added tests reproduced both failures: place_details refinement form missing the required card; explicitly cleared optional form preferences were retained by null-as-omitted semantic merging.
+- Final fix pass: retain existing details cards with fresh IDs next to the server-generated filter form; preserve explicit clearing of optional submitted form fields while model null patches remain no-ops.
+- Final review boundary: live-model language/negation detection and prose currency correctness remain unverified; deterministic protocol/state tests use controlled model output. No live quality claim is made.
+- Final: fixed both P2 findings — two focused tests RED→GREEN, 18/18 multilingual flow tests passed.
+- Task 6: complete — locale HTTP cases, documented envelope/purpose/language policy, original isolation tests and full regression passed.
+- Final verification after fixes: 34 test files, 325/325 tests passed; typecheck exit 0; ui-protocol type-aware lint exit 0; git diff --check passed; production legacy keyword scan returned no matches. No deferred minor findings.
+- Delivery: changes remain reviewable in the current checkout on codex/ui-protocol-multilingual; no commit, merge or remote publication was requested.
+- Live verification: original port 4001 rejected locale with HTTP 400; current-source temporary authenticated HTTP service used the real configured model instead. No original service process was restarted.
+- Live finding and fix: actual model rejected SDK property-path JSON Schema references (HTTP 502). A wire-schema assertion reproduced the defect; derive JSON Schema from the original Zod schema and expand local references. Service regression 21/21 passed; typecheck and UI type-aware lint exited 0.
+- Live result: Chinese and English planning, solo selection, form submission without currency, natural confirmation request, final UI confirmation, and independent hotel query all passed (12/12, HTTP 201). Safe full report is docs/superpowers/reports/2026-10-04-ui-protocol-live-test.json. Hotel provider inventory remains outside this verification.
+- Post-live regression: full services/chat suite passed 325/325 tests in 34 files after the schema fix; git diff --check exited 0.

@@ -1,20 +1,87 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { HumanMessage } from '@langchain/core/messages';
-import { UIResponseService } from './ui-response.service.js';
-import type { UIFlowContext } from './ui-types.js';
+import {
+  UIResponseService,
+  validateUIModelOutput,
+} from './ui-response.service.js';
+import type { AIUIResponse, UIFlowContext } from './ui-types.js';
+import { modelOutput } from './ui-test.fixtures.js';
 
-describe('UI structured model output', () => {
+const text: AIUIResponse = {
+  message: 'Hello',
+  intent: 'general',
+  components: [{ id: 'text', type: 'text', content: 'Hello', format: 'plain' }],
+};
+const trip: AIUIResponse = { ...text, intent: 'trip_planning' };
+const hotels: AIUIResponse = {
+  message: 'Unverified',
+  intent: 'hotel_search',
+  components: [
+    {
+      id: 'hotels',
+      type: 'table',
+      title: 'Hotels',
+      columns: [{ key: 'name', label: 'Name' }],
+      rows: [],
+    },
+  ],
+};
+const detail: AIUIResponse = {
+  message: 'Unverified',
+  intent: 'place_details',
+  components: [
+    {
+      id: 'card',
+      type: 'card',
+      title: 'Details',
+      category: 'place',
+      description: 'Unverified',
+      sourceStatus: 'unverified',
+      details: [],
+    },
+  ],
+};
+const context: UIFlowContext = {
+  stage: 'reviewing_itinerary',
+  requirements: { tripType: 'solo' },
+  itinerary: 'Tokyo draft',
+  query: null,
+};
+const confirmation: AIUIResponse = {
+  message: '',
+  intent: 'trip_planning',
+  components: [
+    {
+      id: 'confirmation',
+      type: 'confirmation',
+      title: 'Confirm',
+      summary: 'Tokyo draft',
+      confirmLabel: 'Confirm',
+      cancelLabel: 'Cancel',
+    },
+    {
+      id: 'steps',
+      type: 'steps',
+      title: 'Progress',
+      items: [{ id: 'review', label: 'Review', status: 'current' }],
+    },
+  ],
+};
+
+describe('UI semantic model output', () => {
   let server: Server;
   let reply: unknown;
   let wire: Record<string, any>;
+  let calls: number;
   const service = new UIResponseService();
   beforeAll(async () => {
     server = createServer(async (req, res) => {
+      calls++;
       let raw = '';
       for await (const chunk of req) raw += chunk;
       wire = JSON.parse(raw);
-      const name = wire.tools?.[0]?.function.name;
+      const name = wire.tools[0].function.name;
       res.setHeader('Content-Type', 'application/json');
       res.end(
         JSON.stringify({
@@ -23,21 +90,17 @@ describe('UI structured model output', () => {
           choices: [
             {
               index: 0,
-              finish_reason: name ? 'tool_calls' : 'stop',
+              finish_reason: 'tool_calls',
               message: {
                 role: 'assistant',
-                content: name ? null : JSON.stringify(reply),
-                ...(name
-                  ? {
-                      tool_calls: [
-                        {
-                          id: 'call-1',
-                          type: 'function',
-                          function: { name, arguments: JSON.stringify(reply) },
-                        },
-                      ],
-                    }
-                  : {}),
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'call-1',
+                    type: 'function',
+                    function: { name, arguments: JSON.stringify(reply) },
+                  },
+                ],
               },
             },
           ],
@@ -55,263 +118,195 @@ describe('UI structured model output', () => {
     vi.stubEnv('HTTPS_PROXY', '');
     vi.stubEnv('HTTP_PROXY', '');
   });
+  beforeEach(() => {
+    calls = 0;
+  });
   afterAll(async () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
     vi.unstubAllEnvs();
   });
-  it('constrains the real model request and carries history/context', async () => {
-    reply = {
-      message: '选择类型',
-      intent: 'trip_planning',
-      components: [
-        {
-          id: 'type',
-          type: 'selection',
-          title: '旅游类型',
-          mode: 'single',
-          options: ['商务出差', '亲子游', '个人游'].map((label) => ({
-            value: label,
-            label,
-            description: null,
-          })),
-        },
-      ],
-    };
-    const result = await service.generateUIResponse(
-      '我要去日本旅游',
-      [new HumanMessage('预算5000')],
-      {
-        stage: 'idle',
-        requirements: { budget: 5000 },
-        itinerary: null,
-        query: null,
-      },
+  it('uses one strict envelope call and carries history and context', async () => {
+    reply = modelOutput(
+      trip,
+      { destination: 'Tokyo', tripType: 'solo', budget: 5000 },
+      'update_requirements',
+      'en',
     );
-    expect(result.components[0].type).toBe('selection');
-    const schema =
-      wire.tools?.[0]?.function.parameters ??
-      wire.response_format?.json_schema?.schema;
-    expect(schema.properties.components.items).toBeDefined();
-    expect(JSON.stringify(wire.messages)).toContain('预算5000');
-    expect(JSON.stringify(wire.messages)).toContain('5000');
-  });
-  it.each(['查看某某地点', '查看某某酒店'])(
-    'returns details for %s',
-    async (input) => {
-      reply = {
-        message: '待核实',
-        intent: 'place_details',
-        components: [
-          {
-            id: 'detail',
-            type: 'card',
-            title: input,
-            category: input.includes('酒店') ? 'hotel' : 'place',
-            description: '尚无可信数据',
-            details: [],
-            sourceStatus: 'unverified',
-          },
-        ],
-      };
-      expect((await service.generateUIResponse(input)).components[0].type).toBe(
-        'card',
-      );
-    },
-  );
-  it('queries hotels directly and sends the full user constraints', async () => {
-    reply = {
-      message: '尚无查询数据',
-      intent: 'hotel_search',
-      components: [
-        {
-          id: 'hotels',
-          type: 'table',
-          title: '待查询酒店',
-          columns: [{ key: 'name', label: '名称' }],
-          rows: [],
-        },
-      ],
-    };
+    const result = await service.generateUIResponse(
+      'Plan a solo trip to Tokyo',
+      [new HumanMessage('budget 5000')],
+      { ...context, preferredLocale: 'en', replyLanguage: 'en' },
+    );
+    expect(result).toEqual(reply);
+    expect(calls).toBe(1);
+    const schema = wire.tools[0].function.parameters;
+    expect(schema.properties.semantics).toBeDefined();
+    // OpenAI strict tools reject references to arbitrary property paths.
+    expect(schema.properties.response.properties.intent.enum).toEqual([
+      'trip_planning',
+      'hotel_search',
+      'place_details',
+      'flight_search',
+      'general',
+    ]);
+    expect(JSON.stringify(schema)).not.toContain('"$ref"');
     expect(
-      (await service.generateUIResponse('帮我找杭州西湖附近500米的酒店'))
-        .intent,
-    ).toBe('hotel_search');
-    expect(JSON.stringify(wire.messages)).toContain('杭州西湖附近500米');
-  });
-  it('confirms an existing route with progress', async () => {
-    reply = {
-      message: '请确认',
-      intent: 'trip_planning',
-      components: [
-        {
-          id: 'confirm',
-          type: 'confirmation',
-          title: '确认',
-          summary: '东京三日',
-          confirmLabel: '确认',
-          cancelLabel: '取消',
-        },
-        {
-          id: 'steps',
-          type: 'steps',
-          title: '进度',
-          items: [{ id: 'confirm', label: '确认', status: 'current' }],
-        },
-      ],
-    };
-    const context: UIFlowContext = {
-      stage: 'reviewing_itinerary',
-      itinerary: '东京三日',
-      requirements: {},
-      query: null,
-    };
-    expect(
-      (
-        await service.generateUIResponse('确认旅游路线', [], context)
-      ).components.map((c) => c.type),
-    ).toEqual(['confirmation', 'steps']);
+      schema.properties.response.properties.components.items,
+    ).toBeDefined();
+    expect(wire.tools[0].function.strict).toBe(true);
+    expect(JSON.stringify(wire.messages)).toContain('budget 5000');
+    expect(JSON.stringify(wire.messages)).toContain('preferredLocale');
   });
   it.each([
-    {
-      message: '',
-      intent: 'general',
-      components: [{ type: 'unknown', id: 'bad' }],
-    },
-    {
-      message: '',
-      intent: 'place_details',
-      components: [
-        {
-          id: 'bad',
-          type: 'selection',
-          title: '旅游类型',
-          mode: 'single',
-          options: [{ value: 'solo', label: '个人游', description: null }],
-        },
-      ],
-    },
-    {
-      message: '',
-      intent: 'trip_planning',
-      components: [
-        {
-          id: 'bad',
-          type: 'confirmation',
-          title: '确认',
-          summary: '伪造路线',
-          confirmLabel: '确认',
-          cancelLabel: '取消',
-        },
-      ],
-    },
-    {
-      message: '',
-      intent: 'place_details',
-      components: [
-        {
-          id: 'bad',
-          type: 'card',
-          title: '酒店',
-          category: 'hotel',
-          description: '实时价格',
-          details: [],
-          sourceStatus: 'verified',
-        },
-      ],
-    },
+    '我要去东京独自旅游',
+    'Plan a solo trip to Tokyo',
+    'Plan 东京 solo trip',
+    'Je veux voyager seul à Tokyo',
   ])(
-    'rejects invalid or ungrounded output with sanitized 502',
+    'accepts equivalent semantics independently of input language: %s',
+    async (input) => {
+      reply = modelOutput(
+        trip,
+        { destination: 'Tokyo', tripType: 'solo' },
+        'update_requirements',
+        'en',
+      );
+      expect(
+        (await service.generateUIResponse(input)).semantics.requirements
+          .tripType,
+      ).toBe('solo');
+    },
+  );
+  it('preserves return-date role and optional currency', async () => {
+    reply = modelOutput(
+      trip,
+      { returnDate: '2026-11-03', budget: 5000 },
+      'update_requirements',
+      'en',
+    );
+    const output = await service.generateUIResponse(
+      'Return on 2026-11-03, budget 5000',
+    );
+    expect(output.semantics.requirements.departureDate).toBeNull();
+    expect(output.semantics.requirements.budgetCurrency).toBeNull();
+  });
+  it('accepts grounded confirmation with progress', async () => {
+    reply = modelOutput(confirmation, {}, 'request_confirmation');
+    expect(
+      (await service.generateUIResponse('Confirm this itinerary', [], context))
+        .response.components[0].type,
+    ).toBe('confirmation');
+  });
+  it.each([
+    modelOutput({
+      ...text,
+      components: [{ id: 'bad', type: 'unknown' }],
+    } as never),
+    {
+      ...modelOutput(text),
+      semantics: { ...modelOutput(text).semantics, intent: 'trip_planning' },
+    },
+    modelOutput(hotels, { budget: 500 }),
+    modelOutput(trip, { travelers: 101 }),
+    modelOutput(trip, { departureDate: '2026-02-30' }),
+    modelOutput(trip, { budgetCurrency: 'dollars' }),
+    modelOutput({
+      ...hotels,
+      components: [
+        {
+          id: 'trip',
+          type: 'selection',
+          purpose: 'trip_type',
+          title: 'Any wording',
+          mode: 'single',
+          options: [{ value: 'solo', label: 'Solo travel', description: null }],
+        },
+      ],
+    }),
+    modelOutput({
+      ...detail,
+      components: [{ ...detail.components[0], sourceStatus: 'verified' }],
+    } as never),
+    modelOutput({ ...detail, components: hotels.components }),
+    modelOutput(confirmation, {}, 'request_confirmation'),
+  ])(
+    'rejects malformed, conflicting or ungrounded envelopes with sanitized 502',
     async (invalid) => {
       reply = invalid;
       await expect(
-        service.generateUIResponse('查看某某酒店'),
+        service.generateUIResponse('Any language'),
       ).rejects.toMatchObject({ status: 502, message: 'INTERNAL_ERROR' });
     },
   );
-  it('rejects confirmation without progress even with a known route', async () => {
-    reply = {
-      message: '',
-      intent: 'trip_planning',
-      components: [
-        {
-          id: 'c',
-          type: 'confirmation',
-          title: '确认',
-          summary: '东京三日',
-          confirmLabel: '确认',
-          cancelLabel: '取消',
-        },
-      ],
-    };
-    await expect(
-      service.generateUIResponse('确认路线', [], {
-        stage: 'reviewing_itinerary',
-        itinerary: '东京三日',
-        requirements: {},
-        query: null,
+  it('rejects confirmation missing progress even with a grounded route', () => {
+    expect(() =>
+      validateUIModelOutput(
+        modelOutput(
+          { ...confirmation, components: [confirmation.components[0]] },
+          {},
+          'request_confirmation',
+        ),
+        context,
+      ),
+    ).toThrow();
+  });
+  it('validates preview and query against trusted server operations', () => {
+    expect(() =>
+      validateUIModelOutput(modelOutput(trip, {}, 'answer'), {
+        ...context,
+        operation: 'preview_itinerary',
       }),
-    ).rejects.toMatchObject({ status: 502 });
-  });
-  it('answers general travel questions without forcing a wizard', async () => {
-    reply = {
-      message: '出行建议',
-      intent: 'general',
-      components: [
-        {
-          id: 'text',
-          type: 'text',
-          content: '建议了解交通和当地习俗。',
-          format: 'markdown',
-        },
-      ],
-    };
-    expect(
-      (await service.generateUIResponse('日本旅游有哪些注意事项？')).intent,
-    ).toBe('general');
-  });
-  it('does not require a type choice already supplied in the direct service input', async () => {
-    reply = {
-      message: '补充需求',
+    ).toThrow();
+    const draft = {
+      ...detail,
       intent: 'trip_planning',
-      components: [
-        {
-          id: 'form',
-          type: 'form',
-          title: '补充需求',
-          fields: [
-            {
-              type: 'date',
-              name: 'departureDate',
-              label: '出发日期',
-              required: true,
-              placeholder: null,
-            },
-          ],
-          submitLabel: '提交',
-        },
-      ],
-    };
+      components: [{ ...detail.components[0], category: 'itinerary' }],
+    } as AIUIResponse;
     expect(
-      (await service.generateUIResponse('我要去日本个人游旅游')).components[0]
-        .type,
-    ).toBe('form');
+      validateUIModelOutput(modelOutput(draft, {}, 'answer'), {
+        ...context,
+        operation: 'preview_itinerary',
+      }).response.intent,
+    ).toBe('trip_planning');
+    expect(() =>
+      validateUIModelOutput(modelOutput(detail), {
+        ...context,
+        operation: 'query',
+        query: { intent: 'hotel_search', input: 'hotel constraints' },
+      }),
+    ).toThrow();
+    expect(() =>
+      validateUIModelOutput(
+        modelOutput(draft, { budget: 500 }, 'update_requirements'),
+        { ...context, operation: 'preview_itinerary' },
+      ),
+    ).toThrow();
   });
-  it('rejects a planning selection mislabeled as general before committing', async () => {
-    reply = {
-      message: '请选择',
-      intent: 'general',
+  it('validates purpose without depending on titles and labels', () => {
+    const filtered = {
+      ...hotels,
       components: [
         {
-          id: 'type',
+          id: 'filter',
           type: 'selection',
+          purpose: 'query_filter',
           title: '旅游类型',
           mode: 'single',
-          options: [{ value: 'solo', label: '个人游', description: null }],
+          options: [{ value: 'wifi', label: '个人游', description: null }],
         },
       ],
-    };
+    } as AIUIResponse;
+    expect(validateUIModelOutput(modelOutput(filtered)).response.intent).toBe(
+      'hotel_search',
+    );
+  });
+  it('rejects a reply language that contradicts an explicit preference', async () => {
+    reply = modelOutput(text, {}, 'answer', 'zh');
     await expect(
-      service.generateUIResponse('我要去日本旅游'),
+      service.generateUIResponse('你好', [], {
+        ...context,
+        preferredLocale: 'en',
+      }),
     ).rejects.toMatchObject({ status: 502 });
   });
 });

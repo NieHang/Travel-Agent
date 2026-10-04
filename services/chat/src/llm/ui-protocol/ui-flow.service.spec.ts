@@ -1,6 +1,8 @@
 import { UIFlowService } from './ui-flow.service.js';
 import type { AIUIResponse, UIResponse, UIFlowContext } from './ui-types.js';
 import type { UIResponseService } from './ui-response.service.js';
+import { modelOutput } from './ui-test.fixtures.js';
+import type { PlanningRequirements } from './ui-types.js';
 
 const draft: AIUIResponse = {
   message: '路线草案',
@@ -37,6 +39,7 @@ const typeReply: AIUIResponse = {
     {
       id: 'type',
       type: 'selection',
+      purpose: 'trip_type',
       title: '旅游类型',
       mode: 'single',
       options: [{ value: 'solo', label: '个人游', description: null }],
@@ -53,23 +56,34 @@ describe('intent-aware UI actions', () => {
   let fail: boolean;
   let contexts: UIFlowContext[];
   let histories: number[];
+  let inputs: string[];
   let querySelection: boolean;
   beforeEach(() => {
     fail = false;
     querySelection = false;
     contexts = [];
     histories = [];
-    const generate = async (
+    inputs = [];
+    const responseFor = async (
       input: string,
       history: unknown[] = [],
       context?: UIFlowContext,
     ) => {
       if (fail) throw Error('upstream secret');
       contexts.push(structuredClone(context!));
+      inputs.push(input);
       histories.push(history.length);
       if (context?.operation === 'preview_itinerary')
         return structuredClone(draft);
-      if (/酒店/.test(input)) {
+      if (
+        context?.operation === 'query' ||
+        [
+          '帮我找杭州西湖附近500米的酒店，预算800',
+          '查看西湖附近500米的酒店',
+          '帮我找西湖附近的酒店',
+          '找西湖附近的酒店',
+        ].includes(input)
+      ) {
         if (querySelection)
           return {
             message: '选择设施',
@@ -78,6 +92,7 @@ describe('intent-aware UI actions', () => {
               {
                 id: 'filter',
                 type: 'selection',
+                purpose: 'query_filter',
                 title: '酒店设施',
                 mode: 'multiple',
                 options: [
@@ -87,7 +102,7 @@ describe('intent-aware UI actions', () => {
               },
             ],
           } as AIUIResponse;
-        if (/查看/.test(input))
+        if (input === '查看西湖附近500米的酒店')
           return {
             message: '详情待核实',
             intent: 'hotel_search',
@@ -105,7 +120,16 @@ describe('intent-aware UI actions', () => {
           } as AIUIResponse;
         return structuredClone(hotels);
       }
-      if (/旅游|个人游/.test(input)) return structuredClone(typeReply);
+      if (
+        [
+          '我要去日本旅游',
+          '我要去东京个人游，2人，预算5000，2026-11-01到2026-11-03',
+          '我要去东京个人游，出发日期2026-11-01，2人，预算5000',
+          '我要去日本独自旅游',
+          '确认旅游路线',
+        ].includes(input)
+      )
+        return structuredClone(typeReply);
       return {
         message: '你好',
         intent: 'general',
@@ -113,6 +137,44 @@ describe('intent-aware UI actions', () => {
           { id: 'text', type: 'text', content: '你好', format: 'plain' },
         ],
       } as AIUIResponse;
+    };
+    const patches: Record<string, Partial<PlanningRequirements>> = {
+      我要去日本旅游: { destination: '日本' },
+      '我要去东京个人游，2人，预算5000，2026-11-01到2026-11-03': {
+        destination: '东京',
+        tripType: 'solo',
+        travelers: 2,
+        budget: 5000,
+        departureDate: '2026-11-01',
+        returnDate: '2026-11-03',
+      },
+      '我要去东京个人游，出发日期2026-11-01，2人，预算5000': {
+        destination: '东京',
+        tripType: 'solo',
+        travelers: 2,
+        budget: 5000,
+        departureDate: '2026-11-01',
+      },
+      我要去日本独自旅游: { destination: '日本', tripType: 'solo' },
+    };
+    const generate = async (
+      input: string,
+      history: unknown[] = [],
+      context?: UIFlowContext,
+    ) => {
+      const response = await responseFor(input, history, context);
+      return modelOutput(
+        response,
+        patches[input],
+        context?.operation
+          ? 'answer'
+          : input === '确认旅游路线'
+            ? 'request_confirmation'
+            : response.intent === 'trip_planning'
+              ? 'update_requirements'
+              : 'answer',
+        context?.preferredLocale ?? context?.replyLanguage ?? 'zh',
+      );
     };
     flow = new UIFlowService({
       generateUIResponse: generate,
@@ -213,9 +275,7 @@ describe('intent-aware UI actions', () => {
     );
     expect(result.intent).toBe('hotel_search');
     expect(result.components.some((c) => c.type === 'selection')).toBe(false);
-    expect(contexts.at(-1)?.query?.input).toBe(
-      '帮我找杭州西湖附近500米的酒店，预算800',
-    );
+    expect(inputs.at(-1)).toBe('帮我找杭州西湖附近500米的酒店，预算800');
     expect(contexts.at(-1)?.requirements.budget).toBe(5000);
     const b = component(result, 'action_buttons');
     const restored = await flow.handleAction('s', {

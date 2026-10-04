@@ -5,14 +5,37 @@
 `POST /api/ui-chat/chat` 与 `POST /api/ui-chat/action` 沿用全局 Bearer 登录保护。
 返回 `{ message, intent, components }`，组件由 `type` 区分 text、selection、form、
 confirmation、card、steps、table、action_buttons。所有组件都有服务端生成的 `id`。
-模型通过 `withStructuredOutput(aiUIResponseSchema, { method: 'functionCalling', strict: true })`
-生成响应，再校验业务场景和唯一标识。自定义校验不传入 SDK 的严格 JSON Schema。
+模型通过 `withStructuredOutput(uiModelJsonSchema, { method: 'functionCalling', strict: true })`
+在一次调用中生成 `{ semantics, response }`。内部 semantics 包含意图、操作建议、回复语言及
+明确需求增量；HTTP 只返回 response，不暴露 semantics。自定义校验不传入 SDK 的严格
+JSON Schema。服务端根据稳定字段推进状态，不从用户输入、标题或标签中匹配语言关键词。
+`uiModelJsonSchema` 从同一份 Zod schema 生成，并展开本地引用，避免 SDK 生成的属性路径引用
+被实际模型接口拒绝；模型返回值仍经过完整的 Zod 与业务校验。
+
+selection 包含 `purpose: trip_type | query_filter | query_candidate`；规划类型选项 value
+固定为 business/family/solo/couple，不随语言变化。独立查询不能返回 trip_type selection。
+
+chat/action 都可传可选 `locale`（语言标记，例如 zh、en、en-US），省略仍有效。
+显式 locale 会保存为会话偏好，优先于当前输入语言；没有偏好时由模型理解当前输入语言，
+数字、日期或短回复沿用会话语言。纯 UI Action 继承会话语言。固定组件文案目前提供中英文，
+其他语言固定文案回退英文；模型内容可使用其他语言，增加字典不需要修改状态机。
 
 聊天请求：
 
 ```json
 { "sessionId": "travel-demo", "input": "我要去日本旅游" }
 ```
+
+英文界面示例（输入语言与展示偏好可以不同）：
+
+```json
+{ "sessionId": "travel-demo-en", "input": "Plan a solo trip to Tokyo for 2 people, budget 5000", "locale": "en" }
+```
+
+模型将自然语言转换成结构化需求，已给出的需求不重复询问。预算币种可选，不出现在
+规划表单，也不要求用户填写三位币种代码；只有预算金额仍可继续规划。明确提供币种时模型
+可保存为内部信息，未明确时不默认人民币或其他币种。日期保留用户表达的角色：只提供返程
+日期不会被当作出发日期，角色不明确的日期不自动写入需求。
 
 该请求缺少旅游类型时返回 selection；选择后只展示尚未收集的旅游需求表单。
 以下 Action 的 componentId 必须替换为最近一次响应中的真实组件 ID：
@@ -45,6 +68,12 @@ confirmation、card、steps、table、action_buttons。所有组件都有服务�
 ```
 
 `confirmed: false` 返回路线预览。确认只保存会话中的路线，不进行预订或支付。
+英文 `Confirm this itinerary` 等同样通过语义操作进入确认，不清空已有草案；自然语言确认
+只展示确认入口，最终 confirmed 必须由有效的 confirmation Action 设置。实际需求改变才
+使旧草案失效，重复同值需求不会重新生成。缺少草案时返回正常说明。
+
+普通聊天的语义解析和 UI 生成不额外增加调用。首次需求齐备或实际需求改变后，沿用独立的
+路线预览生成调用，基于服务端已经验证并合并的需求生成草案。
 
 “查看某某地点或者酒店”返回详情 card；“帮我找杭州西湖附近500米的酒店”直接进入
 hotel_search，不经过旅游类型向导，保留地点、距离、预算等完整原始查询条件。

@@ -12,26 +12,26 @@ import {
   type BaseMessage,
 } from '@langchain/core/messages';
 import { AppException } from '../../common/app.exception.js';
-import {
-  actionRequestSchema,
-  chatRequestSchema,
-  validatedAIUIResponseSchema,
-} from './ui-schemas.js';
+import { actionRequestSchema, chatRequestSchema } from './ui-schemas.js';
 import {
   UIResponseService,
+  validateUIModelOutput,
   validateUIResponse,
 } from './ui-response.service.js';
-import {
-  planningFields,
-  planningResponse,
-  tripOptions,
-} from './ui-flow.components.js';
+import { getPlanningFields, planningResponse } from './ui-flow.components.js';
 import { validateForm } from './ui-form.validation.js';
+import { mergePlanningRequirements } from './ui-requirements.validation.js';
+import {
+  getUICopy,
+  normalizeLocale,
+  resolveReplyLanguage,
+} from './ui-localization.js';
 import type {
   AIUIResponse,
   UIAction,
   UIFlowContext,
-  UIIntent,
+  UIModelOutput,
+  PlanningRequirements,
 } from './ui-types.js';
 
 interface Session {
@@ -50,8 +50,12 @@ export class UIFlowService {
     @Inject(UIResponseService) private readonly responses: UIResponseService,
   ) {}
 
-  async chat(sessionId: string, input: string): Promise<AIUIResponse> {
-    const parsed = chatRequestSchema.safeParse({ sessionId, input });
+  async chat(
+    sessionId: string,
+    input: string,
+    locale?: string,
+  ): Promise<AIUIResponse> {
+    const parsed = chatRequestSchema.safeParse({ sessionId, input, locale });
     if (!parsed.success) throw new BadRequestException('Invalid chat request');
     return this.serial(sessionId, async () => {
       this.expire();
@@ -62,38 +66,79 @@ export class UIFlowService {
       try {
         const candidate = this.copy(previous);
         const text = parsed.data.input;
-        const queryIntent = this.queryIntent(text);
+        this.applyLocale(candidate.context, parsed.data.locale);
+        const output = await this.generate(candidate, text);
+        const { semantics } = output;
+        candidate.context.replyLanguage = resolveReplyLanguage(
+          candidate.context.preferredLocale,
+          semantics.replyLanguage,
+          candidate.context.replyLanguage,
+        );
         let result: AIUIResponse;
-        if (queryIntent) {
-          candidate.context.query = { intent: queryIntent, input: text };
-          result = await this.generate(candidate, text, 'query');
-          this.addResume(candidate, result);
-        } else if (
-          /确认.*路线|确认.*行程/.test(text) &&
-          candidate.context.itinerary &&
-          ['reviewing_itinerary', 'awaiting_confirmation'].includes(
-            candidate.context.stage,
-          )
-        ) {
-          candidate.context.stage = 'awaiting_confirmation';
-          result = planningResponse(candidate.context);
-        } else {
-          // Only planning inputs can update the planning draft; queries cannot overwrite budget etc.
-          const planningInput =
-            /旅游|旅行|个人游|亲子游|商务出差|情侣游|路线|行程/.test(text);
-          if (planningInput)
-            this.collectExplicitRequirements(candidate.context, text);
-          result = await this.generate(candidate, text);
-          if (result.intent === 'trip_planning') {
-            this.collectExplicitRequirements(candidate.context, text);
+        switch (semantics.operation) {
+          case 'answer':
+            result = output.response;
+            if (
+              semantics.intent !== 'general' &&
+              semantics.intent !== 'trip_planning'
+            ) {
+              candidate.context.query = {
+                intent: semantics.intent,
+                input: text,
+              };
+              this.addResume(candidate, result);
+            }
+            break;
+          case 'update_requirements': {
+            const merged = mergePlanningRequirements(
+              candidate.context.requirements,
+              semantics.requirements,
+            );
+            candidate.context.requirements = merged.requirements;
             candidate.context.query = null;
-            // Natural-language edits always invalidate the old draft and pending confirmation.
-            candidate.context.itinerary = null;
-            result = await this.advancePlanning(candidate);
-          } else if (result.intent !== 'general') {
-            candidate.context.query = { intent: result.intent, input: text };
-            this.addResume(candidate, result);
+            if (merged.changed || !candidate.context.itinerary) {
+              candidate.context.itinerary = null;
+              result = await this.advancePlanning(candidate);
+            } else result = planningResponse(candidate.context);
+            break;
           }
+          case 'request_confirmation':
+            if (
+              candidate.context.itinerary &&
+              ['reviewing_itinerary', 'awaiting_confirmation'].includes(
+                candidate.context.stage,
+              )
+            ) {
+              candidate.context.query = null;
+              candidate.context.stage = 'awaiting_confirmation';
+              result = planningResponse(candidate.context);
+            } else
+              result = this.explain(
+                candidate.context,
+                getUICopy(candidate.context.replyLanguage).noDraft,
+              );
+            break;
+          case 'cancel_confirmation':
+            if (candidate.context.stage === 'awaiting_confirmation') {
+              candidate.context.query = null;
+              candidate.context.stage = 'reviewing_itinerary';
+              result = planningResponse(candidate.context);
+            } else
+              result = this.explain(
+                candidate.context,
+                getUICopy(candidate.context.replyLanguage).noConfirmation,
+              );
+            break;
+          case 'resume_planning':
+            if (candidate.context.stage !== 'idle') {
+              candidate.context.query = null;
+              result = planningResponse(candidate.context);
+            } else
+              result = this.explain(
+                candidate.context,
+                getUICopy(candidate.context.replyLanguage).noPlanning,
+              );
+            break;
         }
         return this.commit(sessionId, candidate, text, result);
       } finally {
@@ -105,14 +150,17 @@ export class UIFlowService {
   async handleAction(
     sessionId: string,
     action: UIAction,
+    locale?: string,
   ): Promise<AIUIResponse> {
-    if (!actionRequestSchema.safeParse({ sessionId, action }).success)
+    if (!actionRequestSchema.safeParse({ sessionId, action, locale }).success)
       throw new BadRequestException('Invalid UI action');
     return this.serial(sessionId, async () => {
       this.expire();
       const previous = this.sessions.get(sessionId);
       if (!previous) throw new NotFoundException('UI session not found');
       const candidate = this.copy(previous);
+      this.applyLocale(candidate.context, locale);
+      const copy = getUICopy(candidate.context.replyLanguage);
       const component = candidate.response.components.find(
         (c) => c.id === action.componentId,
       );
@@ -131,10 +179,16 @@ export class UIFlowService {
             )
           )
             throw new BadRequestException('Invalid selection');
-          if (candidate.response.intent !== 'trip_planning') {
+          if (component.purpose !== 'trip_type') {
             result = await this.query(
               candidate,
-              `选择 ${component.title}：${JSON.stringify(action.values.map((value) => component.options.find((o) => o.value === value)))}`,
+              JSON.stringify({
+                operation: 'selection',
+                purpose: component.purpose,
+                selected: action.values.map((value) =>
+                  component.options.find((o) => o.value === value),
+                ),
+              }),
             );
             break;
           }
@@ -145,7 +199,10 @@ export class UIFlowService {
             throw new ConflictException(
               'Selection not allowed in current stage',
             );
-          candidate.context.requirements.tripType = action.values[0];
+          candidate.context.requirements = mergePlanningRequirements(
+            candidate.context.requirements,
+            { tripType: action.values[0] as PlanningRequirements['tripType'] },
+          ).requirements;
           result = await this.advancePlanning(candidate);
           break;
         }
@@ -155,16 +212,26 @@ export class UIFlowService {
           if (candidate.response.intent === 'trip_planning') {
             if (candidate.context.stage !== 'collecting_requirements')
               throw new ConflictException('Form not allowed in current stage');
-            Object.assign(
+            const submitted = validateForm(
+              component,
+              action,
               candidate.context.requirements,
-              validateForm(component, action, candidate.context.requirements),
             );
+            candidate.context.requirements = mergePlanningRequirements(
+              candidate.context.requirements,
+              submitted as Partial<PlanningRequirements>,
+            ).requirements;
+            // Form null means explicitly cleared; model-patch null means omitted.
+            for (const field of component.fields) {
+              if (!field.required && submitted[field.name] === null)
+                candidate.context.requirements[field.name] = null;
+            }
             result = await this.advancePlanning(candidate);
           } else {
             const submitted = validateForm(component, action, {});
             result = await this.query(
               candidate,
-              `补充查询条件：${JSON.stringify(submitted)}`,
+              JSON.stringify({ operation: 'form_submit', values: submitted }),
             );
           }
           break;
@@ -225,29 +292,41 @@ export class UIFlowService {
                 throw new ConflictException('No active query');
               result = {
                 intent: candidate.context.query.intent,
-                message: '补充筛选条件，原有查询条件将保留。',
+                message: copy.refine,
                 components: [
                   {
                     id: 'query-form',
                     type: 'form',
-                    title: '查询筛选',
+                    title: copy.queryTitle,
                     fields: [
                       {
                         type: 'textarea',
                         name: 'filters',
-                        label: '补充条件',
+                        label: copy.filters,
                         required: true,
-                        placeholder: '例如预算、设施或入住日期',
+                        placeholder: copy.filtersPlaceholder,
                       },
                     ],
-                    submitLabel: '更新查询',
+                    submitLabel: copy.updateQuery,
                   },
+                  ...(candidate.context.query.intent === 'place_details'
+                    ? candidate.response.components
+                        .filter((c) => c.type === 'card')
+                        .map((c) => ({ ...c, id: randomUUID() }))
+                    : []),
                 ],
               };
               this.addResume(candidate, result);
               break;
             case 'view_details':
-              result = await this.query(candidate, `查看详情：${button.label}`);
+              result = await this.query(
+                candidate,
+                JSON.stringify({
+                  operation: 'view_details',
+                  buttonId: button.id,
+                  label: button.label,
+                }),
+              );
               break;
           }
           break;
@@ -316,7 +395,7 @@ export class UIFlowService {
   ): AIUIResponse {
     let response: AIUIResponse;
     try {
-      response = validatedAIUIResponseSchema.parse(result);
+      response = validateUIResponse(result, candidate.context);
     } catch {
       throw new AppException('INTERNAL_ERROR', 502);
     }
@@ -337,7 +416,7 @@ export class UIFlowService {
     session: Session,
     input: string,
     operation?: UIFlowContext['operation'],
-  ): Promise<AIUIResponse> {
+  ): Promise<UIModelOutput> {
     const context = {
       ...structuredClone(session.context),
       ...(operation ? { operation } : {}),
@@ -348,7 +427,7 @@ export class UIFlowService {
         session.history.slice(-20),
         context,
       );
-      return validateUIResponse(output, input, context);
+      return validateUIModelOutput(output, context);
     } catch {
       throw new AppException('INTERNAL_ERROR', 502);
     }
@@ -361,7 +440,7 @@ export class UIFlowService {
     }
     context.stage = 'collecting_requirements';
     if (
-      planningFields.some(
+      getPlanningFields(context.replyLanguage).some(
         (f) =>
           f.required &&
           (context.requirements[f.name] === undefined ||
@@ -372,10 +451,10 @@ export class UIFlowService {
       return planningResponse(context);
     const preview = await this.generate(
       session,
-      '根据已收集的需求生成旅游路线草案',
+      JSON.stringify({ operation: 'preview_itinerary' }),
       'preview_itinerary',
     );
-    const card = preview.components.find(
+    const card = preview.response.components.find(
       (c) => c.type === 'card' && c.category === 'itinerary',
     );
     if (!card || card.type !== 'card')
@@ -385,25 +464,16 @@ export class UIFlowService {
     context.stage = 'reviewing_itinerary';
     return planningResponse(context);
   }
-  private queryIntent(input: string): UIIntent | null {
-    if (/酒店|住宿/.test(input) && /找|搜索|附近|查询|推荐/.test(input))
-      return 'hotel_search';
-    if (/航班|机票/.test(input) && /找|搜索|查询|推荐/.test(input))
-      return 'flight_search';
-    if (/查看|详情/.test(input) && /酒店|地点|景点|西湖|航班/.test(input))
-      return 'place_details';
-    return null;
-  }
   private async query(session: Session, extra: string): Promise<AIUIResponse> {
     if (!session.context.query) throw new ConflictException('No active query');
     session.context.query.input += `\n${extra}`;
-    const result = await this.generate(
+    const output = await this.generate(
       session,
       session.context.query.input,
       'query',
     );
-    this.addResume(session, result);
-    return result;
+    this.addResume(session, output.response);
+    return output.response;
   }
   private addResume(session: Session, response: AIUIResponse) {
     if (session.context.stage !== 'idle')
@@ -411,52 +481,32 @@ export class UIFlowService {
         id: randomUUID(),
         type: 'action_buttons',
         buttons: [
-          { id: 'resume', label: '返回路线规划', action: 'resume_planning' },
+          {
+            id: 'resume',
+            label: getUICopy(session.context.replyLanguage).resume,
+            action: 'resume_planning',
+          },
         ],
       });
   }
-  private collectExplicitRequirements(context: UIFlowContext, input: string) {
-    const type = tripOptions.find((o) => input.includes(o.label));
-    if (type) context.requirements.tripType = type.value;
-    else if (/独自|一个人/.test(input)) context.requirements.tripType = 'solo';
-    else if (/带孩子|带小孩/.test(input))
-      context.requirements.tripType = 'family';
-    else if (/出差/.test(input)) context.requirements.tripType = 'business';
-    else if (/蜜月/.test(input)) context.requirements.tripType = 'couple';
-    const destination =
-      /(?:去|目的地[：:为是\s]*)([^，。\s]+?)(?=旅游|旅行|个人游|亲子游|商务出差|情侣游|[，。\s]|$)/.exec(
-        input,
-      )?.[1];
-    if (destination) context.requirements.destination = destination;
-    const travelers = /(\d+)\s*人/.exec(input)?.[1];
-    if (travelers && Number(travelers) > 0 && Number(travelers) <= 100)
-      context.requirements.travelers = Number(travelers);
-    const budget = /预算[：:\s]*(\d+(?:\.\d+)?)/.exec(input)?.[1];
-    if (budget) context.requirements.budget = Number(budget);
-    const dates = input.match(/\d{4}-\d{2}-\d{2}/g);
-    const validDate = (d: string) =>
-      Number.isFinite(Date.parse(d)) &&
-      new Date(d).toISOString().slice(0, 10) === d;
-    const departure = /(?:出发|入住)(?:日期)?[：:\s]*(\d{4}-\d{2}-\d{2})/.exec(
-      input,
-    )?.[1];
-    const returning =
-      /(?:返程|返回|退房)(?:日期)?[：:\s]*(\d{4}-\d{2}-\d{2})/.exec(input)?.[1];
-    if (departure && validDate(departure))
-      context.requirements.departureDate = departure;
-    if (returning && validDate(returning))
-      context.requirements.returnDate = returning;
-    if (dates?.length === 1 && !returning && validDate(dates[0]))
-      context.requirements.departureDate = dates[0];
-    if (dates?.length === 2 && dates.every(validDate) && dates[0] <= dates[1]) {
-      context.requirements.departureDate = dates[0];
-      context.requirements.returnDate = dates[1];
+  private applyLocale(context: UIFlowContext, locale?: string) {
+    if (locale) {
+      context.preferredLocale = normalizeLocale(locale);
+      context.replyLanguage = context.preferredLocale;
     }
-    if (
-      typeof context.requirements.departureDate === 'string' &&
-      typeof context.requirements.returnDate === 'string' &&
-      context.requirements.departureDate > context.requirements.returnDate
-    )
-      throw new BadRequestException('Return date precedes departure');
+  }
+  private explain(context: UIFlowContext, message: string): AIUIResponse {
+    if (context.stage !== 'idle') {
+      const response = planningResponse(context);
+      response.message = message;
+      return response;
+    }
+    return {
+      message,
+      intent: 'general',
+      components: [
+        { id: 'explanation', type: 'text', content: message, format: 'plain' },
+      ],
+    };
   }
 }

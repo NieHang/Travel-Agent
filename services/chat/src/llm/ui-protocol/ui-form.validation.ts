@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import type { UIAction, UIResponse } from './ui-types.js';
+import { isValidISODate } from './ui-requirements.validation.js';
 
 export function validateForm(
   component: Extract<UIResponse, { type: 'form' }>,
@@ -45,13 +46,7 @@ export function validateForm(
         !field.options.some((o) => o.value === value)
       )
         fail();
-      if (
-        field.type === 'date' &&
-        (!/^\d{4}-\d{2}-\d{2}$/.test(value) ||
-          !Number.isFinite(Date.parse(value)) ||
-          new Date(value).toISOString().slice(0, 10) !== value)
-      )
-        fail();
+      if (field.type === 'date' && !isValidISODate(value)) fail();
     }
     submitted[name] = typeof value === 'string' ? value.trim() : value;
   }

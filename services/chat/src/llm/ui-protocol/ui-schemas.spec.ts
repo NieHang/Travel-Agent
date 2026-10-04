@@ -3,13 +3,18 @@ import {
   uiResponseSchema,
   uiActionSchema,
   formFieldSchema,
+  uiModelOutputSchema,
+  validatedUIModelOutputSchema,
+  chatRequestSchema,
 } from './ui-schemas.js';
+import { emptyRequirements } from './ui-test.fixtures.js';
 
 export const examples = [
   { id: 't', type: 'text', content: '你好', format: 'markdown' },
   {
     id: 's',
     type: 'selection',
+    purpose: 'trip_type',
     title: '旅游类型',
     mode: 'single',
     options: [{ value: 'solo', label: '个人游', description: null }],
@@ -67,6 +72,87 @@ export const examples = [
 ];
 
 describe('UI protocol schemas', () => {
+  const envelope = {
+    semantics: {
+      intent: 'general',
+      operation: 'answer',
+      replyLanguage: 'en',
+      requirements: emptyRequirements,
+    },
+    response: { message: '', intent: 'general', components: [examples[0]] },
+  };
+  it('requires a strict semantic envelope and all nullable requirement keys', () => {
+    expect(uiModelOutputSchema.safeParse(envelope).success).toBe(true);
+    expect(uiModelOutputSchema.safeParse(envelope.response).success).toBe(
+      false,
+    );
+    expect(
+      uiModelOutputSchema.safeParse({
+        ...envelope,
+        semantics: { ...envelope.semantics, requirements: {} },
+      }).success,
+    ).toBe(false);
+    expect(
+      uiModelOutputSchema.safeParse({
+        ...envelope,
+        semantics: { ...envelope.semantics, operation: 'confirmed' },
+      }).success,
+    ).toBe(false);
+    expect(
+      uiModelOutputSchema.safeParse({
+        ...envelope,
+        semantics: {
+          ...envelope.semantics,
+          requirements: { ...emptyRequirements, tripType: 'holiday' },
+        },
+      }).success,
+    ).toBe(false);
+  });
+  it('rejects conflicting intents, non-planning updates and duplicate identifiers', () => {
+    expect(
+      validatedUIModelOutputSchema.safeParse({
+        ...envelope,
+        semantics: { ...envelope.semantics, intent: 'hotel_search' },
+      }).success,
+    ).toBe(false);
+    expect(
+      validatedUIModelOutputSchema.safeParse({
+        ...envelope,
+        semantics: {
+          ...envelope.semantics,
+          requirements: { ...emptyRequirements, budget: 500 },
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      validatedUIModelOutputSchema.safeParse({
+        ...envelope,
+        semantics: { ...envelope.semantics, operation: 'request_confirmation' },
+      }).success,
+    ).toBe(false);
+    expect(
+      validatedUIModelOutputSchema.safeParse({
+        ...envelope,
+        response: {
+          ...envelope.response,
+          components: [examples[0], examples[0]],
+        },
+      }).success,
+    ).toBe(false);
+  });
+  it('accepts optional locale and rejects invalid language tags', () => {
+    expect(
+      chatRequestSchema.parse({ sessionId: 's', input: 'hi', locale: 'en-US' })
+        .locale,
+    ).toBe('en-US');
+    expect(
+      chatRequestSchema.safeParse({
+        sessionId: 's',
+        input: 'hi',
+        locale: 'not a language',
+      }).success,
+    ).toBe(false);
+  });
   it.each(examples)('accepts $type', (component) => {
     expect(uiResponseSchema.parse(component)).toEqual(component);
   });

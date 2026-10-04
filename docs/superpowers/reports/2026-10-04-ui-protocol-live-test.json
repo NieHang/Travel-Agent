@@ -1,0 +1,929 @@
+{
+  "startedAt": "2026-10-04T08:31:47.182Z",
+  "base": "http://127.0.0.1:13011",
+  "mode": "live HTTP and configured model",
+  "tests": [
+    {
+      "name": "zh: start planning",
+      "status": 201,
+      "durationMs": 5064,
+      "passed": true,
+      "request": {
+        "sessionId": "live-trip-zh-059b7d57-7dd3-460a-8be0-3aa0e850527d",
+        "locale": "zh",
+        "input": "帮我规划东京五天旅游路线。"
+      },
+      "response": {
+        "message": "请选择旅游类型。",
+        "intent": "trip_planning",
+        "components": [
+          {
+            "id": "ca2f8452-b2c3-43aa-8daa-b17099d448e2",
+            "type": "selection",
+            "purpose": "trip_type",
+            "title": "这次是什么类型的出行？",
+            "mode": "single",
+            "options": [
+              {
+                "value": "business",
+                "label": "商务出差",
+                "description": "兼顾工作安排与短途游览"
+              },
+              {
+                "value": "family",
+                "label": "亲子游",
+                "description": "适合家庭出行的节奏"
+              },
+              {
+                "value": "solo",
+                "label": "个人游",
+                "description": "按个人兴趣安排行程"
+              },
+              {
+                "value": "couple",
+                "label": "情侣游",
+                "description": "适合两人出行"
+              }
+            ]
+          },
+          {
+            "id": "1d2118e5-0c6d-417a-8744-ad158e4922cd",
+            "type": "steps",
+            "title": "路线规划进度",
+            "items": [
+              {
+                "id": "choosing_trip_type",
+                "label": "旅游类型",
+                "status": "current"
+              },
+              {
+                "id": "collecting_requirements",
+                "label": "旅游需求",
+                "status": "pending"
+              },
+              {
+                "id": "reviewing_itinerary",
+                "label": "路线预览",
+                "status": "pending"
+              },
+              {
+                "id": "awaiting_confirmation",
+                "label": "路线确认",
+                "status": "pending"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "zh: select solo",
+      "status": 201,
+      "durationMs": 7,
+      "passed": true,
+      "request": {
+        "sessionId": "live-trip-zh-059b7d57-7dd3-460a-8be0-3aa0e850527d",
+        "action": {
+          "type": "selection",
+          "componentId": "ca2f8452-b2c3-43aa-8daa-b17099d448e2",
+          "values": [
+            "solo"
+          ]
+        }
+      },
+      "response": {
+        "message": "请补充尚未提供的旅游需求。",
+        "intent": "trip_planning",
+        "components": [
+          {
+            "id": "3923f76e-aac7-4d9a-9799-a31f6fa97f97",
+            "type": "form",
+            "title": "旅游需求",
+            "fields": [
+              {
+                "name": "departureDate",
+                "label": "出发日期",
+                "required": true,
+                "type": "date",
+                "placeholder": null
+              },
+              {
+                "name": "returnDate",
+                "label": "返程日期",
+                "required": true,
+                "type": "date",
+                "placeholder": null
+              },
+              {
+                "name": "travelers",
+                "label": "出行人数",
+                "required": true,
+                "type": "number",
+                "min": 1,
+                "max": 100
+              },
+              {
+                "name": "budget",
+                "label": "总预算",
+                "required": true,
+                "type": "number",
+                "min": 0,
+                "max": null
+              }
+            ],
+            "submitLabel": "生成路线草案"
+          },
+          {
+            "id": "2a2960be-82b3-4969-ab07-2369c402f160",
+            "type": "steps",
+            "title": "路线规划进度",
+            "items": [
+              {
+                "id": "choosing_trip_type",
+                "label": "旅游类型",
+                "status": "completed"
+              },
+              {
+                "id": "collecting_requirements",
+                "label": "旅游需求",
+                "status": "current"
+              },
+              {
+                "id": "reviewing_itinerary",
+                "label": "路线预览",
+                "status": "pending"
+              },
+              {
+                "id": "awaiting_confirmation",
+                "label": "路线确认",
+                "status": "pending"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "zh: submit requirements without currency",
+      "status": 201,
+      "durationMs": 12267,
+      "passed": true,
+      "request": {
+        "sessionId": "live-trip-zh-059b7d57-7dd3-460a-8be0-3aa0e850527d",
+        "action": {
+          "type": "form_submit",
+          "componentId": "3923f76e-aac7-4d9a-9799-a31f6fa97f97",
+          "values": [
+            {
+              "name": "departureDate",
+              "value": "2026-11-01"
+            },
+            {
+              "name": "returnDate",
+              "value": "2026-11-05"
+            },
+            {
+              "name": "travelers",
+              "value": 1
+            },
+            {
+              "name": "budget",
+              "value": 5000
+            }
+          ]
+        }
+      },
+      "response": {
+        "message": "请查看路线草案，可确认或修改需求。",
+        "intent": "trip_planning",
+        "components": [
+          {
+            "id": "6d114235-763f-4728-a7f3-bb2cd46b5045",
+            "type": "card",
+            "title": "路线草案",
+            "category": "itinerary",
+            "description": "东京五天旅游路线草案\n\n第1天：浅草与上野\n- 上午：前往浅草寺、雷门，步行逛仲见世商店街。\n- 中午：在浅草周边用餐，体验日式简餐或天妇罗。\n- 下午：前往上野公园，可选择参观东京国立博物馆或国立西洋美术馆。\n- 晚上：阿美横町散步，品尝小吃后返回住宿。\n\n第2天：涩谷、原宿、表参道\n- 上午：打卡涩谷十字路口与忠犬八公像。\n- 中午：前往原宿或表参道用餐。\n- 下午：逛明治神宫、代代木公园，再步行至表参道感受街区氛围。\n- 晚上：返回涩谷，体验夜景与商圈。\n\n第3天：新宿城市体验\n- 上午：新宿御苑散步。\n- 中午：在新宿用餐。\n- 下午：前往东京都厅展望室俯瞰城市景观，随后逛新宿商圈。\n- 晚上：可前往歌舞伎町周边感受东京夜生活，注意个人安全与时间安排。\n\n第4天：台场海滨休闲\n- 上午：前往台场海滨公园，欣赏东京湾景色。\n- 中午：在台场商场内用餐。\n- 下午：可选择参观teamLab相关展览（如开放情况允许）或在商场休闲购物。\n- 晚上：欣赏彩虹大桥夜景后返回。\n\n第5天：银座与东京站周边\n- 上午：前往银座街区散步购物。\n- 中午：在银座或东京站周边用餐。\n- 下午：参观东京站丸之内周边建筑，若时间充裕可前往皇居外苑散步。\n- 晚上：根据返程时间结束行程。\n\n说明：这是基于你提供的东京、独自出行、2026-11-01至2026-11-05、1人、预算5000的行程草案。由于未提供预算币种，以上路线仅做节奏与景点安排，不包含按特定币种核算的费用估算。",
+            "details": [],
+            "sourceStatus": "unverified"
+          },
+          {
+            "id": "0db8a3a6-87d6-4edf-bf36-97c8b0badc51",
+            "type": "action_buttons",
+            "buttons": [
+              {
+                "id": "confirm",
+                "label": "确认路线",
+                "action": "confirm_itinerary"
+              },
+              {
+                "id": "edit",
+                "label": "修改需求",
+                "action": "edit_itinerary"
+              }
+            ]
+          },
+          {
+            "id": "e694c453-2c43-444e-8f17-c9540d62fa31",
+            "type": "steps",
+            "title": "路线规划进度",
+            "items": [
+              {
+                "id": "choosing_trip_type",
+                "label": "旅游类型",
+                "status": "completed"
+              },
+              {
+                "id": "collecting_requirements",
+                "label": "旅游需求",
+                "status": "completed"
+              },
+              {
+                "id": "reviewing_itinerary",
+                "label": "路线预览",
+                "status": "current"
+              },
+              {
+                "id": "awaiting_confirmation",
+                "label": "路线确认",
+                "status": "pending"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "zh: request confirmation",
+      "status": 201,
+      "durationMs": 7315,
+      "passed": true,
+      "request": {
+        "sessionId": "live-trip-zh-059b7d57-7dd3-460a-8be0-3aa0e850527d",
+        "input": "确认这份旅游路线"
+      },
+      "response": {
+        "message": "请确认下面的路线草案。确认只保存路线，不会预订。",
+        "intent": "trip_planning",
+        "components": [
+          {
+            "id": "951748ab-b584-4244-a77e-abad3c48e09c",
+            "type": "confirmation",
+            "title": "确认旅游路线",
+            "summary": "东京五天旅游路线草案\n\n第1天：浅草与上野\n- 上午：前往浅草寺、雷门，步行逛仲见世商店街。\n- 中午：在浅草周边用餐，体验日式简餐或天妇罗。\n- 下午：前往上野公园，可选择参观东京国立博物馆或国立西洋美术馆。\n- 晚上：阿美横町散步，品尝小吃后返回住宿。\n\n第2天：涩谷、原宿、表参道\n- 上午：打卡涩谷十字路口与忠犬八公像。\n- 中午：前往原宿或表参道用餐。\n- 下午：逛明治神宫、代代木公园，再步行至表参道感受街区氛围。\n- 晚上：返回涩谷，体验夜景与商圈。\n\n第3天：新宿城市体验\n- 上午：新宿御苑散步。\n- 中午：在新宿用餐。\n- 下午：前往东京都厅展望室俯瞰城市景观，随后逛新宿商圈。\n- 晚上：可前往歌舞伎町周边感受东京夜生活，注意个人安全与时间安排。\n\n第4天：台场海滨休闲\n- 上午：前往台场海滨公园，欣赏东京湾景色。\n- 中午：在台场商场内用餐。\n- 下午：可选择参观teamLab相关展览（如开放情况允许）或在商场休闲购物。\n- 晚上：欣赏彩虹大桥夜景后返回。\n\n第5天：银座与东京站周边\n- 上午：前往银座街区散步购物。\n- 中午：在银座或东京站周边用餐。\n- 下午：参观东京站丸之内周边建筑，若时间充裕可前往皇居外苑散步。\n- 晚上：根据返程时间结束行程。\n\n说明：这是基于你提供的东京、独自出行、2026-11-01至2026-11-05、1人、预算5000的行程草案。由于未提供预算币种，以上路线仅做节奏与景点安排，不包含按特定币种核算的费用估算。",
+            "confirmLabel": "确认路线",
+            "cancelLabel": "返回修改"
+          },
+          {
+            "id": "095a2030-62ec-4d2b-aaab-231081628eba",
+            "type": "steps",
+            "title": "路线规划进度",
+            "items": [
+              {
+                "id": "choosing_trip_type",
+                "label": "旅游类型",
+                "status": "completed"
+              },
+              {
+                "id": "collecting_requirements",
+                "label": "旅游需求",
+                "status": "completed"
+              },
+              {
+                "id": "reviewing_itinerary",
+                "label": "路线预览",
+                "status": "completed"
+              },
+              {
+                "id": "awaiting_confirmation",
+                "label": "路线确认",
+                "status": "current"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "zh: confirm itinerary",
+      "status": 201,
+      "durationMs": 4,
+      "passed": true,
+      "request": {
+        "sessionId": "live-trip-zh-059b7d57-7dd3-460a-8be0-3aa0e850527d",
+        "action": {
+          "type": "confirmation",
+          "componentId": "951748ab-b584-4244-a77e-abad3c48e09c",
+          "confirmed": true
+        }
+      },
+      "response": {
+        "message": "已确认并保存旅游路线。",
+        "intent": "trip_planning",
+        "components": [
+          {
+            "id": "e345b2e6-02f9-4cf2-81a5-4795f874d72c",
+            "type": "card",
+            "title": "已确认的路线",
+            "category": "itinerary",
+            "description": "东京五天旅游路线草案\n\n第1天：浅草与上野\n- 上午：前往浅草寺、雷门，步行逛仲见世商店街。\n- 中午：在浅草周边用餐，体验日式简餐或天妇罗。\n- 下午：前往上野公园，可选择参观东京国立博物馆或国立西洋美术馆。\n- 晚上：阿美横町散步，品尝小吃后返回住宿。\n\n第2天：涩谷、原宿、表参道\n- 上午：打卡涩谷十字路口与忠犬八公像。\n- 中午：前往原宿或表参道用餐。\n- 下午：逛明治神宫、代代木公园，再步行至表参道感受街区氛围。\n- 晚上：返回涩谷，体验夜景与商圈。\n\n第3天：新宿城市体验\n- 上午：新宿御苑散步。\n- 中午：在新宿用餐。\n- 下午：前往东京都厅展望室俯瞰城市景观，随后逛新宿商圈。\n- 晚上：可前往歌舞伎町周边感受东京夜生活，注意个人安全与时间安排。\n\n第4天：台场海滨休闲\n- 上午：前往台场海滨公园，欣赏东京湾景色。\n- 中午：在台场商场内用餐。\n- 下午：可选择参观teamLab相关展览（如开放情况允许）或在商场休闲购物。\n- 晚上：欣赏彩虹大桥夜景后返回。\n\n第5天：银座与东京站周边\n- 上午：前往银座街区散步购物。\n- 中午：在银座或东京站周边用餐。\n- 下午：参观东京站丸之内周边建筑，若时间充裕可前往皇居外苑散步。\n- 晚上：根据返程时间结束行程。\n\n说明：这是基于你提供的东京、独自出行、2026-11-01至2026-11-05、1人、预算5000的行程草案。由于未提供预算币种，以上路线仅做节奏与景点安排，不包含按特定币种核算的费用估算。",
+            "details": [],
+            "sourceStatus": "unverified"
+          },
+          {
+            "id": "87ec5231-bd91-4294-bf8d-10e01d31ee00",
+            "type": "action_buttons",
+            "buttons": [
+              {
+                "id": "edit",
+                "label": "修改需求",
+                "action": "edit_itinerary"
+              }
+            ]
+          },
+          {
+            "id": "28105477-c0cb-45de-a5e0-956daaa1d131",
+            "type": "steps",
+            "title": "路线规划进度",
+            "items": [
+              {
+                "id": "choosing_trip_type",
+                "label": "旅游类型",
+                "status": "completed"
+              },
+              {
+                "id": "collecting_requirements",
+                "label": "旅游需求",
+                "status": "completed"
+              },
+              {
+                "id": "reviewing_itinerary",
+                "label": "路线预览",
+                "status": "completed"
+              },
+              {
+                "id": "awaiting_confirmation",
+                "label": "路线确认",
+                "status": "completed"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "zh: independent hotel query",
+      "status": 201,
+      "durationMs": 8134,
+      "passed": true,
+      "request": {
+        "sessionId": "live-hotels-zh-259c0f9c-cd54-45fa-ba17-e712cd1286c3",
+        "locale": "zh",
+        "input": "帮我找杭州西湖附近500米以内的酒店，预算800，不查实时价格。"
+      },
+      "response": {
+        "message": "可以，我可以按你的条件整理杭州西湖附近500米以内、预算800以内且不涉及实时价格的酒店筛选思路与候选方向。不过我这里没有实时酒店数据库，因此不能提供已验证的实时房态、价格或精确距离结果；下面先按你的约束给出可用的筛选框架。",
+        "intent": "hotel_search",
+        "components": [
+          {
+            "id": "0672d054-b50f-4227-b629-826edabe6cdb",
+            "type": "text",
+            "content": "已记录你的查询条件：杭州西湖附近、500米以内、预算800、不查实时价格。由于我无法访问实时酒店库存与价格数据，下面提供的是离线筛选建议与查询条件整理，方便你继续比对。",
+            "format": "plain"
+          },
+          {
+            "id": "8095019f-3baa-4dfd-b6b7-5e7393084b53",
+            "type": "table",
+            "title": "杭州西湖附近酒店筛选结果（当前无实时数据）",
+            "columns": [
+              {
+                "key": "area",
+                "label": "区域"
+              },
+              {
+                "key": "distance",
+                "label": "距离条件"
+              },
+              {
+                "key": "budget",
+                "label": "预算参考"
+              },
+              {
+                "key": "notes",
+                "label": "说明"
+              }
+            ],
+            "rows": []
+          },
+          {
+            "id": "cea840ce-d156-491b-9851-4fcf618240c0",
+            "type": "selection",
+            "purpose": "query_filter",
+            "title": "你想优先看哪类酒店方向？",
+            "mode": "single",
+            "options": [
+              {
+                "value": "lakeside_chain",
+                "label": "连锁/标准化酒店",
+                "description": "通常更稳定，适合先按预算筛选"
+              },
+              {
+                "value": "boutique_view",
+                "label": "精品/景观型酒店",
+                "description": "更注重环境与体验，价格波动可能更大"
+              },
+              {
+                "value": "quiet_alley",
+                "label": "安静街巷型住宿",
+                "description": "离景区近但相对避开主干道"
+              },
+              {
+                "value": "transport_convenient",
+                "label": "交通便利型",
+                "description": "优先靠近地铁或主路，方便出行"
+              }
+            ]
+          },
+          {
+            "id": "40adf934-5870-489b-9bf1-9ec65281ce6f",
+            "type": "action_buttons",
+            "buttons": [
+              {
+                "id": "btn_refine_hotel_search",
+                "label": "细化筛选",
+                "action": "refine_search"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "en: start planning",
+      "status": 201,
+      "durationMs": 5268,
+      "passed": true,
+      "request": {
+        "sessionId": "live-trip-en-44e914d4-76cc-442f-bd9f-3730c37d304d",
+        "locale": "en",
+        "input": "Plan a five-day travel itinerary in Tokyo."
+      },
+      "response": {
+        "message": "Please choose a trip type.",
+        "intent": "trip_planning",
+        "components": [
+          {
+            "id": "9a30a2c8-44fc-4c53-9494-9bb35bd643c5",
+            "type": "selection",
+            "purpose": "trip_type",
+            "title": "What kind of trip is this?",
+            "mode": "single",
+            "options": [
+              {
+                "value": "business",
+                "label": "Business travel",
+                "description": "Combine work with short visits"
+              },
+              {
+                "value": "family",
+                "label": "Family travel",
+                "description": "A pace suitable for families"
+              },
+              {
+                "value": "solo",
+                "label": "Solo travel",
+                "description": "Travel around your interests"
+              },
+              {
+                "value": "couple",
+                "label": "Couple travel",
+                "description": "Travel together as a couple"
+              }
+            ]
+          },
+          {
+            "id": "ad678672-b495-4956-9397-07ed900eefed",
+            "type": "steps",
+            "title": "Itinerary planning progress",
+            "items": [
+              {
+                "id": "choosing_trip_type",
+                "label": "Trip type",
+                "status": "current"
+              },
+              {
+                "id": "collecting_requirements",
+                "label": "Requirements",
+                "status": "pending"
+              },
+              {
+                "id": "reviewing_itinerary",
+                "label": "Itinerary preview",
+                "status": "pending"
+              },
+              {
+                "id": "awaiting_confirmation",
+                "label": "Confirmation",
+                "status": "pending"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "en: select solo",
+      "status": 201,
+      "durationMs": 3,
+      "passed": true,
+      "request": {
+        "sessionId": "live-trip-en-44e914d4-76cc-442f-bd9f-3730c37d304d",
+        "action": {
+          "type": "selection",
+          "componentId": "9a30a2c8-44fc-4c53-9494-9bb35bd643c5",
+          "values": [
+            "solo"
+          ]
+        }
+      },
+      "response": {
+        "message": "Please provide the missing travel requirements.",
+        "intent": "trip_planning",
+        "components": [
+          {
+            "id": "1aa63c30-2e22-4968-be30-ce865f6d65ed",
+            "type": "form",
+            "title": "Travel requirements",
+            "fields": [
+              {
+                "name": "departureDate",
+                "label": "Departure date",
+                "required": true,
+                "type": "date",
+                "placeholder": null
+              },
+              {
+                "name": "returnDate",
+                "label": "Return date",
+                "required": true,
+                "type": "date",
+                "placeholder": null
+              },
+              {
+                "name": "travelers",
+                "label": "Travelers",
+                "required": true,
+                "type": "number",
+                "min": 1,
+                "max": 100
+              },
+              {
+                "name": "budget",
+                "label": "Total budget",
+                "required": true,
+                "type": "number",
+                "min": 0,
+                "max": null
+              },
+              {
+                "name": "preferences",
+                "label": "Interests and special requirements",
+                "required": false,
+                "type": "textarea",
+                "placeholder": "For example, food, nature, accessibility"
+              }
+            ],
+            "submitLabel": "Generate itinerary draft"
+          },
+          {
+            "id": "839bcf2a-0b54-4aee-a024-67f61412d1d5",
+            "type": "steps",
+            "title": "Itinerary planning progress",
+            "items": [
+              {
+                "id": "choosing_trip_type",
+                "label": "Trip type",
+                "status": "completed"
+              },
+              {
+                "id": "collecting_requirements",
+                "label": "Requirements",
+                "status": "current"
+              },
+              {
+                "id": "reviewing_itinerary",
+                "label": "Itinerary preview",
+                "status": "pending"
+              },
+              {
+                "id": "awaiting_confirmation",
+                "label": "Confirmation",
+                "status": "pending"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "en: submit requirements without currency",
+      "status": 201,
+      "durationMs": 7707,
+      "passed": true,
+      "request": {
+        "sessionId": "live-trip-en-44e914d4-76cc-442f-bd9f-3730c37d304d",
+        "action": {
+          "type": "form_submit",
+          "componentId": "1aa63c30-2e22-4968-be30-ce865f6d65ed",
+          "values": [
+            {
+              "name": "departureDate",
+              "value": "2026-11-01"
+            },
+            {
+              "name": "returnDate",
+              "value": "2026-11-05"
+            },
+            {
+              "name": "travelers",
+              "value": 1
+            },
+            {
+              "name": "budget",
+              "value": 5000
+            },
+            {
+              "name": "preferences",
+              "value": "Food and museums, with a relaxed pace"
+            }
+          ]
+        }
+      },
+      "response": {
+        "message": "Review the itinerary draft, then confirm or edit the requirements.",
+        "intent": "trip_planning",
+        "components": [
+          {
+            "id": "9283a7b0-8017-458c-b66d-55b6abc1a71d",
+            "type": "card",
+            "title": "Itinerary draft",
+            "category": "itinerary",
+            "description": "Draft itinerary for a solo five-day trip in Tokyo from 2026-11-01 to 2026-11-05 for 1 traveler, with a relaxed pace focused on food and museums and a total budget of 5000.\n\nDay 1: Arrive and settle into Tokyo. Keep the day light with a neighborhood walk, a casual local dinner, and an early night.\nDay 2: Explore museum-focused areas such as Ueno, combining a major museum visit with a relaxed park stroll and easy dining nearby.\nDay 3: Spend the day discovering Tokyo food culture through markets, depachika food halls, and a leisurely evening in a dining district.\nDay 4: Visit another museum or gallery area, then enjoy a slower afternoon in a café, bookstore, or garden.\nDay 5: Wrap up with a flexible final morning for a small museum, souvenir shopping, or one last meal before departure.\n\nThis is a draft itinerary and does not include live bookings, verified prices, or real-time availability.",
+            "details": [],
+            "sourceStatus": "unverified"
+          },
+          {
+            "id": "7ba8307e-8559-443e-80ef-64b864f342c4",
+            "type": "action_buttons",
+            "buttons": [
+              {
+                "id": "confirm",
+                "label": "Confirm itinerary",
+                "action": "confirm_itinerary"
+              },
+              {
+                "id": "edit",
+                "label": "Edit requirements",
+                "action": "edit_itinerary"
+              }
+            ]
+          },
+          {
+            "id": "7d91a26e-2f2b-4b30-97a8-3cec7e1dc76e",
+            "type": "steps",
+            "title": "Itinerary planning progress",
+            "items": [
+              {
+                "id": "choosing_trip_type",
+                "label": "Trip type",
+                "status": "completed"
+              },
+              {
+                "id": "collecting_requirements",
+                "label": "Requirements",
+                "status": "completed"
+              },
+              {
+                "id": "reviewing_itinerary",
+                "label": "Itinerary preview",
+                "status": "current"
+              },
+              {
+                "id": "awaiting_confirmation",
+                "label": "Confirmation",
+                "status": "pending"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "en: request confirmation",
+      "status": 201,
+      "durationMs": 4929,
+      "passed": true,
+      "request": {
+        "sessionId": "live-trip-en-44e914d4-76cc-442f-bd9f-3730c37d304d",
+        "input": "Confirm this itinerary"
+      },
+      "response": {
+        "message": "Please confirm the draft below. Confirmation saves the itinerary and does not make bookings.",
+        "intent": "trip_planning",
+        "components": [
+          {
+            "id": "a5ea445f-e26f-44d0-94a0-11eeaa0e3a46",
+            "type": "confirmation",
+            "title": "Confirm itinerary",
+            "summary": "Draft itinerary for a solo five-day trip in Tokyo from 2026-11-01 to 2026-11-05 for 1 traveler, with a relaxed pace focused on food and museums and a total budget of 5000.\n\nDay 1: Arrive and settle into Tokyo. Keep the day light with a neighborhood walk, a casual local dinner, and an early night.\nDay 2: Explore museum-focused areas such as Ueno, combining a major museum visit with a relaxed park stroll and easy dining nearby.\nDay 3: Spend the day discovering Tokyo food culture through markets, depachika food halls, and a leisurely evening in a dining district.\nDay 4: Visit another museum or gallery area, then enjoy a slower afternoon in a café, bookstore, or garden.\nDay 5: Wrap up with a flexible final morning for a small museum, souvenir shopping, or one last meal before departure.\n\nThis is a draft itinerary and does not include live bookings, verified prices, or real-time availability.",
+            "confirmLabel": "Confirm itinerary",
+            "cancelLabel": "Back to editing"
+          },
+          {
+            "id": "45c5ee1a-317d-4a29-9988-e7fd821eb618",
+            "type": "steps",
+            "title": "Itinerary planning progress",
+            "items": [
+              {
+                "id": "choosing_trip_type",
+                "label": "Trip type",
+                "status": "completed"
+              },
+              {
+                "id": "collecting_requirements",
+                "label": "Requirements",
+                "status": "completed"
+              },
+              {
+                "id": "reviewing_itinerary",
+                "label": "Itinerary preview",
+                "status": "completed"
+              },
+              {
+                "id": "awaiting_confirmation",
+                "label": "Confirmation",
+                "status": "current"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "en: confirm itinerary",
+      "status": 201,
+      "durationMs": 2,
+      "passed": true,
+      "request": {
+        "sessionId": "live-trip-en-44e914d4-76cc-442f-bd9f-3730c37d304d",
+        "action": {
+          "type": "confirmation",
+          "componentId": "a5ea445f-e26f-44d0-94a0-11eeaa0e3a46",
+          "confirmed": true
+        }
+      },
+      "response": {
+        "message": "Your itinerary has been confirmed and saved.",
+        "intent": "trip_planning",
+        "components": [
+          {
+            "id": "987b3c7d-778e-4f25-b8f6-68608c28b789",
+            "type": "card",
+            "title": "Confirmed itinerary",
+            "category": "itinerary",
+            "description": "Draft itinerary for a solo five-day trip in Tokyo from 2026-11-01 to 2026-11-05 for 1 traveler, with a relaxed pace focused on food and museums and a total budget of 5000.\n\nDay 1: Arrive and settle into Tokyo. Keep the day light with a neighborhood walk, a casual local dinner, and an early night.\nDay 2: Explore museum-focused areas such as Ueno, combining a major museum visit with a relaxed park stroll and easy dining nearby.\nDay 3: Spend the day discovering Tokyo food culture through markets, depachika food halls, and a leisurely evening in a dining district.\nDay 4: Visit another museum or gallery area, then enjoy a slower afternoon in a café, bookstore, or garden.\nDay 5: Wrap up with a flexible final morning for a small museum, souvenir shopping, or one last meal before departure.\n\nThis is a draft itinerary and does not include live bookings, verified prices, or real-time availability.",
+            "details": [],
+            "sourceStatus": "unverified"
+          },
+          {
+            "id": "0055a3e5-8eef-4d7f-91d1-3d38b3f140f5",
+            "type": "action_buttons",
+            "buttons": [
+              {
+                "id": "edit",
+                "label": "Edit requirements",
+                "action": "edit_itinerary"
+              }
+            ]
+          },
+          {
+            "id": "011db050-152c-454c-8bf4-02ad64027080",
+            "type": "steps",
+            "title": "Itinerary planning progress",
+            "items": [
+              {
+                "id": "choosing_trip_type",
+                "label": "Trip type",
+                "status": "completed"
+              },
+              {
+                "id": "collecting_requirements",
+                "label": "Requirements",
+                "status": "completed"
+              },
+              {
+                "id": "reviewing_itinerary",
+                "label": "Itinerary preview",
+                "status": "completed"
+              },
+              {
+                "id": "awaiting_confirmation",
+                "label": "Confirmation",
+                "status": "completed"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "en: independent hotel query",
+      "status": 201,
+      "durationMs": 6368,
+      "passed": true,
+      "request": {
+        "sessionId": "live-hotels-en-4b86a3b2-e051-4a48-abdc-36494d62be97",
+        "locale": "en",
+        "input": "Find hotels within 500 meters of West Lake in Hangzhou, budget 800. I am not requesting live prices."
+      },
+      "response": {
+        "message": "I can help narrow hotels near West Lake in Hangzhou within your stated budget, but I don’t have verified live inventory or pricing. Since you’re not requesting live prices, here’s a constraint-preserving search summary and a way to refine candidates.",
+        "intent": "hotel_search",
+        "components": [
+          {
+            "id": "cdee74ca-3c71-49a5-beae-3621570618d8",
+            "type": "text",
+            "content": "Search constraints preserved: Hangzhou, within 500 meters of West Lake, budget 800, and no request for live prices. I can help you refine by area around the lake, hotel style, or amenities, but I can’t provide verified live availability or exact current rates here.",
+            "format": "plain"
+          },
+          {
+            "id": "35f53877-266b-4b08-8b5e-7fdffffb8f9d",
+            "type": "table",
+            "title": "Hotels matching your constraints",
+            "columns": [
+              {
+                "key": "name",
+                "label": "Hotel"
+              },
+              {
+                "key": "location",
+                "label": "Location"
+              },
+              {
+                "key": "distance",
+                "label": "Distance to West Lake"
+              },
+              {
+                "key": "price",
+                "label": "Indicative price"
+              },
+              {
+                "key": "notes",
+                "label": "Notes"
+              }
+            ],
+            "rows": []
+          },
+          {
+            "id": "24f158a1-7992-42f4-967c-282d7b65b357",
+            "type": "selection",
+            "purpose": "query_filter",
+            "title": "Refine your hotel search",
+            "mode": "multiple",
+            "options": [
+              {
+                "value": "luxury",
+                "label": "Luxury",
+                "description": "Higher-end hotels near the lake"
+              },
+              {
+                "value": "boutique",
+                "label": "Boutique",
+                "description": "Smaller design-focused stays"
+              },
+              {
+                "value": "business_friendly",
+                "label": "Business-friendly",
+                "description": "Convenient for work trips"
+              },
+              {
+                "value": "family_friendly",
+                "label": "Family-friendly",
+                "description": "Suitable for families"
+              },
+              {
+                "value": "breakfast",
+                "label": "Breakfast included",
+                "description": "Prefer breakfast options"
+              },
+              {
+                "value": "lake_view",
+                "label": "Lake view",
+                "description": "Prefer rooms with lake views"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

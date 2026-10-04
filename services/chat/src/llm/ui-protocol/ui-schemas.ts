@@ -39,6 +39,7 @@ export const selectionSchema = z
   .object({
     id,
     type: z.literal('selection'),
+    purpose: z.enum(['trip_type', 'query_filter', 'query_candidate']),
     title: label,
     mode: z.enum(['single', 'multiple']),
     options: z.array(optionSchema).min(1).max(30),
@@ -280,12 +281,83 @@ export const uiActionSchema = z.discriminatedUnion('type', [
     .object({ type: z.literal('button_click'), componentId: id, buttonId: id })
     .strict(),
 ]);
+// Syntax validation is independent of which display dictionaries are installed.
+export const localeSchema = z
+  .string()
+  .min(2)
+  .max(100)
+  .refine((value) => {
+    try {
+      return Intl.getCanonicalLocales(value).length === 1;
+    } catch {
+      return false;
+    }
+  }, 'Invalid language tag');
+
+export const planningRequirementsSchema = z
+  .object({
+    destination: label.nullable(),
+    tripType: z.enum(['business', 'family', 'solo', 'couple']).nullable(),
+    departureDate: z.string().nullable(),
+    returnDate: z.string().nullable(),
+    travelers: z.number().finite().nullable(),
+    budget: z.number().finite().nullable(),
+    budgetCurrency: z.string().nullable(),
+    preferences: z.string().max(4000).nullable(),
+  })
+  .strict();
+export const uiSemanticsSchema = z
+  .object({
+    intent: uiIntentSchema,
+    operation: z.enum([
+      'answer',
+      'update_requirements',
+      'request_confirmation',
+      'cancel_confirmation',
+      'resume_planning',
+    ]),
+    replyLanguage: z.string().min(2).max(100),
+    requirements: planningRequirementsSchema,
+  })
+  .strict();
+export const uiModelOutputSchema = z
+  .object({ semantics: uiSemanticsSchema, response: aiUIResponseSchema })
+  .strict();
+export const validatedUIModelOutputSchema = uiModelOutputSchema.superRefine(
+  (output, ctx) => {
+    const fail = (message: string) =>
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+    const { semantics, response } = output;
+    if (semantics.intent !== response.intent) fail('Semantic intent mismatch');
+    const hasPatch = Object.values(semantics.requirements).some(
+      (v) => v !== null,
+    );
+    if (
+      semantics.intent !== 'trip_planning' &&
+      semantics.operation !== 'answer'
+    )
+      fail('Only planning permits workflow operations');
+    if (semantics.operation !== 'update_requirements' && hasPatch)
+      fail('Only requirement updates permit a planning patch');
+    if (!localeSchema.safeParse(semantics.replyLanguage).success)
+      fail('Invalid reply language');
+    const parsed = validatedAIUIResponseSchema.safeParse(response);
+    if (!parsed.success)
+      for (const issue of parsed.error.issues)
+        ctx.addIssue({ ...issue, path: ['response', ...issue.path] });
+  },
+);
 export const chatRequestSchema = z
   .object({
     sessionId: id.trim().min(1),
     input: z.string().trim().min(1).max(8000),
+    locale: localeSchema.optional(),
   })
   .strict();
 export const actionRequestSchema = z
-  .object({ sessionId: id.trim().min(1), action: uiActionSchema })
+  .object({
+    sessionId: id.trim().min(1),
+    action: uiActionSchema,
+    locale: localeSchema.optional(),
+  })
   .strict();

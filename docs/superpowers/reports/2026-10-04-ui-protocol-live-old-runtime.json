@@ -1,0 +1,83 @@
+{
+  "startedAt": "2026-10-04T08:24:45.235Z",
+  "base": "http://127.0.0.1:4001",
+  "mode": "live HTTP and configured model",
+  "tests": [
+    {
+      "name": "zh: start planning",
+      "status": 400,
+      "durationMs": 16,
+      "passed": false,
+      "error": "HTTP 400",
+      "request": {
+        "sessionId": "live-trip-zh-ea0dddb1-6157-44bb-90ba-c7e68a935de5",
+        "locale": "zh",
+        "input": "帮我规划东京五天旅游路线。"
+      },
+      "response": {
+        "code": "VALIDATION_FAILED",
+        "message": "VALIDATION_FAILED",
+        "details": {
+          "fieldErrors": {}
+        }
+      }
+    },
+    {
+      "name": "zh: independent hotel query",
+      "status": 400,
+      "durationMs": 3,
+      "passed": false,
+      "error": "HTTP 400",
+      "request": {
+        "sessionId": "live-hotels-zh-b419e863-b902-4070-a61f-94f914e812c3",
+        "locale": "zh",
+        "input": "帮我找杭州西湖附近500米以内的酒店，预算800，不查实时价格。"
+      },
+      "response": {
+        "code": "VALIDATION_FAILED",
+        "message": "VALIDATION_FAILED",
+        "details": {
+          "fieldErrors": {}
+        }
+      }
+    },
+    {
+      "name": "en: start planning",
+      "status": 400,
+      "durationMs": 3,
+      "passed": false,
+      "error": "HTTP 400",
+      "request": {
+        "sessionId": "live-trip-en-94b55ae1-1b35-4b61-beb6-ca17828a0434",
+        "locale": "en",
+        "input": "Plan a five-day travel itinerary in Tokyo."
+      },
+      "response": {
+        "code": "VALIDATION_FAILED",
+        "message": "VALIDATION_FAILED",
+        "details": {
+          "fieldErrors": {}
+        }
+      }
+    },
+    {
+      "name": "en: independent hotel query",
+      "status": 400,
+      "durationMs": 2,
+      "passed": false,
+      "error": "HTTP 400",
+      "request": {
+        "sessionId": "live-hotels-en-1bf772b7-c566-4e5e-8109-aade587e30c3",
+        "locale": "en",
+        "input": "Find hotels within 500 meters of West Lake in Hangzhou, budget 800. I am not requesting live prices."
+      },
+      "response": {
+        "code": "VALIDATION_FAILED",
+        "message": "VALIDATION_FAILED",
+        "details": {
+          "fieldErrors": {}
+        }
+      }
+    }
+  ]
+}
