@@ -21,6 +21,8 @@ import { BG_TRANSITION } from '@/lib/motion'
 import { PanelTabs, SaveTripButton, TripPanels } from '@/features/panels/TripPanels'
 import { getTripMock } from '@/features/panels/mock'
 import { STAGE_COLOR, type PanelTab } from '@/features/panels/mock/types'
+import { MobileSheet } from '@/features/panels/MobileSheet'
+import { useIsDesktop } from '@/lib/use-media-query'
 import { Composer } from './Composer'
 import { MessageList, SkeletonBubbles } from './MessageList'
 import { TopBar } from './TopBar'
@@ -66,6 +68,8 @@ export function ChatScreen(): ReactNode {
 
   const [input, setInput] = useState('')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const isDesktop = useIsDesktop()
   const [panelTab, setPanelTab] = useState<PanelTab>('plan')
   const background = STAGE_COLOR[panelTab]
   const locale = useLocale()
@@ -215,12 +219,13 @@ export function ChatScreen(): ReactNode {
 
   return (
     <div
+      data-testid="chat-screen"
       className="flex h-dvh flex-col"
       style={{ backgroundColor: background, transition: BG_TRANSITION }}
     >
       <TopBar
-        center={<div className="hidden lg:block"><PanelTabs tab={panelTab} onChange={setPanelTab} /></div>}
-        right={<div className="hidden lg:block"><SaveTripButton /></div>}
+        center={isDesktop ? <PanelTabs tab={panelTab} onChange={setPanelTab} /> : null}
+        right={isDesktop ? <SaveTripButton /> : null}
         drawerButtonRef={drawerButtonRef}
         drawerOpen={drawerOpen}
         onToggleDrawer={() => setDrawerOpen((open) => !open)}
@@ -262,6 +267,7 @@ export function ChatScreen(): ReactNode {
             )}
           </div>
           {!isNewChat && showChips ? <SuggestionChips onPick={pickChip} /> : null}
+          {!isDesktop ? <PillButton variant="ghost" size="sm" onClick={() => setSheetOpen(true)}>{t('viewTrip')}</PillButton> : null}
           <Composer
             ref={composerRef}
             value={input}
@@ -272,8 +278,12 @@ export function ChatScreen(): ReactNode {
             onStop={stream.stop}
           />
         </section>
-        <aside className="hidden min-h-0 flex-1 overflow-y-auto rounded-panel bg-ink lg:block"><TripPanels tab={panelTab} data={panelData} /></aside>
+        {isDesktop ? <aside className="min-h-0 flex-1 overflow-y-auto rounded-panel bg-ink"><TripPanels tab={panelTab} data={panelData} /></aside> : null}
       </div>
+      {!isDesktop ? <MobileSheet open={sheetOpen} onClose={() => setSheetOpen(false)}>
+        <div className="flex items-center gap-3 px-4 py-3"><div className="min-w-0 flex-1"><PanelTabs tab={panelTab} onChange={setPanelTab} scrollable /></div><SaveTripButton /></div>
+        <TripPanels tab={panelTab} data={panelData} />
+      </MobileSheet> : null}
     </div>
   )
 }

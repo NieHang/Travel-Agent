@@ -606,3 +606,15 @@ it('顶栏：抽屉开关切换图标但标签不变；头像菜单在顶栏里'
   expect(screen.getByRole('button', { name: '历史对话' })).toBeInTheDocument()
   expect(within(screen.getByRole('banner')).getByRole('button', { name: '账号菜单' })).toBeInTheDocument()
 })
+
+it('窄屏查看行程打开底部面板，酒店标签改变页面背景', async () => {
+  const { user } = renderScreen()
+  expect(screen.queryByRole('tab', { name: '酒店' })).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: '查看行程' }))
+  const dialog = await screen.findByRole('dialog')
+  await user.click(within(dialog).getByRole('tab', { name: '酒店' }))
+  expect(screen.getByTestId('chat-screen')).toHaveStyle({ backgroundColor: 'var(--color-stage-purple)' })
+  expect(within(dialog).getByRole('button', { name: '保存行程' })).toBeInTheDocument()
+  await user.click(within(dialog).getByRole('button', { name: '关闭' }))
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+})
