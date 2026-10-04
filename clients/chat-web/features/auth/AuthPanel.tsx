@@ -1,10 +1,11 @@
 'use client'
 
+import { useReducedMotion } from '@/lib/use-reduced-motion'
+
 import { AlertCircle } from 'lucide-react'
 import {
   motion,
   useAnimate,
-  useReducedMotion,
   type MotionProps,
 } from 'motion/react'
 import { useTranslations } from 'next-intl'

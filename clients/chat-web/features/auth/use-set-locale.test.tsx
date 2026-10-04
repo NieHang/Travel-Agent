@@ -83,3 +83,19 @@ it('选中当前语言：不写 Cookie、不 refresh、不发请求', async () =
   await new Promise((r) => setTimeout(r, 20))
   expect(patchBodies).toEqual([])
 })
+
+it('账号切换后迟到的语言响应不能覆盖新账号资料', async () => {
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  server.use(http.patch(apiUrl('/api/users/me'), async () => {
+    await gate
+    return HttpResponse.json(makeUser({ id: 'A', locale: 'en' }))
+  }))
+  authStore.setAuthed({ accessToken: 'A', user: makeUser({ id: 'A' }) })
+  const { result } = renderHook(() => useSetLocale(), { wrapper })
+  result.current('en')
+  authStore.setAuthed({ accessToken: 'B', user: makeUser({ id: 'B' }) })
+  release()
+  await new Promise(resolve => setTimeout(resolve, 50))
+  expect(authStore.getState()).toMatchObject({ accessToken: 'B', user: { id: 'B' } })
+})

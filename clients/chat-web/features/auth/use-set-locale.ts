@@ -17,8 +17,12 @@ export function useSetLocale(): (locale: Locale) => void {
       writeLocaleCookie(locale)
       router.refresh()
       if (authStore.getState().status !== 'authed') return
+      const generation = authStore.getGeneration()
       api<User>('/api/users/me', { method: 'PATCH', body: { locale } })
-        .then((user) => authStore.setUser(user))
+        .then((user) => {
+          const state = authStore.getState()
+          if (authStore.getGeneration() === generation && state.status === 'authed' && state.user.id === user.id) authStore.setUser(user)
+        })
         .catch(() => {
           // 失败不回滚界面语言，也不提示
         })

@@ -4,6 +4,8 @@ import type { Message, Requirement } from '@autix/contracts'
 import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiFetch, ApiRequestError } from '@/features/auth/api-client'
+import { accountId } from '@/features/auth/account-cache'
+import { authStore } from '@/features/auth/auth-store'
 import { messagesKey } from '@/features/conversations/queries'
 import { upsertMessage } from './message-cache'
 import { createSseParser } from './sse'
@@ -99,6 +101,9 @@ export function useChatStream(conversationId: string | null): {
       if (phaseRef.current !== 'idle') return { ok: false, error: aborted() }
 
       const controller = new AbortController()
+      const sourceAccount = accountId()
+      const accountChanged = () => sourceAccount !== accountId()
+      const unsubscribeAccount = authStore.subscribe(() => { if (accountChanged()) controller.abort() })
       const { signal } = controller
       controllerRef.current = controller
       phaseRef.current = 'sending'
@@ -131,6 +136,9 @@ export function useChatStream(conversationId: string | null): {
       let gotUserMessage = false
 
       try {
+        // InfiniteQuery 分页会按请求开始时的快照写回，发送前先取消它。
+        await queryClient.cancelQueries({ queryKey: messagesKey(targetId) })
+        if (signal.aborted || accountChanged()) return { ok: false, error: aborted() }
         let response: Response
         try {
           response = await apiFetch(
@@ -145,7 +153,7 @@ export function useChatStream(conversationId: string | null): {
         } catch (error) {
           if (signal.aborted) {
             // 请求可能已到达服务端，重新拉取以对齐
-            void invalidateMessages(queryClient, targetId)
+            if (!accountChanged()) void invalidateMessages(queryClient, targetId)
             return { ok: false, error: aborted() }
           }
           return {
@@ -170,6 +178,7 @@ export function useChatStream(conversationId: string | null): {
             }
             if (chunk.done) break
             for (const event of parser.push(chunk.value)) {
+              if (accountChanged()) { controller.abort(); break }
               if (signal.aborted) break
               phaseRef.current = 'streaming'
               live(() => setPhase('streaming'))
@@ -201,6 +210,7 @@ export function useChatStream(conversationId: string | null): {
           void reader?.cancel().catch(() => {})
         }
 
+        if (accountChanged()) return { ok: false, error: aborted() }
         if (completed && !signal.aborted) {
           finish()
           // 助手消息已写入、顺序变了：列表重新排序
@@ -236,6 +246,7 @@ export function useChatStream(conversationId: string | null): {
         void invalidateMessages(queryClient, targetId)
         return { ok: true }
       } finally {
+        unsubscribeAccount()
         finish()
       }
     },

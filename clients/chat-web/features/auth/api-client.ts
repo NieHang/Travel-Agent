@@ -2,6 +2,7 @@ import { ErrorCodeSchema, type ErrorCode } from '@autix/contracts'
 import { API_BASE_URL } from '@/lib/api-base'
 import { authStore } from './auth-store'
 import { refreshSession } from './refresh'
+import { accountId } from './account-cache'
 
 const DEFAULT_RETRY_AFTER_SECONDS = 60
 
@@ -82,8 +83,18 @@ export async function apiFetch(
   init?: RequestInit,
 ): Promise<Response> {
   const usedToken = currentToken()
+  const usedAccount = accountId()
+  const checkAccount = () => {
+    if (usedAccount !== null && usedAccount !== accountId()) throw new ApiRequestError('ABORTED', 0)
+  }
+  const attempt = async (token: string | null) => {
+    checkAccount()
+    const response = await send(path, init, token)
+    checkAccount()
+    return response
+  }
   try {
-    return await send(path, init, usedToken)
+    return await attempt(usedToken)
   } catch (error) {
     if (!(error instanceof ApiRequestError) || error.code !== 'TOKEN_EXPIRED') {
       throw error
@@ -91,13 +102,14 @@ export async function apiFetch(
     // 带着 token 发出的请求失败时，会话已被别处判为 guest（如 REFRESH_REUSED）：
     // 不再刷新，保留原因，避免再打一次服务端
     if (usedToken !== null && authStore.getState().status === 'guest') throw error
+    checkAccount()
     // 并发请求中别人已经换过 token：直接用新 token 重试，不再刷新
     const latest = currentToken()
     if (latest !== null && latest !== usedToken) {
-      return send(path, init, latest)
+      return attempt(latest)
     }
     if (!(await refreshSession())) throw error
-    return send(path, init, currentToken())
+    return attempt(currentToken())
   }
 }
 

@@ -83,8 +83,8 @@ export function ChatScreen(): ReactNode {
   const stream = useChatStream(id)
   // 首条消息发出、地址还没同步前，按正在生成的会话展示
   const viewId = id ?? stream.activeConversationId
-  const query = useMessages(viewId)
   const generating = stream.phase !== 'idle'
+  const query = useMessages(viewId, generating)
   const nickname = auth.status === 'authed' ? auth.user.nickname : ''
 
   const notFound =
@@ -159,11 +159,13 @@ export function ChatScreen(): ReactNode {
     if (!outcome.ok) handleFailure(raw, conversationId, outcome.error)
   }
 
-  const deferredPrompt = useRef<string | null>(null)
+  const deferredPrompt = useRef<{ prompt: string; conversationId: string } | null>(null)
   useEffect(() => {
     // 不带依赖数组：每次渲染都检查，拉取结束后的那次渲染发出暂存的消息
-    if (deferredPrompt.current === null || loadingInitial || id === null) return
-    const prompt = deferredPrompt.current
+    if (deferredPrompt.current === null) return
+    if (deferredPrompt.current.conversationId !== id) { deferredPrompt.current = null; return }
+    if (loadingInitial || id === null) return
+    const { prompt } = deferredPrompt.current
     deferredPrompt.current = null
     void submit(prompt, id)
   })
@@ -171,7 +173,7 @@ export function ChatScreen(): ReactNode {
   usePendingPrompt(auth.status === 'authed', (pendingPrompt) => {
     if (pendingPrompt.conversationId !== undefined) {
       if (pendingPrompt.conversationId !== id) return
-      if (loadingInitial) deferredPrompt.current = pendingPrompt.prompt
+      if (loadingInitial) deferredPrompt.current = { prompt: pendingPrompt.prompt, conversationId: pendingPrompt.conversationId }
       else void submit(pendingPrompt.prompt, id)
       return
     }
@@ -246,10 +248,10 @@ export function ChatScreen(): ReactNode {
               scrollRef={stick.ref}
               messages={messages}
               pending={pending}
-              hasMore={!notFound && query.hasNextPage}
+              hasMore={!notFound && !generating && query.hasNextPage}
               loadingMore={query.isFetchingNextPage}
               loadMoreFailed={query.isFetchNextPageError && !query.isFetchingNextPage}
-              onLoadMore={() => void query.fetchNextPage()}
+              onLoadMore={() => { if (!generating && !busyRef.current) void query.fetchNextPage() }}
             >
               {body}
             </MessageList>

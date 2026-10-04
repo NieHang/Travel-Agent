@@ -9,6 +9,26 @@ const user = makeUser()
 const expired = () =>
   HttpResponse.json({ code: 'TOKEN_EXPIRED', message: '' }, { status: 401 })
 
+it('A 的迟到过期请求不会使用 B 的 token 重试', async () => {
+  let release!: () => void
+  let entered!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  const started = new Promise<void>(resolve => { entered = resolve })
+  const tokens: (string | null)[] = []
+  server.use(http.patch(apiUrl('/api/users/me'), async ({ request }) => {
+    tokens.push(request.headers.get('authorization'))
+    entered()
+    await gate
+    return tokens.length === 1 ? expired() : HttpResponse.json(makeUser({ id: 'B' }))
+  }))
+  const request = catchError(api('/api/users/me', { method: 'PATCH', body: { locale: 'en' } }))
+  await started
+  authStore.setAuthed({ accessToken: 'B', user: makeUser({ id: 'B' }) })
+  release()
+  expect(await request).toBeInstanceOf(ApiRequestError)
+  expect(tokens).toEqual(['Bearer old'])
+})
+
 let refreshCalls = 0
 let thingCalls = 0
 

@@ -42,10 +42,12 @@ export function deleteConversation(id: string): Promise<void> {
 export function listMessages(
   id: string,
   p: { cursor?: string },
+  signal?: AbortSignal,
 ): Promise<Page<Message>> {
   return api(
     withQuery(`/api/conversations/${encodeURIComponent(id)}/messages`, {
       cursor: p.cursor,
     }),
+    { signal },
   )
 }

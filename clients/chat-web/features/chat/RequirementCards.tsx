@@ -1,8 +1,10 @@
 'use client'
 
+import { useReducedMotion } from '@/lib/use-reduced-motion'
+
 import type { Requirement } from '@autix/contracts'
 import { ListChecks } from 'lucide-react'
-import { motion, useReducedMotion, type MotionProps } from 'motion/react'
+import { motion, type MotionProps } from 'motion/react'
 import { InfoCard } from '@/components/ui/InfoCard'
 import { enter } from '@/lib/motion'
 

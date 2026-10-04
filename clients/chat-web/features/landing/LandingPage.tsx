@@ -1,6 +1,8 @@
 'use client'
+
+import { useReducedMotion } from '@/lib/use-reduced-motion'
 import Link from 'next/link'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Logo } from '@/components/ui/Logo'
 import { LocaleSwitch } from '@/components/ui/LocaleSwitch'

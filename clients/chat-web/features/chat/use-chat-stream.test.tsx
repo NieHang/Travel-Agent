@@ -136,6 +136,64 @@ async function settle(p: Promise<SendOutcome>): Promise<SendOutcome> {
 }
 
 describe('useChatStream', () => {
+  it('停止时服务端尚未保存：保留 partial 并轮询到真实助手行', async () => {
+    const stream = sseController()
+    let persisted = false
+    useStreamHandler(() => sseResponse(stream.body))
+    const hook = setup()
+    server.use(http.get(apiUrl('/api/conversations/:id/messages'), () => {
+      messageListCalls += 1
+      return HttpResponse.json({ items: persisted ? [a, u] : [u], nextCursor: null })
+    }))
+    const p = start(hook)
+    await act(async () => stream.push(userMessage(), delta('保留部分')))
+    await waitFor(() => expect(hook.result.current.stream.text).toBe('保留部分'))
+    act(() => hook.result.current.stream.stop())
+    await settle(p)
+    await waitFor(() => expect(messageListCalls).toBeGreaterThan(0))
+    expect(cached()[0]).toMatchObject({ status: 'partial', content: '保留部分' })
+    persisted = true
+    await waitFor(() => expect(cachedIds()).toEqual([a.id, u.id]), { timeout: 3500 })
+  })
+
+  it('分页请求在发送前取消，迟到页不会覆盖流缓存', async () => {
+    const stream = sseController()
+    useStreamHandler(() => sseResponse(stream.body))
+    const hook = setup()
+    queryClient.setQueryData(messagesKey('c1'), { pages: [{ items: [], nextCursor: 'older' }], pageParams: [undefined] })
+    let release!: () => void
+    const gate = new Promise<void>(resolve => { release = resolve })
+    server.use(http.get(apiUrl('/api/conversations/:id/messages'), async () => {
+      messageListCalls += 1
+      await gate
+      return HttpResponse.json({ items: [makeMessage({ id: 'old' })], nextCursor: null })
+    }))
+    let pagination!: Promise<unknown>
+    act(() => { pagination = hook.result.current.messages.fetchNextPage() })
+    await waitFor(() => expect(messageListCalls).toBe(1))
+    const p = start(hook)
+    await act(async () => stream.push(userMessage(), done()))
+    await settle(p)
+    release()
+    await act(async () => { await pagination })
+    expect(cachedIds()).toContain(u.id)
+    expect(cachedIds()).toContain(a.id)
+  })
+
+  it('退出清缓存后流卸载，不再写回原账号消息', async () => {
+    authStore.setAuthed({ accessToken: 'A', user: makeUser({ id: 'A' }) })
+    const stream = sseController()
+    useStreamHandler(() => sseResponse(stream.body))
+    const hook = setup()
+    const p = start(hook)
+    await act(async () => stream.push(userMessage(), delta('私密回复')))
+    await waitFor(() => expect(hook.result.current.stream.text).toBe('私密回复'))
+    authStore.setGuest()
+    queryClient.clear()
+    hook.unmount()
+    await p
+    expect(queryClient.getQueryCache().getAll()).toHaveLength(0)
+  })
   it('完成：缓存里先后出现用户消息与助手消息，本地状态清空', async () => {
     useStreamHandler(() =>
       sseResponse(
@@ -466,7 +524,7 @@ describe('useChatStream', () => {
       const signals: AbortSignal[] = []
       const realFetch = globalThis.fetch
       vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
-        if (init?.signal) signals.push(init.signal)
+        if (init?.signal && init.method === 'POST') signals.push(init.signal)
         return realFetch(input, init)
       })
       const stream = sseController()

@@ -435,6 +435,25 @@ it('暂存输入带 conversationId：首次消息拉取返回前不发送，返�
   act(() => stream.close())
 })
 
+it('暂存目标 A 加载期间切到 B，不会向 B 发送 A 的输入', async () => {
+  nav.path = '/chat/conv_A'
+  sessionStorage.setItem(PENDING_KEY, JSON.stringify({ prompt: 'A 的行程', conversationId: 'conv_A' }))
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  server.use(http.get(apiUrl('/api/conversations/:id/messages'), async ({ params }) => {
+    if (params.id === 'conv_A') await gate
+    return HttpResponse.json({ items: [], nextCursor: null })
+  }))
+  onSend(() => HttpResponse.json({}))
+  renderScreen()
+  await act(() => new Promise(resolve => setTimeout(resolve, 30)))
+  act(() => nav.set('/chat/conv_B'))
+  await waitFor(() => expect(screen.queryByTestId('skeleton-bubbles')).not.toBeInTheDocument())
+  release()
+  await act(() => new Promise(resolve => setTimeout(resolve, 50)))
+  expect(sends).toBe(0)
+})
+
 it('首次消息拉取期间手动发送：忽略，输入框内容保留', async () => {
   nav.path = '/chat/conv_1'
   let open!: () => void

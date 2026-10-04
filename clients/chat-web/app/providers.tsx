@@ -6,13 +6,17 @@ import { Toaster } from '@/components/ui/toast'
 import { useAccountLocaleSync } from '@/features/auth/use-account-locale-sync'
 import { bootstrapAuth } from '@/features/auth/refresh'
 import { listenForLogout } from '@/features/auth/session'
+import { bindAccountCache } from '@/features/auth/account-cache'
 
 let browserQueryClient: QueryClient | undefined
 
 function getQueryClient() {
   // 服务端每次渲染一个新的；浏览器端复用同一个
   if (typeof window === 'undefined') return new QueryClient()
-  browserQueryClient ??= new QueryClient()
+  if (!browserQueryClient) {
+    browserQueryClient = new QueryClient()
+    bindAccountCache(browserQueryClient)
+  }
   return browserQueryClient
 }
 

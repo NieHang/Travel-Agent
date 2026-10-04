@@ -1,8 +1,10 @@
 'use client'
 
+import { useReducedMotion } from '@/lib/use-reduced-motion'
+
 import { Modal } from '@heroui/react'
 import { X } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState, type RefObject } from 'react'
@@ -96,6 +98,7 @@ function DrawerContent({ onClose, activeId, isBlankNewChat }: Omit<Props, 'open'
 
 export function HistoryDrawer({ open, onClose, returnFocusRef, ...props }: Props) {
   const t = useTranslations('chat')
+  const tc = useTranslations('common')
   const reduced = useReducedMotion()
   const wasOpen = useRef(false)
   useEffect(() => {
@@ -105,7 +108,7 @@ export function HistoryDrawer({ open, onClose, returnFocusRef, ...props }: Props
   return (
     <Modal.Backdrop isOpen={open} onOpenChange={(next) => { if (!next) onClose() }} isDismissable
       data-testid="drawer-scrim" className="!fixed !inset-y-0 !left-0 !right-auto !z-50 !w-full !justify-start !bg-ink/40 lg:!w-[44%]">
-      <Modal.Container className="!m-0 !h-full !max-h-none !w-full lg:!max-w-[360px] !rounded-none !bg-paper">
+      <Modal.Container className="!m-0 !p-0 !h-full !max-h-none !w-full lg:!max-w-[360px] !rounded-none !bg-paper">
         <Modal.Dialog aria-label={t('history')} className="!h-full !p-0 !outline-none">
           <motion.div initial={{ x: reduced ? 0 : -360, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
             ref={(element) => {
@@ -113,6 +116,7 @@ export function HistoryDrawer({ open, onClose, returnFocusRef, ...props }: Props
               element?.closest('[role="dialog"]')?.setAttribute('aria-modal', 'true')
             }}
             transition={springs.drawer} className="flex h-full flex-col gap-4 p-4 text-ink">
+            <div className="flex justify-end"><PillButton variant="ghost" iconOnly aria-label={tc('close')} onClick={onClose}><X size={20} aria-hidden /></PillButton></div>
             <DrawerContent {...props} onClose={onClose} />
           </motion.div>
         </Modal.Dialog>

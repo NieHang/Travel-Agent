@@ -76,6 +76,7 @@ export function LoginForm() {
     try {
       await login({ email: email.trim(), password })
       router.replace(safeNext(next))
+      router.refresh()
     } catch (err) {
       inFlight.current = false
       setSubmitting(false)

@@ -1,9 +1,11 @@
 'use client'
 
+import { useReducedMotion } from '@/lib/use-reduced-motion'
+
 import type { Conversation } from '@autix/contracts'
 import { Dropdown } from '@heroui/react'
 import { MoreHorizontal } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
 import { useFormatter, useNow, useTranslations } from 'next-intl'
 import { useEffect, useRef, useState, type Ref } from 'react'
 import { springs } from '@/lib/motion'

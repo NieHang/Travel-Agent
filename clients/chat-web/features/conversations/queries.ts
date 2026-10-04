@@ -64,7 +64,9 @@ export function useConversations(
 
 export function useMessages(
   id: string | null,
+  paused = false,
 ): UseInfiniteQueryResult<InfiniteData<Page<Message>>, ApiRequestError> {
+  const client = useQueryClient()
   return useInfiniteQuery<
     Page<Message>,
     ApiRequestError,
@@ -73,11 +75,23 @@ export function useMessages(
     string | undefined
   >({
     queryKey: messagesKey(id),
-    queryFn: ({ pageParam }) => listMessages(id as string, { cursor: pageParam }),
+    queryFn: async ({ pageParam, signal }) => {
+      const page = await listMessages(id as string, { cursor: pageParam }, signal)
+      if (pageParam !== undefined) return page
+      const existing = client.getQueryData<InfiniteData<Page<Message>>>(messagesKey(id))?.pages.flatMap(p => p.items) ?? []
+      const pending = existing.filter((message, index) => {
+        if (!message.id.startsWith('local-')) return false
+        const anchor = existing.slice(index + 1).find(row => row.role === 'USER')
+        const serverIndex = page.items.findIndex(row => row.id === anchor?.id)
+        return serverIndex <= 0 || page.items[serverIndex - 1].role !== 'ASSISTANT'
+      })
+      return { ...page, items: [...pending, ...page.items] }
+    },
     initialPageParam: undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    enabled: id !== null,
+    enabled: id !== null && !paused,
     staleTime: Infinity,
+    refetchInterval: (query) => !paused && query.state.data?.pages.some(page => page.items.some(message => message.id.startsWith('local-'))) ? 1000 : false,
     retry: retryUnlessNotFound,
   })
 }

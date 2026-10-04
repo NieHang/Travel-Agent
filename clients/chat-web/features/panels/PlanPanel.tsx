@@ -1,5 +1,7 @@
 'use client'
-import { motion, useReducedMotion } from 'motion/react'
+
+import { useReducedMotion } from '@/lib/use-reduced-motion'
+import { motion } from 'motion/react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { PillTabs } from '@/components/ui/PillTabs'

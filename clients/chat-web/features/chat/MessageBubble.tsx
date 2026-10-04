@@ -1,7 +1,9 @@
 'use client'
 
+import { useReducedMotion } from '@/lib/use-reduced-motion'
+
 import type { Message, Requirement } from '@autix/contracts'
-import { motion, useReducedMotion, type MotionProps } from 'motion/react'
+import { motion, type MotionProps } from 'motion/react'
 import { useTranslations } from 'next-intl'
 import { enter } from '@/lib/motion'
 import { RequirementCards } from './RequirementCards'
