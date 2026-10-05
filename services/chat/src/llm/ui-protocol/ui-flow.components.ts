@@ -47,14 +47,6 @@ export function getPlanningFields(language?: string): UIFormField[] {
       max: 100,
     },
     {
-      type: 'number',
-      name: 'budget',
-      label: copy.budget,
-      required: true,
-      min: 0,
-      max: null,
-    },
-    {
       type: 'textarea',
       name: 'preferences',
       label: copy.preferences,
@@ -112,10 +104,15 @@ export function planningResponse(context: UIFlowContext): AIUIResponse {
         fields: getPlanningFields(context.replyLanguage).filter(
           (f) =>
             context.editingRequirements ||
+            (f.type === 'date' &&
+              (!context.requirements.departureDate || !context.requirements.returnDate)) ||
             context.requirements[f.name] === undefined ||
             context.requirements[f.name] === null ||
             context.requirements[f.name] === '',
         ),
+        initialValues: getPlanningFields(context.replyLanguage)
+          .filter((f) => context.requirements[f.name] !== undefined)
+          .map((f) => ({ name: f.name, value: context.requirements[f.name] })),
         submitLabel: copy.generateDraft,
       },
     ];

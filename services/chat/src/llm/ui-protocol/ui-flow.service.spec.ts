@@ -276,7 +276,7 @@ describe('intent-aware UI actions', () => {
     expect(result.intent).toBe('hotel_search');
     expect(result.components.some((c) => c.type === 'selection')).toBe(false);
     expect(inputs.at(-1)).toBe('帮我找杭州西湖附近500米的酒店，预算800');
-    expect(contexts.at(-1)?.requirements.budget).toBe(5000);
+    expect(contexts.at(-1)?.requirements.budget).toBeUndefined();
     const b = component(result, 'action_buttons');
     const restored = await flow.handleAction('s', {
       type: 'button_click',
@@ -413,15 +413,16 @@ describe('intent-aware UI actions', () => {
     expect(contexts.at(-1)?.query?.input).toContain('parking');
     expect(contexts.at(-1)?.stage).toBe('idle');
   });
-  it('does not ask for an individually supplied departure date again', async () => {
+  it('prefills an individually supplied departure date in the range selector', async () => {
     const result = await flow.chat(
       's',
       '我要去东京个人游，出发日期2026-11-01，2人，预算5000',
     );
     const f = component(result, 'form');
     expect(f.fields.some((field) => field.name === 'departureDate')).toBe(
-      false,
+      true,
     );
+    expect(f.initialValues).toContainEqual({ name: 'departureDate', value: '2026-11-01' });
     expect(f.fields.some((field) => field.name === 'returnDate')).toBe(true);
   });
   it('recognizes solo travel supplied without the literal UI label', async () => {
@@ -459,7 +460,6 @@ describe('intent-aware UI actions', () => {
         'departureDate',
         'returnDate',
         'travelers',
-        'budget',
         'preferences',
       ],
     );

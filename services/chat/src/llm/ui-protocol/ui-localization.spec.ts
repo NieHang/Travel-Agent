@@ -31,8 +31,8 @@ describe('UI language resources', () => {
       getPlanningFields('en').some((f) => f.name === 'budgetCurrency'),
     ).toBe(false);
     expect(
-      getPlanningFields('en').find((f) => f.name === 'budget')?.label,
-    ).toBe('Total budget');
+      getPlanningFields('en').some((f) => f.name === 'budget'),
+    ).toBe(false);
     expect(getTripOptions('en').map((o) => o.value)).toEqual(
       getTripOptions('zh').map((o) => o.value),
     );

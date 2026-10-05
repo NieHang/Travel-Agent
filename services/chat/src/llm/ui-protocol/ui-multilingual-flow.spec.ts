@@ -194,7 +194,8 @@ describe('language-independent planning transitions', () => {
     const result = await flow.chat('s', 'Return on 2026-11-03, budget 5000');
     const fields = component(result, 'form').fields.map((f) => f.name);
     expect(fields).toContain('departureDate');
-    expect(fields).not.toContain('returnDate');
+    expect(fields).toContain('returnDate');
+    expect(component(result, 'form').initialValues).toContainEqual({ name: 'returnDate', value: '2026-11-03' });
     expect(fields).not.toContain('budgetCurrency');
     expect(fields).not.toContain('budget');
     expect(state.previewCalls).toBe(0);

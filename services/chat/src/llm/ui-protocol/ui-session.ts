@@ -8,6 +8,7 @@ import {
   type SendMessageRequest,
 } from '@autix/contracts';
 import type { AIUIResponse, UIFlowContext } from './ui-types.js';
+import { planningResponse } from './ui-flow.components.js';
 
 export const UIFlowSnapshotSchema = z.object({
   version: z.literal(1),
@@ -49,12 +50,31 @@ export function readUIFlowSnapshot(metadata: unknown): UIFlowSnapshot | null {
       ? (metadata as Record<string, unknown>).uiFlowSnapshot
       : null;
   const parsed = UIFlowSnapshotSchema.safeParse(raw);
-  return parsed.success ? parsed.data : null;
+  if (!parsed.success) return null;
+  const snapshot = parsed.data;
+  if (snapshot.context.stage === 'collecting_requirements' &&
+      snapshot.response.intent === 'trip_planning') {
+    snapshot.response.components = snapshot.response.components.map(component => {
+      if (component.type !== 'form' || component.initialValues !== undefined) return component;
+      // A legacy budget-only form may now have no missing fields. Show saved
+      // editable values so it remains valid and can still generate the draft.
+      const current = planningResponse({ ...snapshot.context, editingRequirements: true })
+        .components.find(c => c.type === 'form');
+      return current ? { ...current, id: component.id } : component;
+    });
+  }
+  return snapshot;
 }
 export function toPublicMessageMetadata(metadata: unknown) {
   if (metadata == null) return null;
   const parsed = MessageMetadataSchema.safeParse(metadata);
-  return parsed.success ? parsed.data : null;
+  if (!parsed.success) return null;
+  const snapshot = readUIFlowSnapshot(metadata);
+  if (snapshot && parsed.data.components) {
+    parsed.data.components = parsed.data.components.map(component =>
+      snapshot.response.components.find(c => c.id === component.id) ?? component);
+  }
+  return parsed.data;
 }
 export function requestContent(
   request: SendMessageRequest,

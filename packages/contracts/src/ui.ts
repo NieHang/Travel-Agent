@@ -51,6 +51,11 @@ export const formSchema = z
     type: z.literal('form'),
     title: label,
     fields: z.array(formFieldSchema).min(1).max(30),
+    // Filled by the workflow server, not the model; optional for saved messages.
+    initialValues: z.array(z.object({
+      name: id,
+      value: z.union([z.string().max(4000), z.number().finite(), z.boolean(), z.null()]),
+    }).strict()).max(30).optional(),
     submitLabel: label,
   })
   .strict();

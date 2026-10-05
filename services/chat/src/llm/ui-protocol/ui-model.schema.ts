@@ -9,6 +9,12 @@ function expand(value: unknown, resolving = new Set<string>()): unknown {
   if (Array.isArray(value)) return value.map((item) => expand(item, resolving));
   if (value === null || typeof value !== 'object') return value;
   const record = value as Record<string, unknown>;
+  // Saved form values are trusted workflow state, not model-generated content.
+  if (record.properties && typeof record.properties === 'object' &&
+      'initialValues' in record.properties) {
+    const { initialValues: _initialValues, ...properties } = record.properties as Record<string, unknown>;
+    return expand({ ...record, properties });
+  }
   if (typeof record.$ref === 'string') {
     const ref = record.$ref;
     if (!ref.startsWith('#/') || resolving.has(ref))
