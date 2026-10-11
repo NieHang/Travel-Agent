@@ -11,9 +11,11 @@ import {
   type ChatReplyPort,
   type ChatTurn,
 } from './chat-reply.port.js';
+import { McpService } from '../mcp/mcp.service.js';
 
 @Injectable()
 export class ModelChatReply implements ChatReplyPort {
+  constructor(private readonly mcp: McpService) {}
   async *streamReply(
     history: ChatTurn[],
     signal: AbortSignal,
@@ -26,7 +28,10 @@ export class ModelChatReply implements ChatReplyPort {
           : new AIMessage(turn.content),
       ),
     ];
-    const chunks = await createChatModel().stream(messages, { signal });
+    const mcpTools = this.mcp.mcpManager.getTools();
+    const chunks = await createChatModel()
+      .bindTools(mcpTools)
+      .stream(messages, { signal });
     for await (const chunk of chunks) {
       if (typeof chunk.content === 'string' && chunk.content !== '')
         yield chunk.content;
