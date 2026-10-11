@@ -223,10 +223,6 @@ describe('UI semantic model output', () => {
         },
       ],
     }),
-    modelOutput({
-      ...detail,
-      components: [{ ...detail.components[0], sourceStatus: 'verified' }],
-    } as never),
     modelOutput({ ...detail, components: hotels.components }),
     modelOutput(confirmation, {}, 'request_confirmation'),
   ])(

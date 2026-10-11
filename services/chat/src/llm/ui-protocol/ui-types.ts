@@ -18,6 +18,7 @@ import type {
   uiSemanticsSchema,
   planningRequirementsSchema,
 } from './ui-schemas.js';
+import type { ToolResult } from './ui-tool-loop.js';
 
 export type UIResponse = z.infer<typeof uiResponseSchema>;
 export type AIUIResponse = z.infer<typeof aiUIResponseSchema>;
@@ -38,7 +39,8 @@ export interface UIFlowContext {
   stage: UIFlowStage;
   requirements: Record<string, string | number | boolean | null>;
   itinerary: string | null;
-  query: { intent: UIIntent; input: string } | null;
+  /** results: compact provider data from the last lookup, for follow-up turns. */
+  query: { intent: UIIntent; input: string; results?: ToolResult[] } | null;
   editingRequirements?: boolean;
   replyLanguage?: string;
   preferredLocale?: string;

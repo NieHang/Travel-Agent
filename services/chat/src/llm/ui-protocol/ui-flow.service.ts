@@ -22,10 +22,12 @@ import { AppException } from '../../common/app.exception.js';
 import { actionRequestSchema, chatRequestSchema } from './ui-schemas.js';
 import {
   UIResponseService,
+  type GeneratedUIOutput,
   validateUIModelOutput,
   validateUIResponse,
 } from './ui-response.service.js';
 import { getPlanningFields, planningResponse } from './ui-flow.components.js';
+import { MAX_STORED_RESULTS } from './ui-tool-loop.js';
 import { validateForm } from './ui-form.validation.js';
 import { validateUIAction } from './ui-action.validation.js';
 import { mergePlanningRequirements } from './ui-requirements.validation.js';
@@ -38,7 +40,6 @@ import type {
   AIUIResponse,
   UIAction,
   UIFlowContext,
-  UIModelOutput,
   PlanningRequirements,
 } from './ui-types.js';
 
@@ -146,9 +147,15 @@ export class UIFlowService {
               semantics.intent !== 'general' &&
               semantics.intent !== 'trip_planning'
             ) {
+              // Keep earlier results when this turn ran no lookup, so
+              // follow-ups can still refer to them.
+              const results = output.toolResults?.length
+                ? output.toolResults.slice(-MAX_STORED_RESULTS)
+                : candidate.context.query?.results;
               candidate.context.query = {
                 intent: semantics.intent,
                 input: text,
+                ...(results ? { results } : {}),
               };
               this.addResume(candidate, result);
             }
@@ -483,19 +490,20 @@ export class UIFlowService {
     session: Session,
     input: string,
     operation?: UIFlowContext['operation'],
-  ): Promise<UIModelOutput> {
+  ): Promise<GeneratedUIOutput> {
     const context = {
       ...structuredClone(session.context),
       ...(operation ? { operation } : {}),
     };
     try {
-      const output = await this.responses.generateUIResponse(
-        input,
-        session.history.slice(-20),
-        context,
-        session.streaming?.signal,
-        Boolean(session.streaming),
-      );
+      const { toolResults, ...output } =
+        await this.responses.generateUIResponse(
+          input,
+          session.history.slice(-20),
+          context,
+          session.streaming?.signal,
+          Boolean(session.streaming),
+        );
       const validated = validateUIModelOutput(output, context);
       if (
         session.streaming &&
@@ -520,7 +528,7 @@ export class UIFlowService {
           ],
         };
       }
-      return validated;
+      return { ...validated, toolResults };
     } catch {
       throw new AppException('INTERNAL_ERROR', 502);
     }
@@ -590,6 +598,9 @@ export class UIFlowService {
       session.context.query.input,
       'query',
     );
+    if (output.toolResults?.length)
+      session.context.query.results =
+        output.toolResults.slice(-MAX_STORED_RESULTS);
     this.addResume(session, output.response);
     return output.response;
   }

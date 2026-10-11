@@ -9,9 +9,10 @@ import { LlmService } from './llm.service.js';
 import { RequirementService } from './requirement.service.js';
 import { UIProtocolModule } from './ui-protocol/ui-protocol.module.js';
 import { McpService } from './mcp/mcp.service.js';
+import { McpModule } from './mcp/mcp.module.js';
 
 @Module({
-  imports: [AdvancedModule, UIProtocolModule],
+  imports: [AdvancedModule, McpModule, UIProtocolModule],
   controllers: [LlmController],
   providers: [
     LlmService,
@@ -28,7 +29,6 @@ import { McpService } from './mcp/mcp.service.js';
       useFactory: (mcp: McpService) =>
         isLlmFakeEnabled() ? new FakeChatReply() : new ModelChatReply(mcp),
     },
-    McpService,
   ],
   exports: [
     LlmService,

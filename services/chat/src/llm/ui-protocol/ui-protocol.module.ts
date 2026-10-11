@@ -5,16 +5,20 @@ import { UIResponseService } from './ui-response.service.js';
 import { UIStreamService } from './ui-stream.service.js';
 import { FakeUIResponseService } from './ui-response.fake.js';
 import { isLlmFakeEnabled } from '../../config/auth.config.js';
+import { McpModule } from '../mcp/mcp.module.js';
+import { McpService } from '../mcp/mcp.service.js';
 
 @Module({
+  imports: [McpModule],
   controllers: [UIChatController],
   providers: [
     {
       provide: UIResponseService,
-      useFactory: () =>
+      inject: [McpService],
+      useFactory: (mcp: McpService) =>
         isLlmFakeEnabled()
           ? new FakeUIResponseService()
-          : new UIResponseService(),
+          : new UIResponseService(mcp),
     },
     UIFlowService,
     UIStreamService,

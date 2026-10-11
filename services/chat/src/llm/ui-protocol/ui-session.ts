@@ -9,6 +9,7 @@ import {
 } from '@autix/contracts';
 import type { AIUIResponse, UIFlowContext } from './ui-types.js';
 import { planningResponse } from './ui-flow.components.js';
+import { MAX_STORED_RESULTS } from './ui-tool-loop.js';
 
 export const UIFlowSnapshotSchema = z.object({
   version: z.literal(1),
@@ -26,7 +27,23 @@ export const UIFlowSnapshotSchema = z.object({
       z.union([z.string(), z.number().finite(), z.boolean(), z.null()]),
     ),
     itinerary: z.string().nullable(),
-    query: z.object({ intent: uiIntentSchema, input: z.string() }).nullable(),
+    query: z
+      .object({
+        intent: uiIntentSchema,
+        input: z.string(),
+        results: z
+          .array(
+            z.object({
+              tool: z.string(),
+              args: z.record(z.unknown()),
+              content: z.string(),
+              isError: z.boolean(),
+            }),
+          )
+          .max(MAX_STORED_RESULTS)
+          .optional(),
+      })
+      .nullable(),
     editingRequirements: z.boolean().optional(),
     replyLanguage: z.string().optional(),
     preferredLocale: z.string().optional(),
