@@ -80,10 +80,10 @@
     "sendFailed": "Couldn't send. Try again",
     "viewTrip": "View trip",
     "progress": {
-      "understand": "Understanding your request",
-      "generate": "Generating your answer and itinerary",
-      "panels": "Updating trip panels",
-      "save": "Saving results",
+      "waiting": "Understanding your request",
+      "searching": "Checking live data",
+      "writing": "Writing the reply",
+      "organizing": "Updating trip panels",
       "completed": "Completed",
       "failed": "Generation failed",
       "cancelled": "Stopped"

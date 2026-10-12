@@ -1,16 +1,15 @@
 'use client'
 import { memo } from 'react'
-import type { UIResponse, UIAction } from '@autix/contracts'
+import type { Command } from '@autix/contracts'
 import { ComponentRenderer } from '@/components/ai-ui/ComponentRenderer'
 import { Markdown } from '@/components/ui/Markdown'
 
 import { useReducedMotion } from '@/lib/use-reduced-motion'
 
-import type { Message, Requirement } from '@autix/contracts'
+import type { Message } from '@autix/contracts'
 import { motion, type MotionProps } from 'motion/react'
 import { useTranslations } from 'next-intl'
 import { enter } from '@/lib/motion'
-import { RequirementCards } from './RequirementCards'
 
 function TypingDots({ label }: { label: string }) {
   return (
@@ -35,19 +34,17 @@ export const MessageBubble = memo(function MessageBubble({
   role,
   content,
   status = 'complete',
-  requirements = [],
   typing = false,
   components = [],
-  onAction,
+  onCommand,
   disabled = false,
 }: {
-  components?: UIResponse[]
-  onAction?: (action: UIAction) => void
+  components?: unknown[]
+  onCommand?: (command: Command) => void
   disabled?: boolean
   role: Message['role']
   content: string
   status?: Message['status']
-  requirements?: Requirement[]
   /** 正在生成且首个字还没到：显示三点跳动 */
   typing?: boolean
 }) {
@@ -85,27 +82,18 @@ export const MessageBubble = memo(function MessageBubble({
         <span className="px-2 text-xs font-bold text-ink">{label}</span>
       ) : null}
       {!isUser &&
-        components
-          .filter((c) => c.type !== 'text' || c.content !== content)
-          .map((c) => (
-            <div
-              className="w-full max-w-[95%] rounded-card bg-paper p-4 text-ink"
-              key={c.id}
-            >
-              <ComponentRenderer
-                component={
-                  c.type === 'card' &&
-                  c.category === 'itinerary' &&
-                  c.description === content
-                    ? { ...c, description: '' }
-                    : c
-                }
-                disabled={disabled || !onAction}
-                onAction={onAction ?? (() => {})}
-              />
-            </div>
-          ))}
-      {isUser ? null : <RequirementCards requirements={requirements} />}
+        components.map((c, i) => (
+          <div
+            className="w-full max-w-[95%] rounded-card bg-paper p-4 text-ink"
+            key={i}
+          >
+            <ComponentRenderer
+              component={c}
+              disabled={disabled || !onCommand}
+              onCommand={onCommand ?? (() => {})}
+            />
+          </div>
+        ))}
     </motion.div>
   )
 })

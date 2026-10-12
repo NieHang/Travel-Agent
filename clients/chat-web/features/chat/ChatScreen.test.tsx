@@ -1,4 +1,4 @@
-import type { ChatStreamEvent, Message, Requirement } from '@autix/contracts'
+import type { Component, Message, TripStreamEvent } from '@autix/contracts'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { StrictMode } from 'react'
@@ -55,10 +55,11 @@ vi.mock('@/components/ui/toast', () => ({
 }))
 
 const NEW_ID = 'conv_new'
-const requirement: Requirement = {
-  action: '规划里斯本行程',
-  constraints: ['5 天', '预算 3000'],
-  entities: ['里斯本'],
+const tripTypeChoice: Component = {
+  type: 'choice',
+  command: 'set_trip_type',
+  title: '这次是什么类型的出行？',
+  options: [{ value: 'family', label: '亲子游', description: null }],
 }
 
 const userMsg = (over: Partial<Message> = {}) =>
@@ -79,22 +80,15 @@ const assistantMsg = (over: Partial<Message> = {}) =>
   })
 
 const ev = {
-  userMessage: (m: Message = userMsg()): ChatStreamEvent => ({
-    event: 'user_message',
-    data: { message: m },
+  userMessage: (m: Message = userMsg()): TripStreamEvent => ({
+    type: 'start',
+    userMessage: m,
   }),
-  delta: (text: string): ChatStreamEvent => ({
-    event: 'delta',
-    data: { text },
-  }),
-  requirement: (...requirements: Requirement[]): ChatStreamEvent => ({
-    event: 'requirement',
-    data: { requirements },
-  }),
-  done: (m: Message = assistantMsg()): ChatStreamEvent => ({
-    event: 'done',
-    data: { message: m },
-  }),
+  delta: (text: string): TripStreamEvent => ({ type: 'text', delta: text }),
+  done: (
+    m: Message = assistantMsg(),
+    components: Component[] = [],
+  ): TripStreamEvent => ({ type: 'done', message: m, components, trip: null }),
 }
 
 const sseResponse = (body: ReadableStream<Uint8Array>) =>
@@ -226,7 +220,7 @@ it('点击 chip：文字填入输入框并聚焦，不发请求；输入框非�
   server.events.removeListener('request:start', unhandled)
 })
 
-it('新对话发出第一条：先 POST /api/conversations，再 replaceState 到 /chat/{id}，然后流式显示回复与需求卡片', async () => {
+it('新对话发出第一条：先 POST /api/conversations，再 replaceState 到 /chat/{id}，然后流式显示回复，完成后显示可操作组件', async () => {
   onCreate()
   const stream = sseController()
   onSend(() => sseResponse(stream.body))
@@ -237,17 +231,9 @@ it('新对话发出第一条：先 POST /api/conversations，再 replaceState �
   expect(replaceState).toHaveBeenCalledWith(null, '', '/chat/' + NEW_ID)
   expect(input()).toHaveValue('')
 
-  act(() =>
-    stream.push(
-      ev.userMessage(),
-      ev.delta('好的'),
-      ev.requirement(requirement),
-    ),
-  )
+  act(() => stream.push(ev.userMessage(), ev.delta('好的')))
   expect(await screen.findByText('里斯本 5 天')).toBeInTheDocument()
   expect(await screen.findByText('好的')).toBeInTheDocument()
-  expect(screen.getByText('规划里斯本行程')).toBeInTheDocument()
-  expect(screen.getByText('5 天 · 预算 3000')).toBeInTheDocument()
   // 地址同步后流没有被中断
   expect(screen.getByRole('button', { name: '停止' })).toBeInTheDocument()
 
@@ -256,13 +242,16 @@ it('新对话发出第一条：先 POST /api/conversations，再 replaceState �
       ev.done(
         assistantMsg({
           content: '好的，这是行程',
-          metadata: { requirements: [requirement] },
+          metadata: { components: [tripTypeChoice], revision: 1 },
         }),
+        [tripTypeChoice],
       ),
     ),
   )
   expect(await screen.findByText('好的，这是行程')).toBeInTheDocument()
-  expect(screen.getByText('规划里斯本行程')).toBeInTheDocument()
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /亲子游/ })).toBeEnabled(),
+  )
   await waitFor(() =>
     expect(screen.getByRole('button', { name: '发送' })).toBeInTheDocument(),
   )
@@ -603,7 +592,7 @@ it('首次消息拉取期间手动发送：忽略，输入框内容保留', asyn
   act(() => open())
 })
 
-it('回复完成后，流式气泡与需求卡片是同一个 DOM 节点（不重播入场动画）', async () => {
+it('回复完成后，流式气泡与保存的消息是同一个 DOM 节点（不重播入场动画）', async () => {
   nav.path = '/chat/conv_1'
   onList({ first: { items: [], nextCursor: null } })
   const stream = sseController()
@@ -614,18 +603,11 @@ it('回复完成后，流式气泡与需求卡片是同一个 DOM 节点（不�
   )
   await typeAndSend(user, '里斯本 5 天')
   const sent = userMsg({ conversationId: 'conv_1' })
-  act(() =>
-    stream.push(
-      ev.userMessage(sent),
-      ev.delta('好的'),
-      ev.requirement(requirement),
-    ),
-  )
+  act(() => stream.push(ev.userMessage(sent), ev.delta('好的')))
   // 用户消息写入缓存之后，流式气泡才有稳定的 key
   await screen.findByText('里斯本 5 天')
   const bubble = await screen.findByText('好的')
-  const card = await screen.findByText('规划里斯本行程')
-  const cardWrapper = card.closest('[data-requirement]')
+  const wrapper = bubble.closest('[data-bubble]')!.parentElement
 
   act(() =>
     stream.push(
@@ -633,8 +615,9 @@ it('回复完成后，流式气泡与需求卡片是同一个 DOM 节点（不�
         assistantMsg({
           conversationId: 'conv_1',
           content: '好的',
-          metadata: { requirements: [requirement] },
+          metadata: { components: [tripTypeChoice], revision: 1 },
         }),
+        [tripTypeChoice],
       ),
     ),
   )
@@ -642,9 +625,10 @@ it('回复完成后，流式气泡与需求卡片是同一个 DOM 节点（不�
     expect(screen.getByRole('button', { name: '发送' })).toBeInTheDocument(),
   )
   expect(screen.getByText('好的')).toBe(bubble)
-  expect(screen.getByText('规划里斯本行程').closest('[data-requirement]')).toBe(
-    cardWrapper,
+  expect(screen.getByText('好的').closest('[data-bubble]')!.parentElement).toBe(
+    wrapper,
   )
+  expect(screen.getByRole('button', { name: /亲子游/ })).toBeInTheDocument()
 })
 
 it('暂存输入的 conversationId 与当前会话不一致：丢弃，不发送', async () => {
@@ -853,7 +837,8 @@ it('restores the latest panel snapshot without loading older failed message page
   server.use(
     http.get(apiUrl('/api/conversations/:id/ui-state'), () =>
       HttpResponse.json({
-        activeMessage: null,
+        revision: 1,
+        components: [],
         trip: {
           revision: 1,
           status: 'draft',
@@ -876,4 +861,65 @@ it('restores the latest panel snapshot without loading older failed message page
   await user.click(screen.getByRole('button', { name: '查看行程' }))
   expect(await screen.findByText('持久化的行程')).toBeInTheDocument()
   expect(listCursors).toEqual([null])
+})
+
+it('已有会话发送：请求体带当前 trip revision、message 命令与 locale；点击组件发送对应命令', async () => {
+  nav.path = '/chat/conv_1'
+  onList({ first: { items: [], nextCursor: null } })
+  let uiStateServed = false
+  server.use(
+    http.get(apiUrl('/api/conversations/:id/ui-state'), () => {
+      uiStateServed = true
+      return HttpResponse.json({ revision: 3, trip: null, components: [] })
+    }),
+  )
+  const bodies: unknown[] = []
+  server.use(
+    http.post(apiUrl('/api/conversations/:id/messages'), async ({ request }) => {
+      bodies.push(await request.json())
+      return sseResponse(
+        new ReadableStream({
+          start(c) {
+            c.enqueue(
+              new TextEncoder().encode(
+                [
+                  ev.userMessage(userMsg({ conversationId: 'conv_1' })),
+                  ev.done(
+                    assistantMsg({
+                      conversationId: 'conv_1',
+                      content: '请选择旅游类型。',
+                      metadata: { components: [tripTypeChoice], revision: 4 },
+                    }),
+                    [tripTypeChoice],
+                  ),
+                ]
+                  .map((e) => `event: message\ndata: ${JSON.stringify(e)}\n\n`)
+                  .join(''),
+              ),
+            )
+            c.close()
+          },
+        }),
+      )
+    }),
+  )
+  const { user } = renderScreen()
+  await waitFor(() =>
+    expect(screen.queryByTestId('skeleton-bubbles')).not.toBeInTheDocument(),
+  )
+  await waitFor(() => expect(uiStateServed).toBe(true))
+  await typeAndSend(user, '杭州')
+  await waitFor(() => expect(bodies).toHaveLength(1))
+  expect(bodies[0]).toEqual({
+    revision: 3,
+    command: { type: 'message', text: '杭州' },
+    locale: 'zh',
+  })
+  await user.click(await screen.findByRole('button', { name: /亲子游/ }))
+  await waitFor(() => expect(bodies).toHaveLength(2))
+  expect(bodies[1]).toEqual({
+    revision: 4,
+    command: { type: 'set_trip_type', value: 'family' },
+    locale: 'zh',
+  })
 })

@@ -3,43 +3,32 @@ import { vi, it, expect } from 'vitest'
 import { renderWithProviders } from '@/test/render'
 import { MessageBubble } from './MessageBubble'
 import { TripPanels } from '@/features/panels/TripPanels'
-import { latestTripSnapshot } from '@/features/panels/trip-snapshot'
-import { makeMessage } from '@/test/fixtures'
-it('renders protocol actions inside actual message bubbles', async () => {
-  const onAction = vi.fn()
+it('renders trip commands inside actual message bubbles', async () => {
+  const onCommand = vi.fn()
   const { user } = renderWithProviders(
     <MessageBubble
       role="ASSISTANT"
       content="Choose"
       components={[
         {
-          id: 's',
-          type: 'selection',
-          purpose: 'trip_type',
+          type: 'choice',
+          command: 'set_trip_type',
           title: 'Trip',
-          mode: 'single',
           options: [{ value: 'solo', label: 'Solo', description: null }],
         },
       ]}
-      onAction={onAction}
+      onCommand={onCommand}
     />,
   )
   await user.click(screen.getByRole('button', { name: /Solo/ }))
-  expect(onAction).toHaveBeenCalledWith({
-    type: 'selection',
-    componentId: 's',
-    values: ['solo'],
-  })
+  expect(onCommand).toHaveBeenCalledWith({ type: 'set_trip_type', value: 'solo' })
 })
-it('shows a real empty panel and respects explicit cleared snapshots', () => {
+it('shows a real empty panel', () => {
   renderWithProviders(<TripPanels tab="plan" data={null} />)
   expect(screen.getByText('开始规划后，行程会显示在这里')).toBeInTheDocument()
-  expect(
-    latestTripSnapshot([makeMessage({ metadata: { trip: null } })]),
-  ).toBeNull()
 })
 
-it('shows a streamed itinerary once while preserving card title and attribution', () => {
+it('renders a legacy component from an old message as read-only text', () => {
   renderWithProviders(
     <MessageBubble
       role="ASSISTANT"
@@ -50,13 +39,14 @@ it('shows a streamed itinerary once while preserving card title and attribution'
           type: 'card',
           category: 'itinerary',
           title: 'Trip draft',
-          description: 'Draft body',
+          description: 'Old draft',
           details: [],
           sourceStatus: 'unverified',
         },
       ]}
     />,
   )
-  expect(screen.getAllByText('Draft body')).toHaveLength(1)
+  expect(screen.getByText('Draft body')).toBeInTheDocument()
   expect(screen.getByText('Trip draft')).toBeInTheDocument()
+  expect(screen.queryByRole('button')).toBeNull()
 })

@@ -1,6 +1,6 @@
 'use client'
 
-import type { Message, Page } from '@autix/contracts'
+import type { Command, Message, Page } from '@autix/contracts'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { ArrowDown } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
@@ -30,8 +30,6 @@ import {
   SaveTripButton,
   TripPanels,
 } from '@/features/panels/TripPanels'
-import { latestTripSnapshot } from '@/features/panels/trip-snapshot'
-import type { UIAction } from '@autix/contracts'
 import { STAGE_COLOR, type PanelTab } from '@/features/panels/mock/types'
 import { MobileSheet } from '@/features/panels/MobileSheet'
 import { useIsDesktop } from '@/lib/use-media-query'
@@ -41,7 +39,7 @@ import { TopBar } from './TopBar'
 import { useChatStream, type SendOutcome } from './use-chat-stream'
 import { useStickToBottom } from './use-stick-to-bottom'
 import { StreamProgress } from './StreamProgress'
-import { useUIState } from './ui-state'
+import { uiStateKey, useUIState } from './ui-state'
 
 const CHIP_COUNT = 4
 
@@ -86,7 +84,8 @@ export function ChatScreen(): ReactNode {
   const isDesktop = useIsDesktop()
   const [panelTab, setPanelTab] = useState<PanelTab>('plan')
   const background = STAGE_COLOR[panelTab]
-  const locale = useLocale()
+  // The turn contract accepts only the two app locales.
+  const locale = useLocale() === 'en' ? 'en' : 'zh'
 
   const [missingId, setMissingId] = useState<string | null>(null)
   const countdown = useCountdown()
@@ -117,22 +116,16 @@ export function ChatScreen(): ReactNode {
   const panelData =
     stream.streamConversationId === viewId && stream.trip !== undefined
       ? stream.trip
-      : uiState.data
-        ? uiState.data.trip
-        : latestTripSnapshot(messages)
+      : (uiState.data?.trip ?? null)
   const loadingInitial = viewId !== null && query.isPending && !notFound
   const pending =
     generating && stream.activeConversationId === viewId
-      ? {
-          text: stream.text,
-          requirements: stream.requirements,
-          components: stream.components,
-          interactionState: stream.interactionState,
-        }
+      ? { text: stream.text, components: stream.components }
       : null
+  const revision = uiState.data?.revision ?? 0
 
   const stick = useStickToBottom(
-    `${messages.at(-1)?.id ?? ''}|${pending?.text.length ?? -1}|${pending?.requirements.length ?? 0}|${loadingInitial}`,
+    `${messages.at(-1)?.id ?? ''}|${pending?.text.length ?? -1}|${pending?.components?.length ?? 0}|${loadingInitial}`,
     viewId,
   )
 
@@ -164,6 +157,8 @@ export function ChatScreen(): ReactNode {
     if (!content || busyRef.current || stream.phase !== 'idle') return
     // 首次消息拉取还在途中：它可能盖掉流写入缓存的用户消息，等它结束再发
     if (target !== null && loadingInitial) return
+    // The trip revision is not loaded yet; a guessed revision would only get a 409.
+    if (target !== null && uiState.isPending) return
     busyRef.current = true
     setInput('')
     let conversationId = target
@@ -182,7 +177,11 @@ export function ChatScreen(): ReactNode {
         )
         window.history.replaceState(null, '', '/chat/' + created.id)
       }
-      outcome = await stream.send(conversationId, { content, locale })
+      outcome = await stream.send(conversationId, {
+        revision: target === null ? 0 : revision,
+        command: { type: 'message', text: content },
+        locale,
+      })
     } catch (error) {
       outcome = {
         ok: false,
@@ -197,24 +196,21 @@ export function ChatScreen(): ReactNode {
     if (!outcome.ok) handleFailure(raw, conversationId, outcome.error)
   }
 
-  const sendAction = useCallback(
-    async (sourceMessageId: string, revision: number, action: UIAction) => {
-      if (!viewId || busyRef.current || generating || loadingInitial) return
+  const sendCommand = useCallback(
+    async (command: Command) => {
+      if (!viewId || busyRef.current || generating || loadingInitial || uiState.isPending) return
       busyRef.current = true
       try {
-        const outcome = await stream.send(viewId, {
-          action,
-          sourceMessageId,
-          revision,
-          locale,
-        })
-        if (!outcome.ok && outcome.error.code !== 'ABORTED')
+        const outcome = await stream.send(viewId, { revision: uiState.data?.revision ?? 0, command, locale })
+        if (!outcome.ok && outcome.error.code !== 'ABORTED') {
           toast(t('sendFailed'), { tone: 'danger' })
+          void queryClient.invalidateQueries({ queryKey: uiStateKey(viewId) })
+        }
       } finally {
         busyRef.current = false
       }
     },
-    [viewId, generating, loadingInitial, stream.send, locale, t],
+    [viewId, generating, loadingInitial, uiState.isPending, uiState.data?.revision, stream.send, locale, t, queryClient],
   )
 
   const deferredPrompt = useRef<{
@@ -328,11 +324,8 @@ export function ChatScreen(): ReactNode {
               messages={messages}
               pending={pending}
               generating={generating}
-              onAction={sendAction}
-              activeSourceMessageId={
-                uiState.data?.activeMessage?.id ??
-                (uiState.data ? null : undefined)
-              }
+              onCommand={sendCommand}
+              activeRevision={uiState.data?.revision}
               hasMore={!notFound && !generating && query.hasNextPage}
               loadingMore={query.isFetchingNextPage}
               loadMoreFailed={
@@ -371,7 +364,7 @@ export function ChatScreen(): ReactNode {
           ) : null}
           {stream.streamConversationId === viewId && (
             <StreamProgress
-              progress={stream.progress}
+              phase={stream.progressPhase}
               outcome={stream.outcome}
             />
           )}

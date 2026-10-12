@@ -39,31 +39,18 @@ it('typing：显示三点跳动，读屏标签为「正在输入…」', () => {
   expect(screen.getByRole('status', { name: '正在输入…' })).toBeInTheDocument()
 })
 
-it('metadata.requirements 两条：两张卡片，标题为 action，副标题为 constraints 用「 · 」连接', () => {
-  renderWithProviders(
-    <MessageBubble
-      role="ASSISTANT"
-      content="好的"
-      requirements={[
-        { action: '规划里斯本行程', constraints: ['5 天', '预算 3000'], entities: [] },
-        { action: '订酒店', constraints: ['150 欧以内'], entities: [] },
-      ]}
-    />,
+const buttons = { type: 'buttons', buttons: [{ command: 'confirm', label: '确认路线' }] }
+
+it('组件在助手消息下渲染，有 onCommand 时可操作并发送命令', async () => {
+  const onCommand = vi.fn()
+  const { user } = renderWithProviders(
+    <MessageBubble role="ASSISTANT" content="草稿" components={[buttons]} onCommand={onCommand} />,
   )
-  expect(screen.getByText('规划里斯本行程')).toBeInTheDocument()
-  expect(screen.getByText('5 天 · 预算 3000')).toBeInTheDocument()
-  expect(screen.getByText('订酒店')).toBeInTheDocument()
-  expect(screen.getByText('150 欧以内')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: '确认路线' }))
+  expect(onCommand).toHaveBeenCalledWith({ type: 'confirm' })
 })
 
-it('constraints 为空：没有副标题', () => {
-  const { container } = renderWithProviders(
-    <MessageBubble
-      role="ASSISTANT"
-      content="好的"
-      requirements={[{ action: '订酒店', constraints: [], entities: [] }]}
-    />,
-  )
-  expect(screen.getByText('订酒店')).toBeInTheDocument()
-  expect(container.querySelectorAll('[data-requirement] p')).toHaveLength(1)
+it('没有 onCommand（旧版本或生成中）时组件只读', () => {
+  renderWithProviders(<MessageBubble role="ASSISTANT" content="草稿" components={[buttons]} />)
+  expect(screen.getByRole('button', { name: '确认路线' })).toBeDisabled()
 })

@@ -2,15 +2,14 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { useTranslations } from 'next-intl'
-import type { ProgressPayload } from '@autix/contracts'
-import type { StreamOutcome } from '@/stores/ai-ui.store'
+import type { ProgressPhase, StreamOutcome } from '@/stores/ai-ui.store'
 import { useReducedMotion } from '@/lib/use-reduced-motion'
 
 export function StreamProgress({
-  progress,
+  phase,
   outcome,
 }: {
-  progress: ProgressPayload | null
+  phase: ProgressPhase | null
   outcome: StreamOutcome
 }) {
   const t = useTranslations('chat.progress')
@@ -22,23 +21,10 @@ export function StreamProgress({
     const timer = setTimeout(() => setHidden(true), 1750)
     return () => clearTimeout(timer)
   }, [outcome])
-  if (!progress || hidden) return null
+  if (!phase || hidden) return null
   const complete = outcome === 'completed'
-  const value = complete
-    ? 100
-    : Math.min(
-        99,
-        Math.floor(
-          ((progress.step - (progress.status === 'completed' ? 0 : 1)) /
-            progress.totalSteps) *
-            100,
-        ),
-      )
-  const phase = ['understand', 'generate', 'panels', 'save'].includes(
-    progress.agent,
-  )
-    ? progress.agent
-    : 'understand'
+  const STEPS = { waiting: 10, searching: 35, writing: 60, organizing: 85 } as const
+  const value = complete ? 100 : STEPS[phase]
   const label =
     outcome === 'failed'
       ? t('failed')

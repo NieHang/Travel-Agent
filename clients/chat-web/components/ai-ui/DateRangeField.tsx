@@ -2,14 +2,15 @@
 
 import { useId, useRef, useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
-import type { FormField } from './types'
 import { fieldClass } from './styles'
 
 const iso = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 const parse = (value: string) => new Date(`${value}T12:00:00`)
 
+type DateField = { name: string; label: string; required: boolean }
+
 export function DateRangeField({ departure, returning, initialStart = '', initialEnd = '' }: {
-  departure: FormField, returning: FormField, initialStart?: string, initialEnd?: string,
+  departure: DateField, returning: DateField, initialStart?: string, initialEnd?: string,
 }) {
   const id = useId(), trigger = useRef<HTMLButtonElement>(null)
   const [start, setStart] = useState(initialStart)

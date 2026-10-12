@@ -1,12 +1,6 @@
 'use client'
 
-import type {
-  Message,
-  Requirement,
-  UIResponse,
-  ComponentInteractionState,
-  UIAction,
-} from '@autix/contracts'
+import type { Command, Component, Message } from '@autix/contracts'
 import {
   useEffect,
   useLayoutEffect,
@@ -22,9 +16,7 @@ import { MessageBubble } from './MessageBubble'
 
 export type PendingReply = {
   text: string
-  requirements: Requirement[]
-  components?: UIResponse[]
-  interactionState?: ComponentInteractionState
+  components?: Component[]
 }
 
 export function SkeletonBubbles({ count }: { count: number }) {
@@ -81,9 +73,9 @@ export function MessageList({
   loadMoreFailed,
   onLoadMore,
   children,
-  onAction,
+  onCommand,
   generating = false,
-  activeSourceMessageId,
+  activeRevision,
 }: {
   scrollRef: RefObject<HTMLDivElement | null>
   /** 时间正序 */
@@ -98,12 +90,9 @@ export function MessageList({
   /** 没有消息时的内容（问候、骨架、错误状态） */
   children?: ReactNode
   generating?: boolean
-  activeSourceMessageId?: string | null
-  onAction?: (
-    sourceMessageId: string,
-    revision: number,
-    action: UIAction,
-  ) => void
+  /** Trip revision whose components are interactive; older messages render read-only. */
+  activeRevision?: number
+  onCommand?: (command: Command) => void
 }) {
   const tc = useTranslations('common')
   const sentinel = useRef<HTMLDivElement>(null)
@@ -151,53 +140,37 @@ export function MessageList({
   }
   const { keys, pendingKey } = replyKeys(messages)
   // 流式气泡与消息在同一个数组里，key 相同时才会被 React 当作同一个节点
-  const current =
-    activeSourceMessageId !== undefined
-      ? activeSourceMessageId
-      : [...messages]
-          .reverse()
-          .find((m) => m.status === 'complete' && m.metadata?.interactionState)
-          ?.id
   const historyBubbles = useMemo(
     () =>
-      messages.map((message, index) => (
-        <MessageBubble
-          key={keys[index]}
-          role={message.role}
-          content={message.content}
-          status={message.status}
-          requirements={message.metadata?.requirements}
-          components={message.metadata?.components}
-          disabled={generating || message.id !== current}
-          onAction={
-            onAction && message.metadata?.interactionState
-              ? (action) =>
-                  onAction(
-                    message.id,
-                    message.metadata!.interactionState!.revision,
-                    action,
-                  )
-              : undefined
-          }
-        />
-      )),
-    [messages, current, generating, onAction],
+      messages.map((message, index) => {
+        const revision = message.metadata?.revision
+        const interactive =
+          revision !== undefined && revision === activeRevision
+        return (
+          <MessageBubble
+            key={keys[index]}
+            role={message.role}
+            content={message.content}
+            status={message.status}
+            components={message.metadata?.components}
+            disabled={generating || !interactive}
+            onCommand={interactive ? onCommand : undefined}
+          />
+        )
+      }),
+    [messages, activeRevision, generating, onCommand],
   )
   const bubbles = [...historyBubbles]
-  if (
-    pending &&
-    !messages.some(
-      (message) => message.id === pending.interactionState?.sourceMessageId,
-    )
-  ) {
+  if (pending) {
+    // Streamed components only become actionable once the turn is saved.
     bubbles.push(
       <MessageBubble
         key={pendingKey}
         role="ASSISTANT"
         content={pending.text}
         typing={pending.text === ''}
-        requirements={pending.requirements}
         components={pending.components}
+        onCommand={undefined}
         disabled
       />,
     )
