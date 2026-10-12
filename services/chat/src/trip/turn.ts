@@ -101,12 +101,12 @@ export class TurnService {
     } catch (error) {
       if (signal.aborted) return;
       this.logger.error(`Trip turn failed (${errorName(error)}) conversation=${conversationId}`);
-      const message = await this.saveAssistant(conversationId, text, 'error', user.createdAt);
+      const message = await this.saveAssistant(conversationId, text, 'error', user.createdAt, request.revision);
       saved = true;
       yield { type: 'error', code: 'MODEL_FAILED', message };
     } finally {
       // Reached on abort, including when the consumer stops iterating: keep what was streamed.
-      if (!saved) await this.saveAssistant(conversationId, text, 'partial', user.createdAt);
+      if (!saved) await this.saveAssistant(conversationId, text, 'partial', user.createdAt, request.revision);
     }
   }
 
@@ -174,11 +174,17 @@ export class TurnService {
     content: string,
     status: 'partial' | 'error',
     userCreatedAt: Date,
+    revision: number,
   ): Promise<Message> {
     const at = this.after(userCreatedAt);
     const [row] = await this.prisma.$transaction([
       this.prisma.message.create({ data: { conversationId, role: 'ASSISTANT', content, status, createdAt: at } }),
       this.prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: at } }),
+      // Release the claim: the state did not advance, so the previous turn's components stay active.
+      this.prisma.conversation.updateMany({
+        where: { id: conversationId, tripRevision: revision + 1 },
+        data: { tripRevision: revision },
+      }),
     ]);
     return toMessageContract(row);
   }

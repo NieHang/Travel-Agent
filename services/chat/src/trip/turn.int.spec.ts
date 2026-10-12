@@ -193,9 +193,10 @@ describe('TurnService', () => {
     expect(assistant).toMatchObject({ status: 'partial', content: '第一段' });
     const row = await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } });
     expect(row.tripState).toBeNull();
-    expect(row.tripRevision).toBe(1);
+    // The claim is released, so the previous turn's components stay interactive.
+    expect(row.tripRevision).toBe(0);
     const state = await turns.getState(conversationId);
-    expect(state).toEqual({ revision: 1, trip: null, components: [] });
+    expect(state).toEqual({ revision: 0, trip: null, components: [] });
   });
 
   it('reports a model failure as an error event with a saved error message', async () => {
@@ -203,5 +204,6 @@ describe('TurnService', () => {
     llm.responses.push([]);
     const events = await send({ revision: 0, command: { type: 'message', text: '…' } });
     expect(events.at(-1)).toMatchObject({ type: 'error', code: 'MODEL_FAILED', message: { status: 'error' } });
+    expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(0);
   });
 });
