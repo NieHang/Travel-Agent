@@ -118,8 +118,12 @@ export function ChatScreen(): ReactNode {
       ? stream.trip
       : (uiState.data?.trip ?? null)
   const loadingInitial = viewId !== null && query.isPending && !notFound
+  // Once `done` arrives the saved message is already in the cache; showing the
+  // streamed bubble too would render its components twice until the stream closes.
   const pending =
-    generating && stream.activeConversationId === viewId
+    generating &&
+    stream.activeConversationId === viewId &&
+    stream.outcome !== 'completed'
       ? { text: stream.text, components: stream.components }
       : null
   const revision = uiState.data?.revision ?? 0

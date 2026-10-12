@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { registerViaUi } from './helpers'
 
-test('UI protocol planning, batched actions, panels and refresh recovery', async ({
+test('trip planning commands, panels and refresh recovery', async ({
   page,
 }, testInfo) => {
   await registerViaUi(page)
@@ -21,14 +21,12 @@ test('UI protocol planning, batched actions, panels and refresh recovery', async
   await page
     .getByRole('spinbutton', { name: '出行人数', exact: true })
     .fill('2')
-  await page
-    .getByRole('spinbutton', { name: '总预算', exact: true })
-    .fill('3000')
   await page.getByRole('button', { name: '生成路线草案', exact: true }).click()
   const panel = page.getByTestId('live-trip-panel')
   await expect(
-    panel.getByRole('heading', { name: '杭州行程草稿' }),
+    page.getByRole('heading', { name: '杭州行程草稿' }),
   ).toBeVisible()
+  await expect(panel.getByText('行程草稿', { exact: true })).toBeVisible()
   await expect(
     page
       .getByRole('button', { name: '确认路线', exact: true })
@@ -40,17 +38,14 @@ test('UI protocol planning, batched actions, panels and refresh recovery', async
   })
   await page.reload()
   await expect(
-    panel.getByRole('heading', { name: '杭州行程草稿' }),
+    page.getByRole('heading', { name: '杭州行程草稿' }),
   ).toBeVisible()
+  await expect(panel.getByText('行程草稿', { exact: true })).toBeVisible()
   const confirm = page
     .getByRole('button', { name: '确认路线', exact: true })
     .and(page.locator(':enabled'))
   await expect(confirm).toBeEnabled()
   await confirm.click()
-  await page
-    .getByRole('button', { name: '确认路线', exact: true })
-    .and(page.locator(':enabled'))
-    .click()
   await expect(panel.getByText('已确认', { exact: true })).toBeVisible()
   await page.screenshot({
     path: testInfo.outputPath('ui-streaming-confirmed.png'),

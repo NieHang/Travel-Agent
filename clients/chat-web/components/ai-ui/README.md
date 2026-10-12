@@ -1,21 +1,16 @@
 # AI UI 渲染层
 
-在需要展示 UI Chat 的页面中挂载：
+服务端根据行程状态生成全部组件（`services/chat/src/trip/view.ts`），客户端只负责渲染并发送领域命令。
 
 ```tsx
-import { AIChatContainer } from '@/components/ai-ui'
+import { ComponentRenderer } from '@/components/ai-ui'
 
-<AIChatContainer sessionId="my-trip-session" locale="zh" className="h-[70vh]" />
+<ComponentRenderer component={component} onCommand={(command) => send(command)} disabled={false} />
 ```
 
-- `sessionId` 可选；省略时容器首次请求生成会话 ID，挂载期间复用。修改此属性会清空本地历史并取消当前请求。历史保存在 React 状态中，刷新页面后不恢复。
-- `locale` 可选，随文本与 UI 操作请求发送给后端。组件的基础提示文案使用中文，标题、选项和按钮标签使用服务端内容。
-- 请求复用 `features/auth/api-client.ts`，包含现有 Bearer token、Cookie 和认证刷新逻辑；API 地址来自 `NEXT_PUBLIC_API_BASE_URL`（通过 `lib/api-base.ts`），默认 `http://localhost:4001`。使用前需完成项目现有登录流程。
-- 文本请求体为 `{ sessionId, input, locale? }`，操作请求体为 `{ sessionId, action, locale? }`，响应为 `{ message, intent, components }`。
-- 仅最新 AI 响应中的控件可操作；请求期间锁定控件，失败后保留输入与最新控件以便重试。
-- 单选点击立即提交，多选勾选后点击“确认选择”。表单支持 input、textarea、date、number、select；数字发送 number，空可选值发送 null。
-- `types.ts` 通过 **type-only** 导入复用 `@autix/contracts` 共享规范，避免维护第二份协议和打包服务端代码。`FormField` 是共享 `UIFormField` 的导出别名。
-- `text` 的 plain/markdown 均以 React 文本安全展示，不解析 HTML 或 Markdown。确认组件内嵌于聊天历史，不作为模态窗口打开。
-
-也可单独使用 `ComponentRenderer`：传入 `component: UIResponse`、`onAction: (action: UIAction) => void` 和可选 `disabled`。每个基础组件均可从独立文件或本目录入口导入；基础样式集中在 `styles.ts`，便于替换。
-实际 `/chat` 页面现在通过 `ChatScreen`、`useChatStream` 和统一的 conversation SSE 消息接口接入 `ComponentRenderer`。下方 `AIChatContainer` 示例仍是旧 JSON 接口的兼容示例；新页面集成请使用 `features/chat/ui-stream-client.ts`，不要创建另一套会话历史。
+- `component` 是 `unknown`：先用 `@autix/contracts` 的 `ComponentSchema` 校验。四种类型：`choice`（`ChoiceCard`）、`form`（`RequirementsForm`）、`buttons`（`ButtonsRow`）、`cards`（`ResultCard`）。
+- 旧协议保存在历史消息里的组件无法通过校验，按文字只读显示，不提供控件。
+- 组件直接发送自己的 `command`（如 `{ type: 'set_trip_type', value: 'family' }`），没有组件 ID；请求体为 `{ revision, command, locale }`，`revision` 不一致时服务端返回 409。
+- 只有 `metadata.revision` 等于当前 `ui-state` revision 的消息里的组件可操作（见 `features/chat/MessageList.tsx`）。
+- `ResultCard` 在聊天和行程面板里共用：`variant` 为 `full`、`compact` 或 `stay`。
+- 实际 `/chat` 页面通过 `ChatScreen`、`useChatStream` 和 `features/chat/ui-stream-client.ts` 接入；基础样式集中在 `styles.ts`。
