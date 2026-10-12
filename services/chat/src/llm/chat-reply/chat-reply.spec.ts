@@ -12,6 +12,10 @@ import {
   FakeRequirementService,
 } from './fakes.js';
 import { ModelChatReply } from './model-chat-reply.js';
+import type { McpService } from '../mcp/mcp.service.js';
+
+/** No MCP server in unit tests: the model is bound to an empty tool list. */
+const noTools = { mcpManager: { getTools: () => [] } } as unknown as McpService;
 
 type Received = { messages: Array<{ role: string; content: string }> };
 
@@ -79,7 +83,7 @@ describe('ModelChatReply against a local model API', () => {
   it('真实实现：系统提示词在最前，历史按顺序与角色传给模型，流式输出文本块', async () => {
     deltas = ['你', '好'];
     const out: string[] = [];
-    for await (const c of new ModelChatReply().streamReply(
+    for await (const c of new ModelChatReply(noTools).streamReply(
       [
         { role: 'user', content: '去里斯本' },
         { role: 'assistant', content: '几天？' },
@@ -104,7 +108,7 @@ describe('ModelChatReply against a local model API', () => {
   it('真实实现：不输出空文本块', async () => {
     deltas = ['你', '', '好'];
     const out: string[] = [];
-    for await (const c of new ModelChatReply().streamReply(
+    for await (const c of new ModelChatReply(noTools).streamReply(
       [{ role: 'user', content: 'hi' }],
       new AbortController().signal,
     ))
