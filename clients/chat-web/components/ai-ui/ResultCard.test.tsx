@@ -40,23 +40,34 @@ it('图片加载失败时换成占位', () => {
   expect(screen.getByTestId('image-placeholder')).toBeInTheDocument()
 })
 
-it('卡面显示 3 个设施和 +N，悬停、聚焦或点按打开全部设施，Esc 关闭', async () => {
+it('卡面显示 3 个设施和 +N，悬停、聚焦或点按设施区打开全部设施，Esc 关闭', async () => {
   const user = userEvent.setup()
   renderWithProviders(<ResultCard item={item} />)
   expect(screen.getByText('+2')).toBeInTheDocument()
   expect(screen.queryByRole('tooltip')).toBeNull()
-  const card = screen.getByRole('article')
-  await user.hover(card)
+  const amenities = screen.getByRole('group', { name: '设施 · 5' })
+  await user.hover(amenities)
   expect(screen.getByRole('tooltip')).toHaveTextContent('设施 · 5')
   expect(screen.getByRole('tooltip')).toHaveTextContent('游泳池')
-  await user.unhover(card)
+  await user.unhover(amenities)
   expect(screen.queryByRole('tooltip')).toBeNull()
-  act(() => card.focus())
+  act(() => amenities.focus())
   expect(screen.getByRole('tooltip')).toBeInTheDocument()
   await user.keyboard('{Escape}')
   expect(screen.queryByRole('tooltip')).toBeNull()
-  fireEvent.pointerDown(card, { pointerType: 'touch' })
+  fireEvent.pointerDown(amenities, { pointerType: 'touch' })
   expect(screen.getByRole('tooltip')).toBeInTheDocument()
+})
+
+it('悬停卡片的其他区域（图片、标题、价格）不打开设施弹层', async () => {
+  const user = userEvent.setup()
+  renderWithProviders(<ResultCard item={item} />)
+  await user.hover(screen.getByRole('article'))
+  await user.hover(screen.getByText('阿尔法玛法朵之家'))
+  await user.hover(screen.getByRole('img', { name: 'Casa do Fado Alfama' }))
+  expect(screen.queryByRole('tooltip')).toBeNull()
+  fireEvent.pointerDown(screen.getByRole('article'), { pointerType: 'touch' })
+  expect(screen.queryByRole('tooltip')).toBeNull()
 })
 
 it('没有设施时不显示芯片和弹层', async () => {

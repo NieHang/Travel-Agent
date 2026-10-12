@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useState, type ReactNode } from 'react'
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { ArrowUpRight, BedDouble, Building2, MapPin, Star } from 'lucide-react'
 import type { LocalizedText, ResultItem } from '@autix/contracts'
@@ -57,37 +57,28 @@ export function ResultCard({
   const format = useFormatter()
   const popoverId = useId()
   const [open, setOpen] = useState(false)
+  const [below, setBelow] = useState(false)
+  const chipsRef = useRef<HTMLDivElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  // Open above the chips; flip below when the list would run off the top of the viewport.
+  useLayoutEffect(() => {
+    if (!open) return setBelow(false)
+    const chipsTop = chipsRef.current?.getBoundingClientRect().top ?? 0
+    const height = popoverRef.current?.offsetHeight ?? 0
+    setBelow(chipsTop - height - 8 < 0)
+  }, [open])
   const hasAmenities = item.amenities.length > 0
-  const show = (value: boolean) => setOpen(hasAmenities && value)
   const price = item.price
     ? format.number(item.price.amount, { style: 'currency', currency: item.price.currency, maximumFractionDigits: 0 })
     : null
 
-  const chips: ReactNode = hasAmenities ? (
-    <div className="flex flex-wrap gap-1.5">
-      {item.amenities.slice(0, FACE_AMENITIES).map((a) => {
-        const Icon = amenityIcon(a.original)
-        return (
-          <span key={a.original} className="inline-flex items-center gap-1 rounded-full bg-ink/5 px-2.5 py-1 text-xs font-bold text-ink">
-            <Icon size={13} aria-hidden />
-            {a.translation ?? a.original}
-          </span>
-        )
-      })}
-      {item.amenities.length > FACE_AMENITIES ? (
-        <span className="rounded-full bg-lime px-2.5 py-1 text-xs font-bold text-ink">
-          {t('more', { count: item.amenities.length - FACE_AMENITIES })}
-        </span>
-      ) : null}
-    </div>
-  ) : null
-
   const popover = open ? (
     <div
+      ref={popoverRef}
       id={popoverId}
       role="tooltip"
       data-on-ink
-      className={`absolute inset-x-3 z-20 rounded-[16px] bg-ink p-3 text-white shadow-float ${variant === 'full' ? 'top-[45%]' : 'bottom-[calc(100%+6px)]'}`}
+      className={`absolute ${below ? 'top-[calc(100%+8px)]' : 'bottom-[calc(100%+8px)]'} left-0 z-20 w-max max-w-[min(18rem,calc(100vw-2rem))] rounded-[16px] bg-ink p-3 text-white shadow-float`}
     >
       <p className="mb-1 text-xs font-bold text-lime">{t('amenities', { count: item.amenities.length })}</p>
       <ul className="grid gap-1">
@@ -105,39 +96,60 @@ export function ResultCard({
     </div>
   ) : null
 
-  const handlers = {
-    tabIndex: 0,
-    'aria-describedby': open ? popoverId : undefined,
-    onMouseEnter: () => show(true),
-    onMouseLeave: () => show(false),
-    onFocus: () => show(true),
-    onBlur: () => show(false),
-    onKeyDown: (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    },
-    onPointerDown: (e: React.PointerEvent) => {
-      if (e.pointerType === 'touch') show(!open)
-    },
-  }
+  // Only the amenity chips open the full list; the rest of the card stays quiet.
+  const chips: ReactNode = hasAmenities ? (
+    <div
+      ref={chipsRef}
+      role="group"
+      aria-label={t('amenities', { count: item.amenities.length })}
+      aria-describedby={open ? popoverId : undefined}
+      tabIndex={0}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') setOpen(false)
+      }}
+      onPointerDown={(e) => {
+        if (e.pointerType === 'touch') setOpen(!open)
+      }}
+      className="relative flex w-fit flex-wrap gap-1.5 rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ink"
+    >
+      {item.amenities.slice(0, FACE_AMENITIES).map((a) => {
+        const Icon = amenityIcon(a.original)
+        return (
+          <span key={a.original} className="inline-flex items-center gap-1 rounded-full bg-ink/5 px-2.5 py-1 text-xs font-bold text-ink">
+            <Icon size={13} aria-hidden />
+            {a.translation ?? a.original}
+          </span>
+        )
+      })}
+      {item.amenities.length > FACE_AMENITIES ? (
+        <span className="rounded-full bg-lime px-2.5 py-1 text-xs font-bold text-ink">
+          {t('more', { count: item.amenities.length - FACE_AMENITIES })}
+        </span>
+      ) : null}
+      {popover}
+    </div>
+  ) : null
 
   const title = <Text text={item.title} main="block font-extrabold leading-tight" sub="block text-xs font-medium text-ink/60" />
 
   if (variant === 'stay')
     return (
-      <article {...handlers} className="relative flex items-center gap-3 rounded-[16px] bg-white/10 p-2 text-white outline-none">
+      <article className="relative flex items-center gap-3 rounded-[16px] bg-white/10 p-2 text-white outline-none">
         <Banner item={item} className="h-[42px] w-14 shrink-0 rounded-[10px]" />
         <div className="min-w-0">
           <p className="text-xs font-bold text-lime"><BedDouble size={13} className="mr-1 inline" aria-hidden />{t('tonight')}</p>
           <p className="truncate text-sm font-extrabold">{item.title.translation ?? item.title.original}{price ? ` · ${price}` : ''}</p>
         </div>
-        {popover}
       </article>
     )
 
   if (variant === 'compact')
     return (
       <article
-        {...handlers}
         className={`relative grid grid-cols-[96px_minmax(0,1fr)] items-center gap-3 rounded-card border-2 bg-paper p-3 text-ink outline-none ${selected ? 'border-lime' : 'border-transparent'}`}
       >
         <Banner item={item} className="aspect-[4/3] rounded-[12px]" />
@@ -145,12 +157,11 @@ export function ResultCard({
           {title}
           {chips ? <div className="mt-2">{chips}</div> : null}
         </div>
-        {popover}
       </article>
     )
 
   return (
-    <article {...handlers} className="relative rounded-card bg-paper p-3 text-ink outline-none">
+    <article className="relative rounded-card bg-paper p-3 text-ink outline-none">
       <div className="relative">
         <Banner item={item} className="aspect-video rounded-[14px]" />
         {item.rating !== null ? (
@@ -178,7 +189,6 @@ export function ResultCard({
           </a>
         ) : null}
       </div>
-      {popover}
     </article>
   )
 }
