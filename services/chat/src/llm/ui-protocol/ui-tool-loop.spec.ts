@@ -6,7 +6,7 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import type { McpService } from '../mcp/mcp.service.js';
 import { UIResponseService } from './ui-response.service.js';
-import { compactToolContent, runToolLoop } from './ui-tool-loop.js';
+import { runToolLoop } from './ui-tool-loop.js';
 import { UIFlowService } from './ui-flow.service.js';
 import { UIFlowSnapshotSchema } from './ui-session.js';
 import { modelOutput } from './ui-test.fixtures.js';
@@ -226,53 +226,6 @@ describe('UIResponseService travel tool lookup', () => {
     toolTurns = [new AIMessage('No tool fits.')];
     expect(await service.generateUIResponse('hotels?')).toEqual(routed);
     expect(wires).toHaveLength(2);
-  });
-});
-
-describe('compactToolContent', () => {
-  it('keeps ids, names, prices and links of hotel results', () => {
-    const raw = JSON.stringify({
-      message: 'Hotel search succeeded',
-      hotelInformationList: [
-        {
-          hotelId: 43615,
-          bookingUrl: 'https://rollinggo.ai/h/43615',
-          name: 'Sunworld Dynasty Hotel Beijing',
-          brand: null,
-          address: '50 Wangfujing Street',
-          latitude: 39.9,
-          longitude: 116.4,
-          distanceInMeters: 205,
-          starRating: 5,
-          price: { hasPrice: true, currency: 'CNY', lowestPrice: 626 },
-          description: 'long text',
-          imageUrl: 'https://image-cdn/x.jpg',
-          hotelAmenities: ['WiFi'],
-          tags: ['Near Shopping Mall', 'Free WiFi'],
-        },
-      ],
-    });
-    expect(JSON.parse(compactToolContent(raw))).toEqual({
-      message: 'Hotel search succeeded',
-      hotels: [
-        {
-          hotelId: 43615,
-          name: 'Sunworld Dynasty Hotel Beijing',
-          brand: null,
-          address: '50 Wangfujing Street',
-          starRating: 5,
-          distanceInMeters: 205,
-          lowestPrice: '626 CNY',
-          tags: ['Near Shopping Mall', 'Free WiFi'],
-          bookingUrl: 'https://rollinggo.ai/h/43615',
-        },
-      ],
-    });
-  });
-
-  it('leaves other content untouched', () => {
-    expect(compactToolContent('plain text')).toBe('plain text');
-    expect(compactToolContent('{"tags":[]}')).toBe('{"tags":[]}');
   });
 });
 

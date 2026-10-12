@@ -5,6 +5,7 @@ import {
 } from '@langchain/core/messages';
 import type { Runnable } from '@langchain/core/runnables';
 import type { StructuredToolInterface } from '@langchain/core/tools';
+import { compactToolContent } from '../mcp/compact.js';
 
 export const MAX_TOOL_ROUNDS = 4;
 /** Results kept in the persisted flow context for follow-up turns. */
@@ -18,51 +19,7 @@ export interface ToolResult {
   isError: boolean;
 }
 
-const MAX_HOTELS = 10;
-
-interface RawHotel {
-  hotelId?: number;
-  name?: string;
-  brand?: string | null;
-  address?: string;
-  starRating?: number;
-  distanceInMeters?: number;
-  bookingUrl?: string;
-  tags?: string[];
-  price?: { hasPrice?: boolean; lowestPrice?: number; currency?: string };
-}
-
-/**
- * Keeps only the fields the UI and follow-up turns need (ids, names, prices,
- * links); descriptions, images and coordinates would only cost tokens.
- */
-export function compactToolContent(text: string): string {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    return text;
-  }
-  const list = (parsed as { hotelInformationList?: unknown })
-    ?.hotelInformationList;
-  if (!Array.isArray(list)) return text;
-  return JSON.stringify({
-    message: (parsed as { message?: unknown }).message,
-    hotels: (list as RawHotel[]).slice(0, MAX_HOTELS).map((h) => ({
-      hotelId: h.hotelId,
-      name: h.name,
-      brand: h.brand ?? null,
-      address: h.address,
-      starRating: h.starRating,
-      distanceInMeters: h.distanceInMeters,
-      lowestPrice: h.price?.hasPrice
-        ? `${h.price.lowestPrice} ${h.price.currency}`
-        : null,
-      tags: h.tags?.slice(0, 5),
-      bookingUrl: h.bookingUrl,
-    })),
-  });
-}
+export { compactToolContent };
 
 function toResult(
   tool: string,
