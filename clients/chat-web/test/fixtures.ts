@@ -1,6 +1,6 @@
 import type {
-  ChatStreamEvent,
   Conversation,
+  TripStreamEvent,
   Message,
   User,
 } from '@autix/contracts'
@@ -41,10 +41,10 @@ export function makeMessage(over: Partial<Message> = {}): Message {
   }
 }
 
-function encodeEvents(events: ChatStreamEvent[]): Uint8Array {
+function encodeEvents(events: TripStreamEvent[]): Uint8Array {
   return new TextEncoder().encode(
     events
-      .map((e) => `event: ${e.event}\ndata: ${JSON.stringify(e.data)}\n\n`)
+      .map((e) => `event: message\ndata: ${JSON.stringify(e)}\n\n`)
       .join(''),
   )
 }
@@ -52,7 +52,7 @@ function encodeEvents(events: ChatStreamEvent[]): Uint8Array {
 /** 可以逐步推入事件的 SSE 流：用来断言中间状态，以及停止之后的迟到数据。 */
 export function sseController(): {
   body: ReadableStream<Uint8Array>
-  push(...events: ChatStreamEvent[]): void
+  push(...events: TripStreamEvent[]): void
   close(): void
 } {
   let controller!: ReadableStreamDefaultController<Uint8Array>
@@ -78,7 +78,7 @@ export function sseController(): {
 }
 
 export function sseBody(
-  events: ChatStreamEvent[],
+  events: TripStreamEvent[],
   opts: { chunkBytes?: number; close?: boolean } = {},
 ): ReadableStream<Uint8Array> {
   const bytes = encodeEvents(events)

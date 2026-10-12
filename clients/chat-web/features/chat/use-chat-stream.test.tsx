@@ -1,8 +1,8 @@
 import type {
-  ChatStreamEvent,
   Message,
   Page,
-  Requirement,
+  SendTurnRequest,
+  TripStreamEvent,
 } from '@autix/contracts'
 import { QueryClient, type InfiniteData } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
@@ -36,31 +36,26 @@ const aError = makeMessage({
   content: '好的',
   status: 'error',
 })
-const r: Requirement = {
-  action: '规划里斯本行程',
-  constraints: ['5 天'],
-  entities: ['里斯本'],
-}
+const msg = (text: string): SendTurnRequest => ({
+  revision: 0,
+  command: { type: 'message', text },
+})
 
-const userMessage = (m: Message = u): ChatStreamEvent => ({
-  event: 'user_message',
-  data: { message: m },
+const userMessage = (m: Message = u): TripStreamEvent => ({
+  type: 'start',
+  userMessage: m,
 })
-const delta = (text: string): ChatStreamEvent => ({
-  event: 'delta',
-  data: { text },
+const delta = (text: string): TripStreamEvent => ({ type: 'text', delta: text })
+const done = (m: Message = a): TripStreamEvent => ({
+  type: 'done',
+  message: m,
+  components: [],
+  trip: null,
 })
-const requirement = (...requirements: Requirement[]): ChatStreamEvent => ({
-  event: 'requirement',
-  data: { requirements },
-})
-const done = (m: Message = a): ChatStreamEvent => ({
-  event: 'done',
-  data: { message: m },
-})
-const errorEvent = (m: Message = aError): ChatStreamEvent => ({
-  event: 'error',
-  data: { code: 'MODEL_FAILED', message: m },
+const errorEvent = (m: Message = aError): TripStreamEvent => ({
+  type: 'error',
+  code: 'MODEL_FAILED',
+  message: m,
 })
 
 const sseResponse = (body: ReadableStream<Uint8Array>) =>
@@ -140,7 +135,7 @@ type Hook = ReturnType<typeof setup>
 function start(hook: Hook, content = '里斯本 5 天'): Promise<SendOutcome> {
   let p!: Promise<SendOutcome>
   act(() => {
-    p = hook.result.current.stream.send('c1', content)
+    p = hook.result.current.stream.send('c1', msg(content))
   })
   return p
 }
@@ -247,26 +242,24 @@ describe('useChatStream', () => {
           userMessage(),
           delta('好的，'),
           delta('这是'),
-          requirement(r),
           done(),
         ]),
       ),
     )
     const hook = setup()
     const outcome = await act(() =>
-      hook.result.current.stream.send('c1', '里斯本 5 天'),
+      hook.result.current.stream.send('c1', msg('里斯本 5 天')),
     )
     expect(outcome).toEqual({ ok: true })
     expect(cachedIds()).toEqual([a.id, u.id])
     expect(hook.result.current.stream).toMatchObject({
       phase: 'idle',
       text: '',
-      requirements: [],
       activeConversationId: null,
     })
   })
 
-  it('流进行中：phase 依次为 sending → streaming，text 累计，requirements 可读', async () => {
+  it('流进行中：phase 依次为 sending → streaming，text 累计', async () => {
     let release!: () => void
     const gate = new Promise<void>((resolve) => (release = resolve))
     const stream = sseController()
@@ -288,17 +281,16 @@ describe('useChatStream', () => {
     expect(cachedIds()).toEqual([u.id])
     await act(async () => stream.push(delta('好的，')))
     await waitFor(() => expect(hook.result.current.stream.text).toBe('好的，'))
-    await act(async () => stream.push(delta('这是'), requirement(r)))
+    await act(async () => stream.push(delta('这是')))
     await waitFor(() =>
       expect(hook.result.current.stream.text).toBe('好的，这是'),
     )
-    expect(hook.result.current.stream.requirements).toEqual([r])
     await act(async () => stream.push(done()))
     expect(await settle(p)).toEqual({ ok: true })
     expect(hook.result.current.stream.phase).toBe('idle')
   })
 
-  it('请求带 Authorization 且 body 为 { content }', async () => {
+  it('请求带 Authorization 且 body 为 SendTurnRequest', async () => {
     authStore.setAuthed({ accessToken: 'tok', user: makeUser() })
     let auth: string | null = null
     let contentType: string | null = null
@@ -310,10 +302,10 @@ describe('useChatStream', () => {
       return sseResponse(sseBody([userMessage(), done()]))
     })
     const hook = setup()
-    await act(() => hook.result.current.stream.send('c1', '里斯本 5 天'))
+    await act(() => hook.result.current.stream.send('c1', msg('里斯本 5 天')))
     expect(auth).toBe('Bearer tok')
     expect(contentType).toContain('application/json')
-    expect(body).toEqual({ content: '里斯本 5 天' })
+    expect(body).toEqual(msg('里斯本 5 天'))
   })
 
   it('一个汉字跨两个网络块：text 无乱码', async () => {
@@ -340,7 +332,7 @@ describe('useChatStream', () => {
     useStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
     const hook = setup()
     const spy = vi.spyOn(queryClient, 'invalidateQueries')
-    await act(() => hook.result.current.stream.send('c1', 'x'))
+    await act(() => hook.result.current.stream.send('c1', msg('x')))
     const roots = spy.mock.calls.filter(
       ([f]) =>
         JSON.stringify(f?.queryKey) === JSON.stringify(['conversations']),
@@ -348,13 +340,13 @@ describe('useChatStream', () => {
     expect(roots).toHaveLength(2)
   })
 
-  it('error 事件：助手消息以 status error 进缓存，返回 ok', async () => {
+  it('error 事件：助手消息以 status error 进缓存，返回 MODEL_FAILED', async () => {
     useStreamHandler(() =>
       sseResponse(sseBody([userMessage(), delta('好的'), errorEvent()])),
     )
     const hook = setup()
-    const outcome = await act(() => hook.result.current.stream.send('c1', 'x'))
-    expect(outcome).toEqual({ ok: true })
+    const outcome = await act(() => hook.result.current.stream.send('c1', msg('x')))
+    expect(outcome).toMatchObject({ ok: false, error: { code: 'MODEL_FAILED' } })
     expect(cached()[0]).toMatchObject({ id: 'a2', status: 'error' })
     expect(cachedIds()).toEqual(['a2', u.id])
     expect(hook.result.current.stream).toMatchObject({
@@ -391,26 +383,6 @@ describe('useChatStream', () => {
     openListGate()
   })
 
-  it('停止时已有需求：本地消息的 metadata 带 requirements', async () => {
-    const stream = sseController()
-    useStreamHandler(() => sseResponse(stream.body))
-    const hook = setup()
-    holdMessageList()
-    const p = start(hook)
-    await act(async () => stream.push(userMessage(), requirement(r)))
-    await waitFor(() =>
-      expect(hook.result.current.stream.requirements).toEqual([r]),
-    )
-    act(() => hook.result.current.stream.stop())
-    await settle(p)
-    expect(cached()[0]).toMatchObject({
-      status: 'partial',
-      content: '',
-      metadata: { requirements: [r] },
-    })
-    openListGate()
-  })
-
   it('收到 user_message 之前停止：不写缓存，返回 ABORTED', async () => {
     const stream = sseController()
     useStreamHandler(() => sseResponse(stream.body))
@@ -444,17 +416,17 @@ describe('useChatStream', () => {
 
   it('流没有 done 或 error 就结束：写入 status 为 error 的本地消息，内容为已累计文本', async () => {
     useStreamHandler(() =>
-      sseResponse(sseBody([userMessage(), delta('好的，'), requirement(r)])),
+      sseResponse(sseBody([userMessage(), delta('好的，')])),
     )
     const hook = setup()
     holdMessageList()
-    const outcome = await act(() => hook.result.current.stream.send('c1', 'x'))
+    const outcome = await act(() => hook.result.current.stream.send('c1', msg('x')))
     expect(outcome).toEqual({ ok: true })
     expect(cached()[0]).toMatchObject({
       role: 'ASSISTANT',
       status: 'error',
       content: '好的，',
-      metadata: { requirements: [r] },
+      metadata: null,
     })
     expect(cached()[0].id).toMatch(/^local-/)
     expect(hook.result.current.stream.phase).toBe('idle')
@@ -468,7 +440,7 @@ describe('useChatStream', () => {
       start(controller) {
         controller.enqueue(
           new TextEncoder().encode(
-            `event: user_message\ndata: ${JSON.stringify({ message: u })}\n\n`,
+            `event: message\ndata: ${JSON.stringify({ type: 'start', userMessage: u })}\n\n`,
           ),
         )
         fail = (reason) => controller.error(reason)
@@ -492,7 +464,7 @@ describe('useChatStream', () => {
     useStreamHandler(() => sseResponse(sseBody([])))
     const hook = setup()
     holdMessageList()
-    const outcome = await act(() => hook.result.current.stream.send('c1', 'x'))
+    const outcome = await act(() => hook.result.current.stream.send('c1', msg('x')))
     expect(outcome).toMatchObject({ ok: false, error: { code: 'NETWORK' } })
     expect(cached()).toEqual([])
     expect(hook.result.current.stream.phase).toBe('idle')
@@ -519,7 +491,7 @@ describe('useChatStream', () => {
       useStreamHandler(respond)
       const hook = setup()
       const outcome = await act(() =>
-        hook.result.current.stream.send('c1', 'x'),
+        hook.result.current.stream.send('c1', msg('x')),
       )
       expect(outcome).toMatchObject({ ok: false, error: { code } })
       if (code === 'RATE_LIMITED' && !outcome.ok)
@@ -529,7 +501,6 @@ describe('useChatStream', () => {
       expect(hook.result.current.stream).toMatchObject({
         phase: 'idle',
         text: '',
-        requirements: [],
         activeConversationId: null,
       })
     },
@@ -551,7 +522,7 @@ describe('useChatStream', () => {
         : json(401, 'TOKEN_EXPIRED')
     })
     const hook = setup()
-    const outcome = await act(() => hook.result.current.stream.send('c1', 'x'))
+    const outcome = await act(() => hook.result.current.stream.send('c1', msg('x')))
     expect(outcome).toEqual({ ok: true })
     expect(seen).toEqual(['Bearer old', 'Bearer new'])
     expect(cachedIds()).toEqual([a.id, u.id])
@@ -565,7 +536,7 @@ describe('useChatStream', () => {
     await waitFor(() => expect(postCalls).toBe(1))
     let second!: SendOutcome
     await act(async () => {
-      second = await hook.result.current.stream.send('c1', 'again')
+      second = await hook.result.current.stream.send('c1', msg('again'))
     })
     expect(second).toMatchObject({ ok: false, error: { code: 'ABORTED' } })
     expect(postCalls).toBe(1)
@@ -581,8 +552,8 @@ describe('useChatStream', () => {
     let first!: Promise<SendOutcome>
     let second!: Promise<SendOutcome>
     act(() => {
-      first = hook.result.current.stream.send('c1', 'a')
-      second = hook.result.current.stream.send('c1', 'b')
+      first = hook.result.current.stream.send('c1', msg('a'))
+      second = hook.result.current.stream.send('c1', msg('b'))
     })
     expect(await second).toMatchObject({
       ok: false,
@@ -596,8 +567,8 @@ describe('useChatStream', () => {
   it('完成后可以再发一条', async () => {
     useStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
     const hook = setup()
-    await act(() => hook.result.current.stream.send('c1', 'a'))
-    const outcome = await act(() => hook.result.current.stream.send('c1', 'b'))
+    await act(() => hook.result.current.stream.send('c1', msg('a')))
+    const outcome = await act(() => hook.result.current.stream.send('c1', msg('b')))
     expect(outcome).toEqual({ ok: true })
     expect(postCalls).toBe(2)
   })
@@ -740,7 +711,7 @@ describe('useChatStream', () => {
       const hook = setupBare()
       let p!: Promise<SendOutcome>
       act(() => {
-        p = hook.result.current.send('c1', 'x')
+        p = hook.result.current.send('c1', msg('x'))
       })
       await act(async () => stream.push(userMessage(), delta('好')))
       hook.unmount()
@@ -751,7 +722,7 @@ describe('useChatStream', () => {
     it('流没有 done 就结束（无观察者）：本地 error 消息之后查询仍处于失效', async () => {
       useStreamHandler(() => sseResponse(sseBody([userMessage(), delta('好')])))
       const hook = setupBare()
-      await act(() => hook.result.current.send('c1', 'x'))
+      await act(() => hook.result.current.send('c1', msg('x')))
       await expectReconciledOnRemount()
     })
 
@@ -769,7 +740,7 @@ describe('useChatStream', () => {
       })
       let p!: Promise<SendOutcome>
       act(() => {
-        p = hook.result.current.send('c1', 'x')
+        p = hook.result.current.send('c1', msg('x'))
       })
       expect(hook.result.current).toMatchObject({
         phase: 'sending',
@@ -796,7 +767,7 @@ describe('useChatStream', () => {
       let caught: unknown
       await act(async () => {
         try {
-          await hook.result.current.stream.send('c1', 'x')
+          await hook.result.current.stream.send('c1', msg('x'))
         } catch (e) {
           caught = e
         }
@@ -832,7 +803,7 @@ describe('useChatStream', () => {
       holdMessageList()
       stopAfterFirstCacheWrite(hook)
       const outcome = await act(() =>
-        hook.result.current.stream.send('c1', 'x'),
+        hook.result.current.stream.send('c1', msg('x')),
       )
       expect(outcome).toEqual({ ok: true })
       expect(cached()[0]).toMatchObject({ status: 'partial', content: '' })
@@ -848,7 +819,7 @@ describe('useChatStream', () => {
       const hook = setup()
       holdMessageList()
       stopAfterFirstCacheWrite(hook)
-      await act(() => hook.result.current.stream.send('c1', 'x'))
+      await act(() => hook.result.current.stream.send('c1', msg('x')))
       expect(cachedIds()).not.toContain(a.id)
       expect(cached()[0]).toMatchObject({ status: 'partial' })
       openListGate()
@@ -865,7 +836,7 @@ describe('useChatStream', () => {
       )
       const hook = setup()
       const outcome = await act(() =>
-        hook.result.current.stream.send('c1', 'x'),
+        hook.result.current.stream.send('c1', msg('x')),
       )
       expect(outcome).toEqual({ ok: true })
       expect(cachedIds()).toEqual([a.id, u.id])

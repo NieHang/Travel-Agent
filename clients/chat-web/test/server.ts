@@ -4,7 +4,7 @@ import { API_BASE_URL } from '@/lib/api-base'
 
 export const server = setupServer(
   http.get(apiUrl('/api/conversations/:id/ui-state'), () =>
-    HttpResponse.json({ trip: null, activeMessage: null }),
+    HttpResponse.json({ revision: 0, trip: null, components: [] }),
   ),
 )
 

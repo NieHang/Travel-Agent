@@ -1,13 +1,10 @@
 'use client'
 
 import type {
+  Component,
   Message,
-  Requirement,
-  SendMessageRequest,
-  UIResponse,
-  ComponentInteractionState,
-  ProgressPayload,
-  TripSnapshot,
+  SendTurnRequest,
+  TripView,
 } from '@autix/contracts'
 import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -16,9 +13,13 @@ import { accountId } from '@/features/auth/account-cache'
 import { authStore } from '@/features/auth/auth-store'
 import { messagesKey } from '@/features/conversations/queries'
 import { upsertMessage } from './message-cache'
-import { streamUIChat } from './ui-stream-client'
+import { streamTurn } from './ui-stream-client'
 import { uiStateKey } from './ui-state'
-import { createAIUIStore, type StreamOutcome } from '@/stores/ai-ui.store'
+import {
+  createAIUIStore,
+  type ProgressPhase,
+  type StreamOutcome,
+} from '@/stores/ai-ui.store'
 import { useStore } from 'zustand'
 
 export type StreamPhase = 'idle' | 'sending' | 'streaming'
@@ -32,7 +33,6 @@ function localAssistantMessage(
   conversationId: string,
   content: string,
   status: 'partial' | 'error',
-  requirements: Requirement[],
 ): Message {
   return {
     id: `local-${crypto.randomUUID()}`,
@@ -40,7 +40,7 @@ function localAssistantMessage(
     role: 'ASSISTANT',
     content,
     status,
-    metadata: requirements.length > 0 ? { requirements } : null,
+    metadata: null,
     createdAt: new Date().toISOString(),
   }
 }
@@ -74,18 +74,13 @@ function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
 export function useChatStream(conversationId: string | null): {
   phase: StreamPhase
   text: string
-  requirements: Requirement[]
   activeConversationId: string | null
-  components: UIResponse[]
-  interactionState?: ComponentInteractionState
-  progress: ProgressPayload | null
-  trip: TripSnapshot | null | undefined
+  components: Component[]
+  progressPhase: ProgressPhase | null
+  trip: TripView | null | undefined
   streamConversationId: string | null
   outcome: StreamOutcome
-  send(
-    conversationId: string,
-    content: string | SendMessageRequest,
-  ): Promise<SendOutcome>
+  send(conversationId: string, request: SendTurnRequest): Promise<SendOutcome>
   stop(): void
 } {
   const queryClient = useQueryClient()
@@ -93,7 +88,6 @@ export function useChatStream(conversationId: string | null): {
   const ui = useStore(uiStore)
   const [phase, setPhase] = useState<StreamPhase>('idle')
   const [text, setText] = useState('')
-  const [requirements, setRequirements] = useState<Requirement[]>([])
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
   >(null)
@@ -133,7 +127,7 @@ export function useChatStream(conversationId: string | null): {
   const send = useCallback(
     async (
       targetId: string,
-      content: string | SendMessageRequest,
+      request: SendTurnRequest,
     ): Promise<SendOutcome> => {
       if (phaseRef.current !== 'idle') return { ok: false, error: aborted() }
 
@@ -159,7 +153,6 @@ export function useChatStream(conversationId: string | null): {
       live(() => {
         setPhase('sending')
         setText('')
-        setRequirements([])
         setActiveConversationId(targetId)
       })
 
@@ -170,13 +163,11 @@ export function useChatStream(conversationId: string | null): {
         live(() => {
           setPhase('idle')
           setText('')
-          setRequirements([])
-          setActiveConversationId(null)
+            setActiveConversationId(null)
         })
       }
 
       let accText = ''
-      let accRequirements: Requirement[] = []
       let gotUserMessage = false
 
       try {
@@ -188,78 +179,37 @@ export function useChatStream(conversationId: string | null): {
         let completed = false
         let failed = false
         try {
-          await streamUIChat(
+          await streamTurn(
             `/api/conversations/${encodeURIComponent(targetId)}/messages`,
-            typeof content === 'string' ? { content } : content,
+            request,
             signal,
-            (message) => {
-              if (accountChanged() || signal.aborted || completed) return
-              uiStore.getState().receive(requestId, message)
-              phaseRef.current = 'streaming'
-              live(() => setPhase('streaming'))
-              switch (message.messageType) {
-                case 'meta':
-                  if (message.payload.userMessage) {
-                    gotUserMessage = true
-                    upsertMessage(
-                      queryClient,
-                      targetId,
-                      message.payload.userMessage,
-                    )
-                    void queryClient.invalidateQueries({
-                      queryKey: CONVERSATIONS_ROOT,
-                    })
-                  }
-                  break
-                case 'markdown':
-                  accText = message.payload.isChunk
-                    ? accText + message.payload.content
-                    : message.payload.content
-                  break
-                case 'done':
-                  upsertMessage(queryClient, targetId, message.payload.message)
-                  queryClient.setQueryData(uiStateKey(targetId), {
-                    trip: message.payload.trip,
-                    activeMessage: message.payload.message,
-                  })
-                  completed = true
-                  break
-                case 'error':
-                  if (message.payload.message)
-                    upsertMessage(
-                      queryClient,
-                      targetId,
-                      message.payload.message,
-                    )
-                  completed = true
-                  failed = true
-                  break
-              }
-            },
             (event) => {
               if (accountChanged() || signal.aborted || completed) return
+              uiStore.getState().receive(requestId, event)
               phaseRef.current = 'streaming'
               live(() => setPhase('streaming'))
-              switch (event.event) {
-                case 'user_message':
+              switch (event.type) {
+                case 'start':
                   gotUserMessage = true
-                  upsertMessage(queryClient, targetId, event.data.message)
-                  void queryClient.invalidateQueries({
-                    queryKey: CONVERSATIONS_ROOT,
-                  })
+                  upsertMessage(queryClient, targetId, event.userMessage)
+                  void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_ROOT })
                   break
-                case 'delta':
-                  accText += event.data.text
-                  live(() => setText(accText))
-                  break
-                case 'requirement':
-                  accRequirements = event.data.requirements
-                  live(() => setRequirements(accRequirements))
+                case 'text':
+                  accText += event.delta
                   break
                 case 'done':
-                case 'error':
-                  upsertMessage(queryClient, targetId, event.data.message)
+                  upsertMessage(queryClient, targetId, event.message)
+                  queryClient.setQueryData(uiStateKey(targetId), {
+                    revision: event.message.metadata?.revision ?? 0,
+                    trip: event.trip,
+                    components: event.components,
+                  })
                   completed = true
+                  break
+                case 'error':
+                  if (event.message) upsertMessage(queryClient, targetId, event.message)
+                  completed = true
+                  failed = true
                   break
               }
             },
@@ -308,12 +258,7 @@ export function useChatStream(conversationId: string | null): {
           upsertMessage(
             queryClient,
             targetId,
-            localAssistantMessage(
-              targetId,
-              accText,
-              'partial',
-              accRequirements,
-            ),
+            localAssistantMessage(targetId, accText, 'partial'),
           )
           void invalidateMessages(queryClient, targetId)
           return { ok: true }
@@ -327,7 +272,7 @@ export function useChatStream(conversationId: string | null): {
         upsertMessage(
           queryClient,
           targetId,
-          localAssistantMessage(targetId, accText, 'error', accRequirements),
+          localAssistantMessage(targetId, accText, 'error'),
         )
         void invalidateMessages(queryClient, targetId)
         return { ok: true }
@@ -335,11 +280,7 @@ export function useChatStream(conversationId: string | null): {
         unsubscribeAccount()
         if (signal.aborted) uiStore.getState().cancel(requestId)
         else if (!uiStore.getState().terminal)
-          uiStore.getState().receive(requestId, {
-            messageType: 'error',
-            timestamp: new Date().toISOString(),
-            payload: { code: 'NETWORK' },
-          })
+          uiStore.getState().receive(requestId, { type: 'error', code: 'MODEL_FAILED' })
         finish()
       }
     },
@@ -349,13 +290,11 @@ export function useChatStream(conversationId: string | null): {
   return {
     phase,
     text: phase === 'idle' ? '' : ui.text || text,
-    requirements,
     activeConversationId,
     send,
     stop,
     components: ui.components,
-    interactionState: ui.interactionState,
-    progress: ui.progress,
+    progressPhase: ui.phase,
     trip: ui.trip,
     streamConversationId: ui.conversationId,
     outcome: ui.outcome,

@@ -1,75 +1,54 @@
 import { createStore } from 'zustand/vanilla'
-import type {
-  StreamMessage,
-  UIResponse,
-  ProgressPayload,
-  TripSnapshot,
-  ComponentInteractionState,
-} from '@autix/contracts'
+import type { Component, StatusPhase, TripStreamEvent, TripView } from '@autix/contracts'
+
 export type StreamOutcome = 'running' | 'completed' | 'failed' | 'cancelled'
+export type ProgressPhase = 'waiting' | StatusPhase
+
+type State = {
+  requestId: string | null
+  conversationId: string | null
+  text: string
+  components: Component[]
+  phase: ProgressPhase | null
+  trip: TripView | null | undefined
+  revision: number | undefined
+  outcome: StreamOutcome
+  terminal: boolean
+}
+const idle: State = {
+  requestId: null, conversationId: null, text: '', components: [], phase: null,
+  trip: undefined, revision: undefined, outcome: 'cancelled', terminal: true,
+}
+
 export function createAIUIStore() {
-  return createStore<{
-    requestId: string | null
-    conversationId: string | null
-    text: string
-    components: UIResponse[]
-    interactionState?: ComponentInteractionState
-    progress: ProgressPayload | null
-    trip: TripSnapshot | null | undefined
-    outcome: StreamOutcome
-    terminal: boolean
+  return createStore<State & {
     begin(id: string, conversationId: string): void
-    receive(id: string, message: StreamMessage): void
+    receive(id: string, event: TripStreamEvent): void
     cancel(id: string): void
     reset(): void
   }>((set, get) => ({
-    requestId: null,
-    conversationId: null,
-    text: '',
-    components: [],
-    progress: null,
-    trip: undefined,
-    outcome: 'cancelled',
-    terminal: true,
+    ...idle,
     begin: (requestId, conversationId) =>
-      set({
-        requestId,
-        conversationId,
-        text: '',
-        components: [],
-        interactionState: undefined,
-        progress: null,
-        trip: undefined,
-        outcome: 'running',
-        terminal: false,
-      }),
-    receive: (id, message) => {
+      set({ ...idle, requestId, conversationId, phase: 'waiting', outcome: 'running', terminal: false }),
+    receive: (id, event) => {
       if (get().requestId !== id || get().terminal) return
-      switch (message.messageType) {
-        case 'markdown':
-          set({
-            text: message.payload.isChunk
-              ? get().text + message.payload.content
-              : message.payload.content,
-          })
+      switch (event.type) {
+        case 'start':
           break
-        case 'ui':
-          set({
-            components: message.payload.components,
-            interactionState: message.payload.interactionState,
-          })
+        case 'status':
+          set({ phase: event.phase })
           break
-        case 'progress':
-          set({ progress: message.payload })
+        case 'text':
+          set({ text: get().text + event.delta, phase: 'writing' })
           break
-        case 'meta':
-          if ('trip' in message.payload) set({ trip: message.payload.trip })
-          break
+        // done/error keep the last phase so the ring can show 100% or the failure; cancel clears it.
         case 'done':
           set({
             terminal: true,
             outcome: 'completed',
-            trip: message.payload.trip,
+            components: event.components,
+            trip: event.trip,
+            revision: event.message.metadata?.revision,
           })
           break
         case 'error':
@@ -78,20 +57,8 @@ export function createAIUIStore() {
       }
     },
     cancel: (id) => {
-      if (get().requestId === id && !get().terminal)
-        set({ terminal: true, outcome: 'cancelled', progress: null })
+      if (get().requestId === id && !get().terminal) set({ terminal: true, outcome: 'cancelled', phase: null })
     },
-    reset: () =>
-      set({
-        requestId: null,
-        conversationId: null,
-        text: '',
-        components: [],
-        interactionState: undefined,
-        progress: null,
-        trip: undefined,
-        terminal: true,
-        outcome: 'cancelled',
-      }),
+    reset: () => set(idle),
   }))
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { streamUIChat } from './ui-stream-client'
+import { streamTurn } from './ui-stream-client'
 import { apiFetch, ApiRequestError } from '@/features/auth/api-client'
 vi.mock('@/features/auth/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/auth/api-client')>()),
@@ -38,7 +38,7 @@ describe('POST UI SSE transport', () => {
             sent = true
             controller.enqueue(
               new TextEncoder().encode(
-                `event: message\ndata: ${JSON.stringify({ messageType: 'markdown', timestamp: new Date().toISOString(), payload: { messageId: 'm', content: 'part', isChunk: true } })}\n\n`,
+                `event: message\ndata: ${JSON.stringify({ type: 'text', delta: 'part' })}\n\n`,
               ),
             )
           },
@@ -46,9 +46,9 @@ describe('POST UI SSE transport', () => {
         { headers: { 'Content-Type': 'text/event-stream' } },
       ),
     )
-    const error = await streamUIChat(
+    const error = await streamTurn(
       '/path',
-      { content: 'hi' },
+      { revision: 0, command: { type: 'message', text: 'hi' } },
       new AbortController().signal,
       vi.fn(),
     ).catch((e) => e)
@@ -62,33 +62,29 @@ describe('POST UI SSE transport', () => {
   it('parses UTF-8 chunks and never retries a POST on missing terminal event', async () => {
     mocked.mockResolvedValue(
       response([
-        {
-          messageType: 'markdown',
-          timestamp: new Date().toISOString(),
-          payload: { messageId: 'm', content: '你好', isChunk: true },
-        },
+        { type: 'text', delta: '你好' },
       ]),
     )
     const received = vi.fn()
     await expect(
-      streamUIChat(
+      streamTurn(
         '/path',
-        { content: 'hi' },
+        { revision: 0, command: { type: 'message', text: 'hi' } },
         new AbortController().signal,
         received,
       ),
     ).rejects.toThrow()
-    expect(received.mock.calls[0][0].payload.content).toBe('你好')
+    expect(received.mock.calls[0][0]).toEqual({ type: 'text', delta: '你好' })
     expect(mocked).toHaveBeenCalledTimes(1)
   })
   it('rejects malformed envelopes without retry', async () => {
     mocked.mockResolvedValue(
-      response([{ messageType: 'ui', payload: 'invalid' }]),
+      response([{ type: 'text', delta: 3 }]),
     )
     await expect(
-      streamUIChat(
+      streamTurn(
         '/path',
-        { content: 'hi' },
+        { revision: 0, command: { type: 'message', text: 'hi' } },
         new AbortController().signal,
         vi.fn(),
       ),

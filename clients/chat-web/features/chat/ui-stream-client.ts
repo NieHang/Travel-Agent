@@ -1,19 +1,16 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import {
-  ChatStreamEventSchema,
-  StreamMessageSchema,
-  type SendMessageRequest,
-  type StreamMessage,
-  type ChatStreamEvent,
+  TripStreamEventSchema,
+  type SendTurnRequest,
+  type TripStreamEvent,
 } from '@autix/contracts'
 import { apiFetch, ApiRequestError } from '@/features/auth/api-client'
 
-export async function streamUIChat(
+export async function streamTurn(
   path: string,
-  request: SendMessageRequest,
+  request: SendTurnRequest,
   signal: AbortSignal,
-  onMessage: (message: StreamMessage) => void,
-  onLegacy?: (message: ChatStreamEvent) => void,
+  onEvent: (event: TripStreamEvent) => void,
 ): Promise<void> {
   let terminal = false
   let streamOpened = false
@@ -50,38 +47,18 @@ export async function streamUIChat(
       },
       onmessage: (event) => {
         if (signal.aborted || terminal || !event.data) return
-        if (event.event && event.event !== 'message') {
-          // Compatibility for previously deployed servers during rollout.
-          if (!onLegacy) return
-          let raw: unknown
-          try {
-            raw = JSON.parse(event.data)
-          } catch {
-            return
-          }
-          const parsed = ChatStreamEventSchema.safeParse({
-            event: event.event,
-            data: raw,
-          })
-          if (!parsed.success) return
-          terminal =
-            parsed.data.event === 'done' || parsed.data.event === 'error'
-          notify(() => onLegacy(parsed.data))
-          if (terminal) transport.abort()
-          return
-        }
+        if (event.event && event.event !== 'message') return
         let raw: unknown
         try {
           raw = JSON.parse(event.data)
         } catch {
           throw new ApiRequestError('NETWORK', 0)
         }
-        const validated = StreamMessageSchema.safeParse(raw)
+        const validated = TripStreamEventSchema.safeParse(raw)
         if (!validated.success) throw new ApiRequestError('NETWORK', 0)
         const parsed = validated.data
-        terminal =
-          parsed.messageType === 'done' || parsed.messageType === 'error'
-        notify(() => onMessage(parsed))
+        terminal = parsed.type === 'done' || parsed.type === 'error'
+        notify(() => onEvent(parsed))
         if (terminal) transport.abort()
       },
       onclose: () => {
