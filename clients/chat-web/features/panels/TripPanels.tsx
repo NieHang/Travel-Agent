@@ -12,7 +12,7 @@ import { HotelsPanel } from './HotelsPanel'
 import { RoutesPanel } from './RoutesPanel'
 import { HotspotsPanel } from './HotspotsPanel'
 import type { PanelTab, TripMock } from './mock/types'
-import type { TripSnapshot } from '@autix/contracts'
+import type { TripView } from '@autix/contracts'
 import { LiveTripPanels } from './LiveTripPanels'
 
 export function PanelTabs({
@@ -62,7 +62,7 @@ export function TripPanels({
   data,
 }: {
   tab: PanelTab
-  data: TripMock | TripSnapshot | null
+  data: TripMock | TripView | null
 }) {
   if (data === null || 'revision' in data)
     return <LiveTripPanels tab={tab} data={data} />

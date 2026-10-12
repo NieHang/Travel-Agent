@@ -143,7 +143,6 @@
       "collecting": "Collecting requirements",
       "draft": "Itinerary draft",
       "confirmed": "Confirmed",
-      "updating": "Awaiting update",
       "travelers": "{count} travelers",
       "budget": "Budget {amount} {currency}",
       "waiting": "Complete your requirements to generate a draft",

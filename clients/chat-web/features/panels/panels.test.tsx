@@ -3,6 +3,9 @@ import { Toaster } from '@/components/ui/toast'
 import { renderWithProviders } from '@/test/render'
 import { TripPanels, SaveTripButton } from './TripPanels'
 import { getTripMock } from './mock'
+import userEvent from '@testing-library/user-event'
+import type { ResultItem, TripView } from '@autix/contracts'
+import { LiveTripPanels } from './LiveTripPanels'
 
 it('行程默认第一天，切换日期后展示该天站点', async () => {
   const { user } = renderWithProviders(<TripPanels tab="plan" data={getTripMock('zh')} />)
@@ -56,4 +59,39 @@ it('保存和预订按钮提供即将上线提示', async () => {
   expect(await screen.findByText('保存行程即将上线')).toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: /预订/ }))
   expect(await screen.findByText('预订功能即将上线')).toBeInTheDocument()
+})
+
+const hotel = (ref: string, name: string): ResultItem => ({
+  ref, id: null, title: { original: name, translation: null }, address: null,
+  price: { amount: 118, currency: 'EUR' }, rating: null, url: 'https://rollinggo.ai/h/1', image: null,
+  details: [], amenities: [{ original: 'Kitchen', translation: '厨房' }], summary: null,
+})
+const view: TripView = {
+  revision: 3, status: 'draft', destination: '里斯本', departureDate: '2026-12-01', returnDate: '2026-12-03',
+  travelers: 2, budget: null, budgetCurrency: null, itineraryMarkdown: '## 里斯本行程草稿',
+  days: [{ title: '第 1 天', stops: [{ name: '阿尔法玛', note: null, time: null }], stay: hotel('h1', 'Casa do Fado') }],
+  hotels: [hotel('h1', 'Casa do Fado'), hotel('h2', 'Old Town Rooms')], routes: [], hotspots: [],
+}
+
+it('行程页按天显示站点和当晚酒店', () => {
+  renderWithProviders(<LiveTripPanels tab="plan" data={view} />)
+  expect(screen.getByText('第 1 天')).toBeInTheDocument()
+  expect(screen.getByText('阿尔法玛')).toBeInTheDocument()
+  expect(screen.getByText(/今晚入住/)).toBeInTheDocument()
+})
+
+it('酒店页用卡片列表，可选择，并显示所选酒店的价格和预订', async () => {
+  const user = userEvent.setup()
+  renderWithProviders(<LiveTripPanels tab="hotels" data={view} />)
+  const radios = screen.getAllByRole('radio')
+  expect(radios).toHaveLength(2)
+  expect(radios[0]).toHaveAttribute('aria-checked', 'true')
+  await user.click(radios[1])
+  expect(radios[1]).toHaveAttribute('aria-checked', 'true')
+  expect(screen.getByRole('link', { name: /Old Town Rooms/ })).toHaveAttribute('href', 'https://rollinggo.ai/h/1')
+})
+
+it('没有数据时显示空态', () => {
+  renderWithProviders(<LiveTripPanels tab="hotels" data={null} />)
+  expect(screen.getByText('开始规划后，行程会显示在这里')).toBeInTheDocument()
 })

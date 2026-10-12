@@ -143,7 +143,6 @@
       "collecting": "完善需求中",
       "draft": "行程草稿",
       "confirmed": "已确认",
-      "updating": "待更新",
       "travelers": "{count} 人",
       "budget": "预算 {amount} {currency}",
       "waiting": "完善需求后生成行程草稿",
