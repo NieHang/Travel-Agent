@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test'
 import { registerViaUi } from './helpers'
 
+/** A local YYYY-MM-DD date `days` from today; the calendar rejects past dates. */
+function daysFromNow(days: number) {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 test('trip planning commands, panels and refresh recovery', async ({
   page,
 }, testInfo) => {
@@ -14,10 +21,10 @@ test('trip planning commands, panels and refresh recovery', async ({
   await solo.click()
   await page
     .getByRole('textbox', { name: '出发日期', exact: true })
-    .fill('2026-11-01')
+    .fill(daysFromNow(30))
   await page
     .getByRole('textbox', { name: '返程日期', exact: true })
-    .fill('2026-11-03')
+    .fill(daysFromNow(32))
   await page
     .getByRole('spinbutton', { name: '出行人数', exact: true })
     .fill('2')

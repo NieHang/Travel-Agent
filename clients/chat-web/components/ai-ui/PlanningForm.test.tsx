@@ -14,6 +14,13 @@ const form: Extract<Component, { type: 'form' }> = {
   initialValues: { destination: '京都', departureDate: '2026-10-05', returnDate: '2026-10-07', travelers: 1 },
 }
 
+// The calendar blocks past days; pin "today" before every date the tests pick.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-10-01T10:00:00'))
+})
+afterEach(() => vi.useRealTimers())
+
 const submitted = (onCommand: ReturnType<typeof vi.fn>, call = 0) => onCommand.mock.calls[call]?.[0]?.values
 
 it('changing only destination preserves saved dates and travelers on submission', async () => {
