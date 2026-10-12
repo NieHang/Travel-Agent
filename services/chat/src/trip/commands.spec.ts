@@ -2,11 +2,11 @@ import type { Command } from '@autix/contracts';
 import { initialState, type TripState } from './state.js';
 import { CommandError, assertAllowed, merge, nextStage, reduce, type Classified } from './commands.js';
 
-const empty = {
+const empty: Classified['patch'] = {
   destination: null, tripType: null, departureDate: null, returnDate: null,
   travelers: null, preferences: null, budget: null, budgetCurrency: null,
 };
-const plan = (patch: Partial<typeof empty>, clarify: Classified['clarify'] = null): Classified => ({
+const plan = (patch: Partial<Classified['patch']>, clarify: Classified['clarify'] = null): Classified => ({
   intent: 'plan', locale: 'zh', patch: { ...empty, ...patch }, clarify,
 });
 const chat: Classified = { intent: 'chat', locale: 'zh', patch: empty, clarify: null };
