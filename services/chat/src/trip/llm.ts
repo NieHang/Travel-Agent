@@ -46,9 +46,10 @@ const TASKS: Record<LlmTask, string> = {
   check-in = departureDate, check-out = returnDate, travelers, preferences, and budget if stated. For a
   multi-city trip, search each city. Skip the search for a same-day trip or when the user already has lodging.
 - Call show_results with panel "hotels" for the options you recommend.
-- Then write the draft day by day in Markdown. Name each night's hotel only from show_results (translation
-  first, original in brackets). If no hotel was found, say that live hotel data was unavailable. Never
-  invent a hotel. Label it as a draft.`,
+- Then write the draft day by day in Markdown. Every day that ends with an overnight stay closes with one
+  line naming exactly one hotel for that night, chosen from show_results (translation first, original in
+  brackets); do not list hotel alternatives per night or put the nights in a separate section. If no hotel
+  was found, say that live hotel data was unavailable. Never invent a hotel. Label it as a draft.`,
 };
 
 function systemPrompt(task: LlmTask, locale: Locale): string {

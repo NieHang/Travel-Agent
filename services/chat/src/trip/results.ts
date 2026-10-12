@@ -26,7 +26,7 @@ export const ToolResultSchema = z.object({
 export const SHOW_RESULTS = 'show_results';
 
 const ResultItemInputSchema = z.object({
-  source: z.string().describe('tool_call_id of the tool call whose result contains this item'),
+  source: z.string().describe('callId of the tool result that contains this item, copied exactly'),
   id: z.string().nullable().describe('provider ID, e.g. hotelId, copied exactly'),
   title: LocalizedTextSchema,
   address: LocalizedTextSchema.nullable(),
@@ -55,7 +55,7 @@ export const SHOW_RESULTS_RULES = `Show items from tool results as cards.
   order given (e.g. hotelAmenities, facilities, tags that name a facility). Do not add amenities the
   result does not list.
 - Comparisons and opinions go only in summary.
-- Only cite a source whose result contains the item.`;
+- source is the callId of the tool result that contains the item, copied exactly (not the tool name).`;
 
 const normalize = (value: string) => value.replace(/\s+/g, ' ').trim();
 

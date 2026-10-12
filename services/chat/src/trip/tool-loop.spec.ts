@@ -61,6 +61,13 @@ describe('streamToolLoop', () => {
     expect(model.seen[1].at(-1)).toBeInstanceOf(ToolMessage);
   });
 
+  it('shows the model each result with the callId that show_results items must cite', async () => {
+    const model = scripted([[callChunk('c1', 'searchHotels', { city: 'Lisboa' })], textChunks('done')]);
+    await collect(model);
+    const reply = JSON.parse(String((model.seen[1].at(-1) as ToolMessage).content));
+    expect(reply).toMatchObject({ callId: 'c1', isError: false });
+  });
+
   it('feeds tool errors back as error results instead of failing', async () => {
     const events = await collect(scripted([[callChunk('c9', 'broken', {})], textChunks('sorry')]));
     expect(events[1]).toMatchObject({ type: 'tool_results', results: [{ callId: 'c9', isError: true }] });

@@ -103,7 +103,8 @@ export async function* streamToolLoop(
       conversation.push(
         new ToolMessage({
           tool_call_id: callId,
-          content: JSON.stringify({ content: result.content, isError: result.isError }),
+          // show_results items cite callId as `source`; the model cannot see tool_call_id otherwise.
+          content: JSON.stringify({ callId, content: result.content, isError: result.isError }),
         }),
       );
     }
