@@ -1,8 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type {
-  Conversation,
-  Message,
-  Page,
+import {
+  MessageMetadataSchema,
+  type Conversation,
+  type Message,
+  type MessageMetadata,
+  type Page,
 } from '@autix/contracts';
 import { AppException } from '../common/app.exception.js';
 import { decodeCursor, encodeCursor } from '../common/cursor.js';
@@ -12,7 +14,6 @@ import type {
   Prisma,
 } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { toPublicMessageMetadata } from '../llm/ui-protocol/ui-session.js';
 
 export type { ConversationRow, MessageRow };
 
@@ -25,6 +26,12 @@ export function toConversationContract(row: ConversationRow): Conversation {
   };
 }
 
+function publicMetadata(raw: unknown): MessageMetadata | null {
+  if (raw == null) return null;
+  const parsed = MessageMetadataSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
 export function toMessageContract(row: MessageRow): Message {
   return {
     id: row.id,
@@ -32,7 +39,7 @@ export function toMessageContract(row: MessageRow): Message {
     role: row.role,
     content: row.content,
     status: row.status,
-    metadata: toPublicMessageMetadata(row.metadata),
+    metadata: publicMetadata(row.metadata),
     createdAt: row.createdAt.toISOString(),
   };
 }

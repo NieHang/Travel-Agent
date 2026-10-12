@@ -7,12 +7,11 @@ import { ModelChatReply } from './chat-reply/model-chat-reply.js';
 import { LlmController } from './llm.controller.js';
 import { LlmService } from './llm.service.js';
 import { RequirementService } from './requirement.service.js';
-import { UIProtocolModule } from './ui-protocol/ui-protocol.module.js';
 import { McpService } from './mcp/mcp.service.js';
 import { McpModule } from './mcp/mcp.module.js';
 
 @Module({
-  imports: [AdvancedModule, McpModule, UIProtocolModule],
+  imports: [AdvancedModule, McpModule],
   controllers: [LlmController],
   providers: [
     LlmService,
@@ -35,7 +34,6 @@ import { McpModule } from './mcp/mcp.module.js';
     RequirementService,
     CHAT_REPLY_PORT,
     AdvancedModule,
-    UIProtocolModule,
   ],
 })
 export class LlmModule {}

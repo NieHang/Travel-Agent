@@ -1,21 +1,11 @@
 import { z } from 'zod';
-import { uiResponseSchema, uiActionSchema, localeSchema } from './ui';
-import { TripSnapshotSchema } from './trip';
 import { RequirementSchema } from './requirement';
 
-export const ComponentInteractionStateSchema = z.object({
-  sourceMessageId: z.string().min(1),
-  revision: z.number().int().nonnegative(),
-  active: z.boolean(),
-});
-export type ComponentInteractionState = z.infer<
-  typeof ComponentInteractionStateSchema
->;
-
 export const MessageMetadataSchema = z.object({
-  components: z.array(uiResponseSchema).optional(),
-  interactionState: ComponentInteractionStateSchema.optional(),
-  trip: TripSnapshotSchema.nullable().optional(),
+  /** Components shown with this message; the client validates each entry (legacy types fall back). */
+  components: z.array(z.unknown()).optional(),
+  /** Trip revision these components belong to; only the current revision is interactive. */
+  revision: z.number().int().nonnegative().optional(),
   requirements: z.array(RequirementSchema).optional(),
   requirementError: z.literal(true).optional(),
 });
@@ -31,24 +21,6 @@ export const MessageSchema = z.object({
   createdAt: z.string().datetime(),
 });
 export type Message = z.infer<typeof MessageSchema>;
-
-export const SendMessageRequestSchema = z.union([
-  z
-    .object({
-      content: z.string().trim().min(1).max(4000),
-      locale: localeSchema.optional(),
-    })
-    .strict(),
-  z
-    .object({
-      action: uiActionSchema,
-      sourceMessageId: z.string().min(1),
-      revision: z.number().int().nonnegative(),
-      locale: localeSchema.optional(),
-    })
-    .strict(),
-]);
-export type SendMessageRequest = z.infer<typeof SendMessageRequestSchema>;
 
 export const ChatStreamEventSchema = z.discriminatedUnion('event', [
   z.object({

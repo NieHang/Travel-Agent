@@ -1,7 +1,7 @@
 import {
   APP_NAME, EmailSchema, PasswordSchema, NicknameSchema, RegisterRequestSchema,
   LoginRequestSchema, UpdateMeRequestSchema, RenameConversationRequestSchema,
-  ListConversationsQuerySchema, SendMessageRequestSchema, ErrorCodeSchema,
+  ListConversationsQuerySchema, SendTurnRequestSchema, ErrorCodeSchema,
   ChatStreamEventSchema,
 } from '@autix/contracts';
 
@@ -44,8 +44,9 @@ describe('contracts', () => {
   it('标题与消息长度', () => {
     expect(RenameConversationRequestSchema.safeParse({ title: 'a'.repeat(61) }).success).toBe(false);
     expect(RenameConversationRequestSchema.parse({ title: '  行程  ' }).title).toBe('行程');
-    expect(SendMessageRequestSchema.safeParse({ content: '   ' }).success).toBe(false);
-    expect(SendMessageRequestSchema.safeParse({ content: 'a'.repeat(4001) }).success).toBe(false);
+    const message = (text: string) => ({ revision: 0, command: { type: 'message', text } });
+    expect(SendTurnRequestSchema.safeParse(message('   ')).success).toBe(false);
+    expect(SendTurnRequestSchema.safeParse(message('a'.repeat(4001))).success).toBe(false);
   });
 
   it('列表查询：limit 从字符串转换，默认 20，上限 50；空 q 视为未传', () => {

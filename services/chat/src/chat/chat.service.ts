@@ -82,7 +82,7 @@ export class ChatService {
               role: 'ASSISTANT',
               content: text,
               status,
-              metadata: metadata(),
+              metadata: metadata() as Prisma.InputJsonValue | undefined,
               createdAt: at,
             },
           }),

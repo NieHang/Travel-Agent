@@ -50,7 +50,7 @@ describe('ChatController.send', () => {
     await controller(async function* (_id, _content, signal) {
       abortedAtStart = signal.aborted;
       yield delta;
-    }).send(user, CONVERSATION_ID, { content: 'x' }, res as unknown as Response);
+    }).send(user, CONVERSATION_ID, { revision: 0, command: { type: 'message', text: 'x' } }, res as unknown as Response);
     expect(abortedAtStart).toBe(true);
     expect(res.written).toEqual([]);
     expect(res.listenerCount('close')).toBe(0);
@@ -62,7 +62,7 @@ describe('ChatController.send', () => {
     await controller(async function* (_id, _content, signal) {
       abortedAtStart = signal.aborted;
       yield delta;
-    }).send(user, CONVERSATION_ID, { content: 'x' }, res as unknown as Response);
+    }).send(user, CONVERSATION_ID, { revision: 0, command: { type: 'message', text: 'x' } }, res as unknown as Response);
     expect(abortedAtStart).toBe(false);
     expect(res.written).toEqual([`event: delta\ndata: ${JSON.stringify(delta.data)}\n\n`]);
     expect(res.ended).toBe(true);
@@ -74,7 +74,7 @@ describe('ChatController.send', () => {
     await controller(async function* () {
       yield delta;
       throw new TypeError(`model said: ${SENTINEL}`);
-    }).send(user, CONVERSATION_ID, { content: 'x' }, res as unknown as Response);
+    }).send(user, CONVERSATION_ID, { revision: 0, command: { type: 'message', text: 'x' } }, res as unknown as Response);
     expect(res.ended).toBe(true);
     expect(spy).toHaveBeenCalledTimes(1);
     const logged = inspect(spy.mock.calls, { depth: 10 });

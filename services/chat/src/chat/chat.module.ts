@@ -4,13 +4,12 @@ import { LlmModule } from '../llm/llm.module.js';
 import { ChatController } from './chat.controller.js';
 import { ChatService } from './chat.service.js';
 import { TripModule } from '../trip/trip.module.js';
-import { UIChatService } from './ui-chat.service.js';
 
 // AppThrottlerGuard 依赖的存储与配置来自 AppModule 里的 ThrottlerModule.forRoot（全局模块）。
 
 @Module({
   imports: [ConversationsModule, LlmModule, TripModule],
   controllers: [ChatController],
-  providers: [ChatService, UIChatService],
+  providers: [ChatService],
 })
 export class ChatModule {}

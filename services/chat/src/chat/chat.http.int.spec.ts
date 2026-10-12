@@ -1,72 +1,9 @@
-import { request as httpRequest, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import type { Server } from 'node:http';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { StreamMessageSchema, type UIResponse } from '@autix/contracts';
 import { bearer, createTestApp, createUser } from '../../test/helpers/app.js';
 import { resetDb } from '../../test/helpers/db.js';
-import type { ChatReplyPort } from '../llm/chat-reply/chat-reply.port.js';
-import { UIStreamService } from '../llm/ui-protocol/ui-stream.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
-
-/** 把 SSE 响应体解析成 `{ event, data }[]`。 */
-function parseSse(text: string): { event: string; data: any }[] {
-  return text
-    .split('\n\n')
-    .filter((block) => block.trim() !== '')
-    .map((block) => {
-      const lines = block.split('\n');
-      const event = lines
-        .find((l) => l.startsWith('event: '))!
-        .slice('event: '.length);
-      const data = lines
-        .find((l) => l.startsWith('data: '))!
-        .slice('data: '.length);
-      return { event, data: JSON.parse(data) };
-    });
-}
-
-const FIRST_CHUNK = '第一块';
-const SLOW_WAIT_MS = 10_000;
-
-/** 输出首块后一直等到信号中止（或很久之后），记下收到的信号。 */
-function slowPort(): ChatReplyPort & { signal: AbortSignal | undefined } {
-  const fake: ChatReplyPort & { signal: AbortSignal | undefined } = {
-    signal: undefined,
-    async *streamReply(_history, signal) {
-      fake.signal = signal;
-      yield FIRST_CHUNK;
-      await new Promise<void>((resolve) => {
-        const timer = setTimeout(resolve, SLOW_WAIT_MS);
-        timer.unref();
-        const onAbort = () => {
-          clearTimeout(timer);
-          resolve();
-        };
-        if (signal.aborted) onAbort();
-        else signal.addEventListener('abort', onAbort, { once: true });
-      });
-      if (signal.aborted) return;
-      yield '不该出现的第二块';
-    },
-  };
-  return fake;
-}
-
-/** 轮询直到 `read` 给出非空结果，超时则抛错。 */
-async function eventually<T>(
-  read: () => Promise<T | null>,
-  timeoutMs = 5_000,
-): Promise<T> {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    const value = await read();
-    if (value !== null) return value;
-    if (Date.now() > deadline)
-      throw new Error(`condition not met within ${timeoutMs}ms`);
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-}
 
 describe('chat HTTP', () => {
   let app: INestApplication;
@@ -101,161 +38,29 @@ describe('chat HTTP', () => {
     await app?.close();
   });
 
-  it('validates UI actions before SSE and restores public state beyond the latest history page', async () => {
-    const first = await request(server)
-      .post(`/api/conversations/${id}/messages`)
-      .set(...bearer(token))
-      .send({ content: '杭州', locale: 'zh' })
-      .expect(200);
-    const message = parseSse(first.text).at(-1)!.data.payload.message;
-    const component = message.metadata.components.find(
-      (c: UIResponse) => c.type === 'selection',
-    );
-    await request(server)
-      .post(`/api/conversations/${id}/messages`)
-      .set(...bearer(token))
-      .send({
-        action: {
-          type: 'selection',
-          componentId: component.id,
-          values: ['forged'],
-        },
-        sourceMessageId: message.id,
-        revision: message.metadata.interactionState.revision,
-      })
-      .expect(400)
-      .expect('Content-Type', /json/);
-    expect(await prisma.message.count({ where: { conversationId: id } })).toBe(
-      2,
-    );
-    await prisma.message.createMany({
-      data: Array.from({ length: 22 }, () => ({
-        conversationId: id,
-        role: 'ASSISTANT' as const,
-        content: '',
-        status: 'error',
-      })),
-    });
-    const restored = await request(server)
-      .get(`/api/conversations/${id}/ui-state`)
-      .set(...bearer(token))
-      .expect(200);
-    expect(restored.body.trip.destination).toBe('杭州');
-    expect(restored.body.activeMessage.id).toBe(message.id);
-    expect(restored.body.activeMessage.metadata).not.toHaveProperty(
-      'uiFlowSnapshot',
-    );
-    await request(server)
-      .get(`/api/conversations/${othersId}/ui-state`)
-      .set(...bearer(token))
-      .expect(404);
-    await request(server).get(`/api/conversations/${id}/ui-state`).expect(401);
-  });
-
-  it('SSE 响应头与事件格式', async () => {
-    const res = await request(server)
-      .post(`/api/conversations/${id}/messages`)
-      .set(...bearer(token))
-      .send({ content: '去里斯本' })
-      .expect(200);
-    expect(res.headers['content-type']).toMatch(/^text\/event-stream/);
-    expect(res.headers['cache-control']).toBe('no-cache');
-    const events = parseSse(res.text);
-    expect(events.every((e) => e.event === 'message')).toBe(true);
-    expect(events[0].data.messageType).toBe('meta');
-    const batch = events.find((e) => e.data.messageType === 'ui')!.data;
-    expect(
-      batch.payload.components.some((c: UIResponse) => c.type === 'selection'),
-    ).toBe(true);
-    expect(events.at(-1)!.data).toMatchObject({
-      messageType: 'done',
-      payload: { message: { status: 'complete' } },
-    });
-    for (const e of events)
-      expect(StreamMessageSchema.safeParse(e.data).success).toBe(true);
-    expect(events.at(-1)!.data.payload.message.metadata).not.toHaveProperty(
-      'uiFlowSnapshot',
-    );
-    const blocks = res.text.split('\n\n');
-    expect(blocks.pop()).toBe('');
-    for (const block of blocks)
-      expect(block).toMatch(/^event: message\ndata: \{.*\}$/);
-    expect(await prisma.message.count({ where: { conversationId: id } })).toBe(
-      2,
-    );
-  });
-
-  it('restores a persisted UI action in a fresh application instance', async () => {
-    const first = await request(server)
-      .post(`/api/conversations/${id}/messages`)
-      .set(...bearer(token))
-      .send({ content: '杭州', locale: 'zh' })
-      .expect(200);
-    const message = parseSse(first.text).at(-1)!.data.payload.message;
-    const state = message.metadata.interactionState;
-    const selection = message.metadata.components.find(
-      (c: UIResponse) => c.type === 'selection',
-    );
-    const restored = await createTestApp();
-    try {
-      const action = {
-        action: {
-          type: 'selection',
-          componentId: selection.id,
-          values: ['solo'],
-        },
-        sourceMessageId: message.id,
-        revision: state.revision,
-        locale: 'zh',
-      };
-      const response = await request(restored.server)
-        .post(`/api/conversations/${id}/messages`)
-        .set(...bearer(token))
-        .send(action)
-        .expect(200);
-      expect(
-        parseSse(response.text)
-          .at(-1)!
-          .data.payload.message.metadata.components.some(
-            (c: UIResponse) => c.type === 'form',
-          ),
-      ).toBe(true);
-      await request(restored.server)
-        .post(`/api/conversations/${id}/messages`)
-        .set(...bearer(token))
-        .send(action)
-        .expect(409);
-      expect(
-        await prisma.message.count({ where: { conversationId: id } }),
-      ).toBe(4);
-    } finally {
-      await restored.app.close();
-    }
-  });
-
   it('流开始前的失败是普通 JSON 错误，且不落库', async () => {
     await request(server)
       .post(`/api/conversations/${id}/messages`)
-      .send({ content: 'x' })
+      .send({ revision: 0, command: { type: 'message', text: 'x' } })
       .expect(401)
       .expect('Content-Type', /json/);
     await request(server)
       .post(`/api/conversations/${id}/messages`)
       .set(...bearer(token))
-      .send({ content: '  ' })
+      .send({ revision: 0, command: { type: 'message', text: '  ' } })
       .expect(400)
       .expect('Content-Type', /json/)
       .expect((r) => expect(r.body.code).toBe('VALIDATION_FAILED'));
     await request(server)
       .post(`/api/conversations/${id}/messages`)
       .set(...bearer(token))
-      .send({ content: 'a'.repeat(4001) })
+      .send({ revision: 0, command: { type: 'message', text: 'a'.repeat(4001) } })
       .expect(400)
       .expect('Content-Type', /json/);
     await request(server)
       .post(`/api/conversations/${othersId}/messages`)
       .set(...bearer(token))
-      .send({ content: 'x' })
+      .send({ revision: 0, command: { type: 'message', text: 'x' } })
       .expect(404)
       .expect('Content-Type', /json/)
       .expect((r) => expect(r.body.code).toBe('CONVERSATION_NOT_FOUND'));
@@ -276,7 +81,7 @@ describe('chat HTTP', () => {
     await request(server)
       .post(`/api/conversations/${id}/messages`)
       .set(...bearer(token))
-      .send({ content })
+      .send({ revision: 0, command: { type: 'message', text: content } })
       .expect(200);
 
     const { items } = (await list()).body;
@@ -297,81 +102,6 @@ describe('chat HTTP', () => {
     ]);
   });
 
-  it('客户端中途断开：助手消息以 partial 落库，模型调用被中止', async () => {
-    const slow = slowPort();
-    const slowApp = await createTestApp({
-      configure: (builder) =>
-        builder.overrideProvider(UIStreamService).useValue({
-          async *streamTurn(
-            _snapshot: unknown,
-            _request: unknown,
-            _history: unknown,
-            signal: AbortSignal,
-          ) {
-            for await (const content of slow.streamReply([], signal))
-              yield { type: 'markdown', content };
-          },
-        }),
-    });
-    try {
-      // supertest 会把整个响应读完；这里要在流的中途断开，所以监听真实端口并用原生请求。
-      await slowApp.app.listen(0, '127.0.0.1');
-      const { port } = slowApp.server.address() as AddressInfo;
-      const payload = JSON.stringify({ content: '去里斯本' });
-
-      let received = '';
-      await new Promise<void>((resolve, reject) => {
-        const req = httpRequest(
-          {
-            host: '127.0.0.1',
-            port,
-            method: 'POST',
-            path: `/api/conversations/${id}/messages`,
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(payload),
-            },
-          },
-          (res) => {
-            res.setEncoding('utf8');
-            res.on('error', () => undefined);
-            res.on('end', () =>
-              reject(new Error('stream ended before the client disconnected')),
-            );
-            res.on('data', (chunk: string) => {
-              received += chunk;
-              if (!received.includes('"messageType":"markdown"')) return;
-              req.destroy();
-              resolve();
-            });
-          },
-        );
-        req.on('error', reject);
-        req.end(payload);
-      });
-
-      const assistant = await eventually(() =>
-        prisma.message.findFirst({
-          where: { conversationId: id, role: 'ASSISTANT' },
-        }),
-      );
-      expect(assistant).toMatchObject({
-        status: 'partial',
-        content: FIRST_CHUNK,
-      });
-      expect(
-        await prisma.message.count({ where: { conversationId: id } }),
-      ).toBe(2);
-      expect(slow.signal?.aborted).toBe(true);
-      expect(received).toContain('"messageType":"meta"');
-      expect(received).not.toContain('"messageType":"done"');
-      expect(received).not.toContain('"messageType":"error"');
-    } finally {
-      await slowApp.app.close();
-    }
-  }, 20_000);
-
   it('限流：每用户每分钟 20 次，互不影响', async () => {
     const throttled = await createTestApp({ throttling: true });
     try {
@@ -383,11 +113,15 @@ describe('chat HTTP', () => {
       const convB = await prisma.conversation.create({
         data: { userId: b.user.id, title: '' },
       });
-      const send = (accessToken: string, conversationId: string) =>
-        request(throttled.server)
+      const revisions = new Map<string, number>();
+      const send = (accessToken: string, conversationId: string) => {
+        const revision = revisions.get(conversationId) ?? 0;
+        revisions.set(conversationId, revision + 1);
+        return request(throttled.server)
           .post(`/api/conversations/${conversationId}/messages`)
           .set(...bearer(accessToken))
-          .send({ content: 'x' });
+          .send({ revision, command: { type: 'message', text: 'x' } });
+      };
 
       for (let i = 0; i < 20; i++)
         await send(a.accessToken, convA.id).expect(200);

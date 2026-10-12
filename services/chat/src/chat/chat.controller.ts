@@ -11,18 +11,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import {
-  SendMessageRequestSchema,
-  type SendMessageRequest,
-} from '@autix/contracts';
+import { SendTurnRequestSchema, type SendTurnRequest } from '@autix/contracts';
 import type { Response } from 'express';
 import { AppThrottlerGuard } from '../auth/app-throttler.guard.js';
 import { CurrentUser, type AuthUser } from '../auth/decorators.js';
 import { errorName } from '../common/error-name.js';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { ConversationsService } from '../conversations/conversations.service.js';
+import { TurnService } from '../trip/turn.js';
 import { ChatService } from './chat.service.js';
-import { UIChatService } from './ui-chat.service.js';
 
 const CHAT_LIMIT = { default: { limit: 20, ttl: 60_000 } };
 
@@ -34,15 +31,15 @@ export class ChatController {
     @Inject(ChatService) private readonly chat: ChatService,
     @Inject(ConversationsService)
     private readonly conversations: ConversationsService,
-    @Optional() @Inject(UIChatService) private readonly uiChat?: UIChatService,
+    @Optional() @Inject(TurnService) private readonly turns?: TurnService,
   ) {}
 
   @Get(':id/ui-state')
   async uiState(@CurrentUser() current: AuthUser, @Param('id') id: string) {
     await this.conversations.assertOwned(current.userId, id);
-    return this.uiChat
-      ? this.uiChat.getState(id)
-      : { trip: null, activeMessage: null };
+    return this.turns
+      ? this.turns.getState(id)
+      : { revision: 0, trip: null, components: [] };
   }
 
   /**
@@ -55,8 +52,8 @@ export class ChatController {
   async send(
     @CurrentUser() current: AuthUser,
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(SendMessageRequestSchema))
-    body: SendMessageRequest,
+    @Body(new ZodValidationPipe(SendTurnRequestSchema))
+    body: SendTurnRequest,
     @Res() res: Response,
   ): Promise<void> {
     await this.conversations.assertOwned(current.userId, id);
@@ -67,11 +64,11 @@ export class ChatController {
     // 归属校验期间连接就断开的话，close 事件已经错过了。
     if (res.destroyed || res.closed) abort.abort();
     try {
-      const stream = this.uiChat
-        ? this.uiChat.send(id, body, abort.signal)
+      const stream = this.turns
+        ? this.turns.run(id, body, abort.signal)
         : this.chat.send(
             id,
-            'content' in body ? body.content : '',
+            body.command.type === 'message' ? body.command.text : '',
             abort.signal,
           );
       for await (const event of stream) {
@@ -83,7 +80,7 @@ export class ChatController {
           res.setHeader('Connection', 'keep-alive');
           res.flushHeaders();
         }
-        if ('messageType' in event)
+        if ('type' in event)
           res.write(`event: message\ndata: ${JSON.stringify(event)}\n\n`);
         else
           res.write(
