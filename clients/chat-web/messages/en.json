@@ -150,5 +150,14 @@
       "noResults": "No verified results available yet",
       "empty": "Your itinerary will appear here when you start planning"
     }
+  },
+  "resultCard": {
+    "amenities": "Amenities · {count}",
+    "more": "+{count}",
+    "fromPerNight": "/ night from",
+    "book": "Book",
+    "aiTranslated": "AI translation",
+    "aiNote": "AI note",
+    "tonight": "Tonight"
   }
 }

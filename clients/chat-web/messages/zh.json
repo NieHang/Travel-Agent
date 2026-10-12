@@ -150,5 +150,14 @@
       "noResults": "暂时没有经过验证的结果",
       "empty": "开始规划后，行程会显示在这里"
     }
+  },
+  "resultCard": {
+    "amenities": "设施 · {count}",
+    "more": "+{count}",
+    "fromPerNight": "/ 晚起",
+    "book": "预订",
+    "aiTranslated": "AI 翻译",
+    "aiNote": "AI 点评",
+    "tonight": "今晚入住"
   }
 }
