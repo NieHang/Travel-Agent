@@ -10,3 +10,4 @@ export * from './chat';
 export * from './ui';
 export * from './trip';
 export * from './stream';
+export * from './trip-flow';
