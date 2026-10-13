@@ -1,6 +1,7 @@
 'use client'
 
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type PointerEvent, type ReactNode } from 'react'
+import { Tooltip } from '@heroui/react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { ArrowUpRight, BedDouble, Building2, MapPin, Star } from 'lucide-react'
 import type { LocalizedText, ResultItem } from '@autix/contracts'
@@ -55,83 +56,73 @@ export function ResultCard({
 }) {
   const t = useTranslations('resultCard')
   const format = useFormatter()
-  const popoverId = useId()
   const [open, setOpen] = useState(false)
-  const [below, setBelow] = useState(false)
-  const chipsRef = useRef<HTMLDivElement>(null)
-  const popoverRef = useRef<HTMLDivElement>(null)
-  // Open above the chips; flip below when the list would run off the top of the viewport.
-  useLayoutEffect(() => {
-    if (!open) return setBelow(false)
-    const chipsTop = chipsRef.current?.getBoundingClientRect().top ?? 0
-    const height = popoverRef.current?.offsetHeight ?? 0
-    setBelow(chipsTop - height - 8 < 0)
-  }, [open])
+  const [span, setSpan] = useState({ crossOffset: 0, width: 0 })
+  const cardRef = useRef<HTMLElement>(null)
+  // The list hangs off the chips but spans the whole card, so measure both as it opens. The chips
+  // are found through the card: a ref on Tooltip.Trigger would replace the one React Aria needs.
+  const setOpenSpanningCard = (next: boolean) => {
+    const card = cardRef.current?.getBoundingClientRect()
+    const chips = cardRef.current?.querySelector('[data-slot="tooltip-trigger"]')?.getBoundingClientRect()
+    if (next && card && chips) setSpan({ crossOffset: card.left - chips.left, width: card.width })
+    setOpen(next)
+  }
   const hasAmenities = item.amenities.length > 0
   const price = item.price
     ? format.number(item.price.amount, { style: 'currency', currency: item.price.currency, maximumFractionDigits: 0 })
     : null
 
-  const popover = open ? (
-    <div
-      ref={popoverRef}
-      id={popoverId}
-      role="tooltip"
-      data-on-ink
-      className={`absolute ${below ? 'top-[calc(100%+8px)]' : 'bottom-[calc(100%+8px)]'} left-0 z-20 w-max max-w-[min(18rem,calc(100vw-2rem))] rounded-[16px] bg-ink p-3 text-white shadow-float`}
-    >
-      <p className="mb-1 text-xs font-bold text-lime">{t('amenities', { count: item.amenities.length })}</p>
-      <ul className="grid gap-1">
-        {item.amenities.map((a) => {
+  // Only the amenity chips open the full list; the rest of the card stays quiet. React Aria opens
+  // it on mouse hover and keyboard focus; touch has no hover, so a tap toggles it.
+  const chips: ReactNode = hasAmenities ? (
+    <Tooltip delay={0} closeDelay={0} isOpen={open} onOpenChange={setOpenSpanningCard} shouldCloseOnPress={false}>
+      <Tooltip.Trigger
+        role="group"
+        aria-label={t('amenities', { count: item.amenities.length })}
+        tabIndex={0}
+        onPointerDown={(e: PointerEvent<HTMLDivElement>) => {
+          if (e.pointerType === 'touch') setOpenSpanningCard(!open)
+        }}
+        className="flex w-fit flex-wrap gap-1.5 rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ink"
+      >
+        {item.amenities.slice(0, FACE_AMENITIES).map((a) => {
           const Icon = amenityIcon(a.original)
           return (
-            <li key={a.original} className="grid grid-cols-[20px_1fr] gap-x-2 text-sm font-bold">
-              <Icon size={16} className="mt-0.5 text-lime" aria-hidden />
-              <span>{a.translation ?? a.original}</span>
-              {a.translation ? <span className="col-start-2 text-xs font-medium text-white/60">{a.original}</span> : null}
-            </li>
+            <span key={a.original} className="inline-flex items-center gap-1 rounded-full bg-ink/5 px-2.5 py-1 text-xs font-bold text-ink">
+              <Icon size={13} aria-hidden />
+              {a.translation ?? a.original}
+            </span>
           )
         })}
-      </ul>
-    </div>
-  ) : null
-
-  // Only the amenity chips open the full list; the rest of the card stays quiet.
-  const chips: ReactNode = hasAmenities ? (
-    <div
-      ref={chipsRef}
-      role="group"
-      aria-label={t('amenities', { count: item.amenities.length })}
-      aria-describedby={open ? popoverId : undefined}
-      tabIndex={0}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') setOpen(false)
-      }}
-      onPointerDown={(e) => {
-        if (e.pointerType === 'touch') setOpen(!open)
-      }}
-      className="relative flex w-fit flex-wrap gap-1.5 rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ink"
-    >
-      {item.amenities.slice(0, FACE_AMENITIES).map((a) => {
-        const Icon = amenityIcon(a.original)
-        return (
-          <span key={a.original} className="inline-flex items-center gap-1 rounded-full bg-ink/5 px-2.5 py-1 text-xs font-bold text-ink">
-            <Icon size={13} aria-hidden />
-            {a.translation ?? a.original}
+        {item.amenities.length > FACE_AMENITIES ? (
+          <span className="rounded-full bg-lime px-2.5 py-1 text-xs font-bold text-ink">
+            {t('more', { count: item.amenities.length - FACE_AMENITIES })}
           </span>
-        )
-      })}
-      {item.amenities.length > FACE_AMENITIES ? (
-        <span className="rounded-full bg-lime px-2.5 py-1 text-xs font-bold text-ink">
-          {t('more', { count: item.amenities.length - FACE_AMENITIES })}
-        </span>
-      ) : null}
-      {popover}
-    </div>
+        ) : null}
+      </Tooltip.Trigger>
+      <Tooltip.Content
+        placement="top start"
+        offset={8}
+        crossOffset={span.crossOffset}
+        style={{ width: span.width }}
+        data-on-ink
+        className="max-w-none break-normal rounded-[16px] bg-ink p-3 text-white shadow-float"
+      >
+        <p className="mb-1 text-xs font-bold text-lime">{t('amenities', { count: item.amenities.length })}</p>
+        <ul className="grid gap-1">
+          {item.amenities.map((a) => {
+            const Icon = amenityIcon(a.original)
+            return (
+              <li key={a.original} className="grid grid-cols-[20px_1fr] gap-x-2 text-sm font-bold">
+                <Icon size={16} className="mt-0.5 text-lime" aria-hidden />
+                <span>{a.translation ?? a.original}</span>
+                {a.translation ? <span className="col-start-2 text-xs font-medium text-white/60">{a.original}</span> : null}
+              </li>
+            )
+          })}
+        </ul>
+      </Tooltip.Content>
+    </Tooltip>
   ) : null
 
   const title = <Text text={item.title} main="block font-extrabold leading-tight" sub="block text-xs font-medium text-ink/60" />
@@ -150,6 +141,7 @@ export function ResultCard({
   if (variant === 'compact')
     return (
       <article
+        ref={cardRef}
         className={`relative grid grid-cols-[96px_minmax(0,1fr)] items-center gap-3 rounded-card border-2 bg-paper p-3 text-ink outline-none ${selected ? 'border-lime' : 'border-transparent'}`}
       >
         <Banner item={item} className="aspect-[4/3] rounded-[12px]" />
@@ -161,7 +153,7 @@ export function ResultCard({
     )
 
   return (
-    <article className="relative rounded-card bg-paper p-3 text-ink outline-none">
+    <article ref={cardRef} className="relative rounded-card bg-paper p-3 text-ink outline-none">
       <div className="relative">
         <Banner item={item} className="aspect-video rounded-[14px]" />
         {item.rating !== null ? (

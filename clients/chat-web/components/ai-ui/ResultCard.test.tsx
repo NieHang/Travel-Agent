@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ResultItem } from '@autix/contracts'
 import { renderWithProviders } from '@/test/render'
@@ -46,17 +46,37 @@ it('卡面显示 3 个设施和 +N，悬停、聚焦或点按设施区打开全�
   expect(screen.getByText('+2')).toBeInTheDocument()
   expect(screen.queryByRole('tooltip')).toBeNull()
   const amenities = screen.getByRole('group', { name: '设施 · 5' })
+  // React Aria counts a hover as the mouse only after it has seen the pointer move.
+  await user.hover(document.body)
   await user.hover(amenities)
   expect(screen.getByRole('tooltip')).toHaveTextContent('设施 · 5')
   expect(screen.getByRole('tooltip')).toHaveTextContent('游泳池')
   await user.unhover(amenities)
   expect(screen.queryByRole('tooltip')).toBeNull()
-  act(() => amenities.focus())
+  // Keyboard focus opens it; React Aria ignores focus that comes from a mouse click.
+  await user.tab()
+  expect(amenities).toHaveFocus()
   expect(screen.getByRole('tooltip')).toBeInTheDocument()
   await user.keyboard('{Escape}')
   expect(screen.queryByRole('tooltip')).toBeNull()
   fireEvent.pointerDown(amenities, { pointerType: 'touch' })
   expect(screen.getByRole('tooltip')).toBeInTheDocument()
+})
+
+it.each(['full', 'compact'] as const)('%s 样式的设施弹层与卡片等宽', async (variant) => {
+  const user = userEvent.setup()
+  const rect = (left: number, width: number) => ({ left, width, top: 300, right: left + width, bottom: 340, height: 40, x: left, y: 300, toJSON: () => ({}) })
+  const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+    if (this.tagName === 'ARTICLE') return rect(100, 400)
+    if (this.getAttribute('role') === 'group') return rect(variant === 'full' ? 112 : 220, 150)
+    return rect(0, 0)
+  })
+  renderWithProviders(<ResultCard item={item} variant={variant} />)
+  await user.hover(document.body)
+  await user.hover(screen.getByRole('group', { name: '设施 · 5' }))
+  const tooltip = screen.getByRole('tooltip')
+  expect(tooltip.style.width).toBe('400px')
+  spy.mockRestore()
 })
 
 it('悬停卡片的其他区域（图片、标题、价格）不打开设施弹层', async () => {
