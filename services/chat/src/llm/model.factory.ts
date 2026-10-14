@@ -8,7 +8,8 @@ import {
 // Reuse connection pools across invoke, stream, and batch requests.
 const proxyAgents = new Map<string, ProxyAgent>();
 
-export function createChatModel(): ChatOpenAI {
+/** `model` overrides the model from config/langchain.yaml, e.g. a cheaper one for side tasks. */
+export function createChatModel(options: { model?: string } = {}): ChatOpenAI {
   const { llm } = loadLangChainConfig();
   const { openaiApiKey, openaiBaseUrl } = getApiKeys();
   if (llm.provider !== 'openai')
@@ -26,7 +27,7 @@ export function createChatModel(): ChatOpenAI {
     }
   }
   return new ChatOpenAI({
-    model: llm.model,
+    model: options.model ?? llm.model,
     temperature: llm.temperature,
     maxTokens: llm.maxTokens,
     apiKey: openaiApiKey,
