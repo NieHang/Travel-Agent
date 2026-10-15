@@ -7,6 +7,9 @@ vi.mock('./model.factory.js', () => ({
     return { invoke: model.invoke };
   },
 }));
+vi.mock('../config/load-langchain-config.js', () => ({
+  loadLangChainConfig: () => ({ llm: { model: 'main-model', compactModel: 'small-model' } }),
+}));
 
 import { buildSummaryContent, COMPACT_THRESHOLD, KEEP_RECENT_MESSAGES, maybeCompact } from './compact.js';
 
@@ -31,7 +34,7 @@ describe('maybeCompact', () => {
     expect(model.invoke).not.toHaveBeenCalled();
   });
 
-  it('summarizes older messages with gpt-5.4-mini, keeping the system prompt and the last 10', async () => {
+  it('summarizes older messages with the configured compactModel, keeping the system prompt and the last 10', async () => {
     const system = new SystemMessage('You are Hilda.');
     const messages: BaseMessage[] = [system, new HumanMessage(tokens(COMPACT_THRESHOLD - 20)), ...turns(21)];
     const old = messages.slice(1, -KEEP_RECENT_MESSAGES);
@@ -40,7 +43,7 @@ describe('maybeCompact', () => {
 
     expect(await maybeCompact(messages, signal)).toBe(true);
 
-    expect(model.create).toHaveBeenCalledWith({ model: 'gpt-5.4-mini' });
+    expect(model.create).toHaveBeenCalledWith({ model: 'small-model' });
     const [prompt, options] = model.invoke.mock.calls[0] as [BaseMessage[], unknown];
     expect(prompt[1].text).toBe(buildSummaryContent(old));
     expect(options).toEqual({ signal });

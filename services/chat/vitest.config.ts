@@ -10,5 +10,6 @@ export default defineConfig({
     root: './',
     include: ['**/*.spec.ts'],
     exclude: [...configDefaults.exclude, '**/*.int.spec.ts'],
+    setupFiles: ['./test/setup-unit.ts'],
   },
 });

@@ -15,6 +15,10 @@ export const PRICING: Record<string, ModelPricing> = {
   'gpt-5.4-mini': { input: 0.75, cachedInput: 0.075, output: 4.5 },
   'gpt-5.4-nano': { input: 0.2, cachedInput: 0.02, output: 1.25 },
   'gpt-5.5': { input: 5, cachedInput: 0.5, output: 30 },
+  // From https://platform.claude.com/docs/en/about-claude/pricing (checked 2026-10-15). Not modelled:
+  // Haiku 5.5 charges $0.50 / $2.50 once a prompt exceeds 100K tokens.
+  'claude-haiku-5-5': { input: 0.1, cachedInput: 0.01, output: 0.5 },
+  'claude-sonnet-5-5': { input: 2, cachedInput: 0.1, output: 10 },
 };
 
 const DEFAULT_MODEL = 'gpt-5.4';

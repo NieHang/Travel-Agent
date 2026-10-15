@@ -2,7 +2,7 @@ import { HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/m
 import { z } from 'zod';
 import type { ResultGroup } from '@autix/contracts';
 import type { McpService } from '../llm/mcp/mcp.service.js';
-import { createChatModel } from '../llm/model.factory.js';
+import { createChatModel, createStructuredModel } from '../llm/model.factory.js';
 import { ClassifiedSchema, type Classified } from './commands.js';
 import { TripDaySchema, type Locale, type TripDay, type TripState } from './state.js';
 import { showResultsTool, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
@@ -80,9 +80,10 @@ export class ModelTripLlm implements TripLlm {
   constructor(private readonly mcp?: McpService) {}
 
   async classify(input: { text: string; state: TripState; history: BaseMessage[] }, signal: AbortSignal) {
-    const output = await createChatModel()
-      .withStructuredOutput(ClassifiedSchema, { name: 'classify', method: 'functionCalling', strict: true })
-      .invoke([new SystemMessage(CLASSIFY_PROMPT), ...input.history, context(input.state), new HumanMessage(input.text)], { signal });
+    const output = await createStructuredModel(ClassifiedSchema, 'classify').invoke(
+      [new SystemMessage(CLASSIFY_PROMPT), ...input.history, context(input.state), new HumanMessage(input.text)],
+      { signal },
+    );
     return ClassifiedSchema.parse(output);
   }
 
@@ -104,21 +105,19 @@ export class ModelTripLlm implements TripLlm {
 
   async extractDays(draft: string, stays: ResultGroup | null, locale: Locale, signal: AbortSignal) {
     const hotels = (stays?.items ?? []).map((h) => `${h.ref}: ${h.title.original}`).join('\n') || '(none)';
-    const output = await createChatModel()
-      .withStructuredOutput(DaysSchema, { name: 'travel_days', method: 'functionCalling', strict: true })
-      .invoke(
-        [
-          new SystemMessage(
-            `Extract the days of this itinerary draft as structured data in ${language(locale)}. ${DATA_RULE}
+    const output = await createStructuredModel(DaysSchema, 'travel_days').invoke(
+      [
+        new SystemMessage(
+          `Extract the days of this itinerary draft as structured data in ${language(locale)}. ${DATA_RULE}
 Extract only what the draft says; do not plan anything new. Use null for unknown times and notes.
 stayRef is the hotel for that night: one of the refs below, or null.
 Hotels:
 ${hotels}`,
-          ),
-          new HumanMessage(draft),
-        ],
-        { signal },
-      );
+        ),
+        new HumanMessage(draft),
+      ],
+      { signal },
+    );
     return DaysSchema.parse(output).days;
   }
 }

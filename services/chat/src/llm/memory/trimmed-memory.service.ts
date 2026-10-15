@@ -2,7 +2,8 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { createRequire } from 'node:module';
 import { getModelNameForTiktoken } from '@langchain/core/language_models/base';
 import { trimMessages, type BaseMessage } from '@langchain/core/messages';
-import type { ChatOpenAI } from '@langchain/openai';
+import { ChatOpenAI } from '@langchain/openai';
+import type { ChatModel } from '../model.factory.js';
 import { RunnableMemoryService } from './runnable-memory.service.js';
 
 // Reuse LangChain's installed tokenizer and its bundled ranks without downloading them.
@@ -29,8 +30,14 @@ export class TrimmedMemoryService extends RunnableMemoryService {
 
   protected override async prepareMessages(
     messages: BaseMessage[],
-    model: ChatOpenAI,
+    chatModel: ChatModel,
   ) {
+    // Counting is local (tiktoken, no API call), so other providers are counted with an OpenAI
+    // model object: exact for OpenAI models, an estimate for the rest.
+    const model =
+      chatModel instanceof ChatOpenAI
+        ? chatModel
+        : new ChatOpenAI({ model: 'gpt-5.4', apiKey: 'token-counting-only' });
     const modelName = getModelNameForTiktoken(model.model);
     let encoder = encoders.get(modelName);
     if (!encoder) {

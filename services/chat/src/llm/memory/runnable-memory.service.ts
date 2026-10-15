@@ -13,8 +13,7 @@ import {
   RunnableLambda,
   RunnableWithMessageHistory,
 } from '@langchain/core/runnables';
-import type { ChatOpenAI } from '@langchain/openai';
-import { createChatModel } from '../model.factory.js';
+import { createChatModel, type ChatModel } from '../model.factory.js';
 
 const prompt = ChatPromptTemplate.fromMessages([
   [
@@ -72,7 +71,7 @@ export class RunnableMemoryService {
 
   protected prepareMessages(
     messages: BaseMessage[],
-    _model: ChatOpenAI,
+    _model: ChatModel,
   ): Promise<BaseMessage[]> {
     return Promise.resolve(messages);
   }
