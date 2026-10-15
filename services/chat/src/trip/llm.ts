@@ -1,4 +1,4 @@
-import { AIMessage, HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/messages';
+import { HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/messages';
 import { z } from 'zod';
 import type { ResultGroup } from '@autix/contracts';
 import type { McpService } from '../llm/mcp/mcp.service.js';
@@ -9,12 +9,12 @@ import { showResultsTool, streamToolLoop, type LoopEvent, type StreamingModel } 
 
 export const TRIP_LLM = Symbol('TRIP_LLM');
 
-export type HistoryMessage = { role: 'USER' | 'ASSISTANT'; content: string };
 export type LlmTask = 'answer' | 'itinerary';
 
 export interface TripLlm {
-  classify(input: { text: string; state: TripState; history: HistoryMessage[] }, signal: AbortSignal): Promise<Classified>;
-  respond(task: LlmTask, input: { text: string | null; state: TripState; history: HistoryMessage[] }, signal: AbortSignal): AsyncIterable<LoopEvent>;
+  /** `history` is the conversation's context (see ContextManager), without this turn's message. */
+  classify(input: { text: string; state: TripState; history: BaseMessage[] }, signal: AbortSignal): Promise<Classified>;
+  respond(task: LlmTask, input: { text: string | null; state: TripState; history: BaseMessage[] }, signal: AbortSignal): AsyncIterable<LoopEvent>;
   extractDays(draft: string, stays: ResultGroup | null, locale: Locale, signal: AbortSignal): Promise<TripDay[]>;
 }
 
@@ -62,9 +62,6 @@ Today is ${new Date().toISOString().slice(0, 10)}.
 ${TASKS[task]}`;
 }
 
-const toMessages = (history: HistoryMessage[]): BaseMessage[] =>
-  history.slice(-20).map((m) => (m.role === 'USER' ? new HumanMessage(m.content) : new AIMessage(m.content)));
-
 const context = (state: TripState) =>
   new HumanMessage(
     JSON.stringify({
@@ -82,16 +79,16 @@ const DaysSchema = z.object({ days: z.array(TripDaySchema) });
 export class ModelTripLlm implements TripLlm {
   constructor(private readonly mcp?: McpService) {}
 
-  async classify(input: { text: string; state: TripState; history: HistoryMessage[] }, signal: AbortSignal) {
+  async classify(input: { text: string; state: TripState; history: BaseMessage[] }, signal: AbortSignal) {
     const output = await createChatModel()
       .withStructuredOutput(ClassifiedSchema, { name: 'classify', method: 'functionCalling', strict: true })
-      .invoke([new SystemMessage(CLASSIFY_PROMPT), ...toMessages(input.history), context(input.state), new HumanMessage(input.text)], { signal });
+      .invoke([new SystemMessage(CLASSIFY_PROMPT), ...input.history, context(input.state), new HumanMessage(input.text)], { signal });
     return ClassifiedSchema.parse(output);
   }
 
   async *respond(
     task: LlmTask,
-    input: { text: string | null; state: TripState; history: HistoryMessage[] },
+    input: { text: string | null; state: TripState; history: BaseMessage[] },
     signal: AbortSignal,
   ): AsyncIterable<LoopEvent> {
     const tools = this.mcp?.mcpManager.getTools() ?? [];
@@ -100,7 +97,7 @@ export class ModelTripLlm implements TripLlm {
     yield* streamToolLoop(
       model,
       tools,
-      [new SystemMessage(systemPrompt(task, input.state.locale)), ...toMessages(input.history), context(input.state), new HumanMessage(last)],
+      [new SystemMessage(systemPrompt(task, input.state.locale)), ...input.history, context(input.state), new HumanMessage(last)],
       signal,
     );
   }

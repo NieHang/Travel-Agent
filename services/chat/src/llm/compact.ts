@@ -12,7 +12,7 @@ const SUMMARY_PROMPT = `You summarize conversations. Summarize the conversation 
 
 const truncate = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
 
-function estimateTokens(messages: BaseMessage[]): number {
+export function estimateMessageTokens(messages: BaseMessage[]): number {
   return messages.reduce(
     (sum, m) =>
       sum +
@@ -51,7 +51,7 @@ export function buildSummaryContent(messages: BaseMessage[]): string {
  * Returns whether it compacted; on failure the messages are left unchanged.
  */
 export async function maybeCompact(messages: BaseMessage[], signal?: AbortSignal): Promise<boolean> {
-  if (estimateTokens(messages) <= COMPACT_THRESHOLD) return false;
+  if (estimateMessageTokens(messages) <= COMPACT_THRESHOLD) return false;
 
   let head = 0;
   while (head < messages.length && SystemMessage.isInstance(messages[head])) head++;

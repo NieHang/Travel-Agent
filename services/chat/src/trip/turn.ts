@@ -1,13 +1,15 @@
 import { ConflictException, HttpException, Inject, Injectable, Logger } from '@nestjs/common';
+import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import type { Component, Message, SendTurnRequest, TripStreamEvent, TripUIState } from '@autix/contracts';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { toMessageContract } from '../conversations/conversations.service.js';
 import { deriveTitle } from '../chat/derive-title.js';
 import { errorName } from '../common/error-name.js';
+import { ContextManager } from '../llm/context-manager.js';
 import { CommandError, assertAllowed, reduce } from './commands.js';
 import { copy } from './copy.js';
-import { TRIP_LLM, type HistoryMessage, type TripLlm } from './llm.js';
+import { TRIP_LLM, type TripLlm } from './llm.js';
 import { groundResults, linkStays, mergeStays } from './results.js';
 import { readState, toTripView, type TripState } from './state.js';
 import { MAX_STORED_RESULTS } from './tool-loop.js';
@@ -16,6 +18,8 @@ import { describe, render, stageMessage } from './view.js';
 @Injectable()
 export class TurnService {
   private readonly logger = new Logger(TurnService.name);
+  /** Each conversation's model context, kept across turns. */
+  private readonly contexts = new Map<string, ContextManager>();
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -49,11 +53,17 @@ export class TurnService {
 
     const user = await this.saveUserMessage(conversationId, describe(request.command, copy(state.locale)));
     yield { type: 'start', userMessage: toMessageContract(user) };
-    const history = await this.history(conversationId, user.id);
+    const context = await this.context(conversationId, user.id);
+    const current = new HumanMessage(user.content);
+    context.addMessage(current);
 
     let text = '';
     let saved = false;
     try {
+      // Compact before classifying, so every model call of this turn gets the compacted context.
+      await context.maybeCompact(signal);
+      // classify and respond add this turn's message themselves.
+      const history = context.getMessages().filter((m) => m !== current);
       const command = request.command;
       const classified =
         command.type === 'message' ? await this.llm.classify({ text: command.text, state, history }, signal) : undefined;
@@ -126,14 +136,23 @@ export class TurnService {
     return row;
   }
 
-  private async history(conversationId: string, excludeId: string): Promise<HistoryMessage[]> {
+  /** The conversation's context; built from its saved messages the first time (e.g. after a restart). */
+  private async context(conversationId: string, excludeId: string): Promise<ContextManager> {
+    const cached = this.contexts.get(conversationId);
+    if (cached) return cached;
     const rows = await this.prisma.message.findMany({
       where: { conversationId, content: { not: '' }, id: { not: excludeId } },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: 20,
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       select: { role: true, content: true },
     });
-    return rows.reverse();
+    const context = new ContextManager(rows.map((m) => (m.role === 'USER' ? new HumanMessage(m.content) : new AIMessage(m.content))));
+    this.contexts.set(conversationId, context);
+    return context;
+  }
+
+  /** Every saved assistant message goes into the context too, so it matches what a reload would build. */
+  private remember(conversationId: string, content: string) {
+    if (content) this.contexts.get(conversationId)?.addMessage(new AIMessage(content));
   }
 
   /** Assistant messages sort after their user message even within the same millisecond. */
@@ -166,6 +185,7 @@ export class TurnService {
         },
       });
     });
+    this.remember(conversationId, content);
     return toMessageContract(row);
   }
 
@@ -186,6 +206,7 @@ export class TurnService {
         data: { tripRevision: revision },
       }),
     ]);
+    this.remember(conversationId, content);
     return toMessageContract(row);
   }
 }

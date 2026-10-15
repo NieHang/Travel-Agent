@@ -1,14 +1,20 @@
 import type { INestApplication } from '@nestjs/common';
+import { AIMessage, type BaseMessage } from '@langchain/core/messages';
 import type { SendTurnRequest, TripStreamEvent } from '@autix/contracts';
 import { createTestApp, createUser } from '../../test/helpers/app.js';
 import { resetDb } from '../../test/helpers/db.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
+import { COMPACT_THRESHOLD } from '../llm/compact.js';
 import { ROLLINGGO_COMPACT } from '../llm/mcp/rollinggo.fixture.js';
 import type { Classified } from './commands.js';
 import { TRIP_LLM, type TripLlm } from './llm.js';
 import type { TripDay, TripState } from './state.js';
 import type { LoopEvent } from './tool-loop.js';
 import { TurnService } from './turn.js';
+
+// Compaction's summarizer; the trip model itself is the ScriptedLlm below.
+const summarizer = vi.hoisted(() => ({ invoke: vi.fn() }));
+vi.mock('../llm/model.factory.js', () => ({ createChatModel: () => ({ invoke: summarizer.invoke }) }));
 
 const NULLS = { destination: null, tripType: null, departureDate: null, returnDate: null, travelers: null, preferences: null, budget: null, budgetCurrency: null };
 const planned = (patch: Partial<Classified['patch']>): Classified => ({ intent: 'plan', locale: 'zh', patch: { ...NULLS, ...patch }, clarify: null });
@@ -32,15 +38,18 @@ class ScriptedLlm implements TripLlm {
   days: TripDay[] = [{ title: '第 1 天', stops: [], stayRef: 'h1' }];
   /** When set, respond() yields its first event then waits for abort. */
   hang = false;
-  /** What each respond() call received, for follow-up assertions. */
-  inputs: { text: string | null; state: TripState }[] = [];
-  async classify() {
+  /** What each respond() call received, for follow-up assertions; history as message texts. */
+  inputs: { text: string | null; state: TripState; history: string[] }[] = [];
+  /** The history each classify() call received, as message texts. */
+  classified: string[][] = [];
+  async classify(input: { history: BaseMessage[] }) {
+    this.classified.push(input.history.map((m) => m.text));
     const next = this.classifications.shift();
     if (!next) throw new Error('unexpected classify');
     return next;
   }
-  async *respond(_task: string, input: { text: string | null; state: TripState }, signal: AbortSignal) {
-    this.inputs.push(structuredClone(input));
+  async *respond(_task: string, input: { text: string | null; state: TripState; history: BaseMessage[] }, signal: AbortSignal) {
+    this.inputs.push({ text: input.text, state: structuredClone(input.state), history: input.history.map((m) => m.text) });
     const events = this.responses.shift() ?? [];
     for (const e of events) yield e;
     if (this.hang && !signal.aborted)
@@ -65,7 +74,8 @@ describe('TurnService', () => {
   });
   beforeEach(async () => {
     await resetDb(prisma);
-    Object.assign(llm, { classifications: [], responses: [], inputs: [], hang: false, days: [{ title: '第 1 天', stops: [], stayRef: 'h1' }] });
+    Object.assign(llm, { classifications: [], responses: [], inputs: [], classified: [], hang: false, days: [{ title: '第 1 天', stops: [], stayRef: 'h1' }] });
+    summarizer.invoke.mockReset().mockResolvedValue(new AIMessage('SUMMARY'));
     const { user } = await createUser(app);
     conversationId = (await prisma.conversation.create({ data: { userId: user.id, title: '' } })).id;
   });
@@ -81,6 +91,16 @@ describe('TurnService', () => {
     if (last.type !== 'done') throw new Error(`expected done, got ${JSON.stringify(last)}`);
     return last;
   };
+  /** Saves alternating user/assistant messages with the given contents, a second apart, in the past. */
+  async function seed(contents: string[]) {
+    const start = Date.now() - 3_600_000;
+    for (const [i, content] of contents.entries()) {
+      await prisma.message.create({
+        data: { conversationId, role: i % 2 ? 'ASSISTANT' : 'USER', content, createdAt: new Date(start + i * 1000) },
+      });
+    }
+  }
+  const numbered = (count: number, from = 0) => Array.from({ length: count }, (_, i) => `m${from + i}`);
 
   it('answers a chat message as text without components', async () => {
     llm.classifications.push(chatted);
@@ -205,5 +225,48 @@ describe('TurnService', () => {
     const events = await send({ revision: 0, command: { type: 'message', text: '…' } });
     expect(events.at(-1)).toMatchObject({ type: 'error', code: 'MODEL_FAILED', message: { status: 'error' } });
     expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(0);
+  });
+
+  it('gives the model every earlier message, not only the last 20', async () => {
+    await seed(numbered(25));
+    llm.classifications.push(chatted);
+    llm.responses.push([{ type: 'text', delta: 'ok' }]);
+    await send({ revision: 0, command: { type: 'message', text: 'next' } });
+    expect(llm.classified[0]).toEqual(numbered(25));
+    expect(llm.inputs[0].history).toEqual(numbered(25));
+  });
+
+  it('compacts before classifying and keeps the summary for later turns', async () => {
+    // Saved: one huge message, then m1..m11; with the new message that is 13 messages over the threshold.
+    await seed(['字'.repeat(COMPACT_THRESHOLD), ...numbered(11, 1)]);
+    llm.classifications.push(chatted, chatted);
+    llm.responses.push([{ type: 'text', delta: 'ok' }], [{ type: 'text', delta: 'ok' }]);
+
+    await send({ revision: 0, command: { type: 'message', text: 'first' } });
+    const [summary, ...recent] = llm.classified[0];
+    expect(summary).toContain('SUMMARY');
+    expect(recent).toEqual(numbered(9, 3));
+    expect(llm.inputs[0].history).toEqual(llm.classified[0]);
+
+    await send({ revision: 1, command: { type: 'message', text: 'second' } });
+    expect(llm.classified[1]).toEqual([summary, ...numbered(9, 3), 'first', 'ok']);
+    expect(summarizer.invoke).toHaveBeenCalledTimes(1);
+    // The chat keeps every message.
+    expect(await prisma.message.count({ where: { conversationId } })).toBe(16);
+  });
+
+  it('keeps the context in step with what a stopped turn saved', async () => {
+    llm.classifications.push(planned({ destination: '杭州', tripType: 'solo', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 1 }));
+    llm.responses.push([{ type: 'text', delta: '第一段' }]);
+    llm.hang = true;
+    const controller = new AbortController();
+    for await (const e of turns.run(conversationId, { revision: 0, command: { type: 'message', text: '去杭州' } }, controller.signal))
+      if (e.type === 'text') controller.abort();
+
+    llm.hang = false;
+    llm.classifications.push(chatted);
+    llm.responses.push([{ type: 'text', delta: 'ok' }]);
+    await send({ revision: 0, command: { type: 'message', text: 'next' } });
+    expect(llm.classified[1]).toEqual(['去杭州', '第一段']);
   });
 });

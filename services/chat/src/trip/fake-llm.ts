@@ -1,7 +1,8 @@
+import type { BaseMessage } from '@langchain/core/messages';
 import type { ResultGroup } from '@autix/contracts';
 import { FAKE_REPLY_CHUNKS } from '../llm/chat-reply/fakes.js';
 import type { Classified } from './commands.js';
-import type { HistoryMessage, LlmTask, TripLlm } from './llm.js';
+import type { LlmTask, TripLlm } from './llm.js';
 import type { Locale, TripDay, TripState } from './state.js';
 import type { LoopEvent } from './tool-loop.js';
 
@@ -14,7 +15,7 @@ const NULL_PATCH: Classified['patch'] = {
 /** Deterministic stand-in for LLM_FAKE (dev, e2e). Never used in production (loadAuthConfig enforces it). */
 export class FakeTripLlm implements TripLlm {
   async classify(
-    input: { text: string; state: TripState; history: HistoryMessage[] },
+    input: { text: string; state: TripState; history: BaseMessage[] },
     _signal?: AbortSignal,
   ): Promise<Classified> {
     const city = CITIES.find((c) => input.text.includes(c)) ?? null;
@@ -28,7 +29,7 @@ export class FakeTripLlm implements TripLlm {
 
   async *respond(
     task: LlmTask,
-    input: { text: string | null; state: TripState; history: HistoryMessage[] },
+    input: { text: string | null; state: TripState; history: BaseMessage[] },
     signal: AbortSignal,
   ): AsyncIterable<LoopEvent> {
     const chunks =
