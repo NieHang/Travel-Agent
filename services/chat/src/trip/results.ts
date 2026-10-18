@@ -24,6 +24,8 @@ export const ToolResultSchema = z.object({
 });
 
 export const SHOW_RESULTS = 'show_results';
+/** Keeps show_results short: long payloads made DeepSeek emit malformed JSON. */
+export const MAX_AMENITIES = 8;
 
 const ResultItemInputSchema = z.object({
   source: z.string().describe('callId of the tool result that contains this item, copied exactly'),
@@ -35,7 +37,7 @@ const ResultItemInputSchema = z.object({
   url: z.string().url().nullable(),
   image: z.string().url().nullable(),
   details: z.array(z.object({ label: z.string().max(50), value: LocalizedTextSchema })).max(6),
-  amenities: z.array(LocalizedTextSchema).max(30),
+  amenities: z.array(LocalizedTextSchema).max(MAX_AMENITIES),
   summary: z.string().max(500).nullable(),
 });
 export const ShowResultsInputSchema = z.object({
@@ -51,9 +53,9 @@ export const SHOW_RESULTS_RULES = `Show items from tool results as cards.
   Never put translated text in \`original\`.
 - Put units and the user's language in the label instead, e.g. { label: "Distance (m)", value: { original: "850", translation: null } }.
 - price.amount and rating are numbers taken from the result, not converted.
-- Put every facility or amenity the result lists for the item into amenities, one entry each, in the
-  order given (e.g. hotelAmenities, facilities, tags that name a facility). Do not add amenities the
-  result does not list.
+- amenities: at most ${MAX_AMENITIES} facilities or amenities the result lists for the item (e.g. hotelAmenities,
+  facilities, tags that name a facility), one entry each, preferring those that matter for the user's
+  request (e.g. family facilities for a family trip). Do not add amenities the result does not list.
 - Comparisons and opinions go only in summary.
 - source is the callId of the tool result that contains the item, copied exactly (not the tool name).`;
 
