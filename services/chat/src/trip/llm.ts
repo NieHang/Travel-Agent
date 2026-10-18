@@ -1,11 +1,14 @@
 import { HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/messages';
+import type { StructuredToolInterface } from '@langchain/core/tools';
 import { z } from 'zod';
 import type { ResultGroup } from '@autix/contracts';
 import type { McpService } from '../llm/mcp/mcp.service.js';
 import { createChatModel } from '../llm/model.factory.js';
+import { LOAD_SKILL, loadSkillTool } from '../skills/load-skill-tool.js';
+import type { Skill } from '../skills/registry.js';
 import { ClassifiedSchema, type Classified } from './commands.js';
 import { TripDaySchema, type Locale, type TripDay, type TripState } from './state.js';
-import { showResultsTool, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
+import { MAX_TOOL_ROUNDS, showResultsTool, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
 
 export const TRIP_LLM = Symbol('TRIP_LLM');
 
@@ -53,14 +56,24 @@ const TASKS: Record<LlmTask, string> = {
   was found, say that live hotel data was unavailable. Never invent a hotel. Label it as a draft.`,
 };
 
-function systemPrompt(task: LlmTask, locale: Locale): string {
-  return `You are Hilda, a travel assistant. Reply in ${language(locale)}. ${DATA_RULE}
-Never invent prices, availability, addresses or distances; only state facts that come from tool results.
+const FACTS_RULE = 'Never invent prices, availability, addresses or distances; only state facts that come from tool results.';
+// With a skill loaded (the Japan rules), the draft needs travel legs that no tool provides yet.
+const SKILL_FACTS_RULE = `Never invent prices, availability, addresses or opening hours; only state facts that come from tool results. Travel times, walking distances and transfers may be estimated when no tool gives them; mark every estimate as approximate ("约" in Chinese, "approx." in English).`;
+
+function systemPrompt(task: LlmTask, locale: Locale, always: Skill[] = [], onDemand: Skill[] = []): string {
+  let prompt = `You are Hilda, a travel assistant. Reply in ${language(locale)}. ${DATA_RULE}
+${always.length ? SKILL_FACTS_RULE : FACTS_RULE}
 Use show_results to show items from tool results as cards.
 ${TOOL_RULES}
 Today is ${new Date().toISOString().slice(0, 10)}.
 
 ${TASKS[task]}`;
+  for (const skill of always) prompt += `\n\nSkill ${skill.name}:\n${skill.body}`;
+  if (onDemand.length)
+    prompt += `\n\nSkills you can load with ${LOAD_SKILL} (load every skill for a city you plan in, including day trips, before writing about it; call it in your first round together with any searches):\n${onDemand
+      .map((s) => `- ${s.name}: ${s.description}`)
+      .join('\n')}`;
+  return prompt;
 }
 
 /** Nights between the trip dates; null until both are known. */
@@ -91,7 +104,16 @@ const DaysSchema = z.object({
 });
 
 export class ModelTripLlm implements TripLlm {
-  constructor(private readonly mcp?: McpService) {}
+  private readonly always: Skill[];
+  private readonly onDemand: Skill[];
+
+  constructor(
+    private readonly mcp?: McpService,
+    skills: Skill[] = [],
+  ) {
+    this.always = skills.filter((s) => s.always);
+    this.onDemand = skills.filter((s) => !s.always);
+  }
 
   async classify(input: { text: string; state: TripState; history: BaseMessage[] }, signal: AbortSignal) {
     const output = await createChatModel()
@@ -105,14 +127,18 @@ export class ModelTripLlm implements TripLlm {
     input: { text: string | null; state: TripState; history: BaseMessage[] },
     signal: AbortSignal,
   ): AsyncIterable<LoopEvent> {
-    const tools = this.mcp?.mcpManager.getTools() ?? [];
+    const tools: StructuredToolInterface[] = [...(this.mcp?.mcpManager.getTools() ?? [])];
+    if (this.onDemand.length) tools.push(loadSkillTool(this.onDemand));
     const model = createChatModel().bindTools([...tools, showResultsTool]) as unknown as StreamingModel;
     const last = input.text ?? (task === 'itinerary' ? 'Write the itinerary draft now.' : '');
+    const system = systemPrompt(task, input.state.locale, this.always, this.onDemand);
     yield* streamToolLoop(
       model,
       tools,
-      [new SystemMessage(systemPrompt(task, input.state.locale)), ...input.history, context(input.state), new HumanMessage(last)],
+      [new SystemMessage(system), ...input.history, context(input.state), new HumanMessage(last)],
       signal,
+      MAX_TOOL_ROUNDS,
+      new Set([LOAD_SKILL]),
     );
   }
 
@@ -125,6 +151,7 @@ export class ModelTripLlm implements TripLlm {
           new SystemMessage(
             `Extract the days of this itinerary draft as structured data in ${language(locale)}. ${DATA_RULE}
 Extract only what the draft says; do not plan anything new. Use null for unknown times and notes.
+Travel legs (train, subway, bus, walking between places) are not stops; put them in the note of the stop they lead to.
 stayRef is the hotel for that night: one of the refs below, or null.
 Hotels:
 ${hotels}`,

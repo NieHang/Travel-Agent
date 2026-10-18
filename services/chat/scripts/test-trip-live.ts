@@ -3,13 +3,14 @@
 import 'dotenv/config';
 import { McpService } from '../src/llm/mcp/mcp.service.js';
 import { ModelTripLlm } from '../src/trip/llm.js';
+import { loadSkills } from '../src/skills/registry.js';
 import { reduce } from '../src/trip/commands.js';
 import { groundResults, linkStays, mergeStays } from '../src/trip/results.js';
 import { initialState, type Locale, type TripState } from '../src/trip/state.js';
 
 const mcp = new McpService();
 await mcp.mcpManager.start();
-const llm = new ModelTripLlm(mcp);
+const llm = new ModelTripLlm(mcp, loadSkills());
 let failures = 0;
 const check = (label: string, ok: boolean) => {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${label}`);
