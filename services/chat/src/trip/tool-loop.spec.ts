@@ -38,6 +38,17 @@ async function collect(model: StreamingModel, signal = new AbortController().sig
   return events;
 }
 
+/** A local tool whose output the loop must pass through untouched and not record. */
+const rawTool = (output: string) =>
+  tool(async () => output, { name: 'load_skill', description: 'load', schema: z.object({ names: z.array(z.string()) }) });
+
+async function collectUnrecorded(model: StreamingModel, output: string) {
+  const events: LoopEvent[] = [];
+  const loop = streamToolLoop(model, [searchHotels, rawTool(output)], [new HumanMessage('hi')], new AbortController().signal, MAX_TOOL_ROUNDS, new Set(['load_skill']));
+  for await (const e of loop) events.push(e);
+  return events;
+}
+
 const validItem = {
   source: 'c1', id: null, title: { original: 'Casa Lisboa', translation: null }, address: null, price: null,
   rating: null, url: null, image: null, details: [], amenities: [], summary: null,
@@ -68,13 +79,26 @@ describe('streamToolLoop', () => {
   it('runs tools, reports results, then streams the final text', async () => {
     const model = scripted([[callChunk('c1', 'searchHotels', { city: 'Lisboa' })], textChunks('done')]);
     const events = await collect(model);
-    expect(events[0]).toEqual({ type: 'tool_call', name: 'searchHotels' });
+    expect(events[0]).toEqual({ type: 'tool_call', name: 'searchHotels', args: { city: 'Lisboa' } });
     expect(events[1]).toMatchObject({
       type: 'tool_results',
       results: [{ callId: 'c1', tool: 'searchHotels', args: { city: 'Lisboa' }, isError: false }],
     });
     expect(events.at(-1)).toEqual({ type: 'text', delta: 'done' });
     expect(model.seen[1].at(-1)).toBeInstanceOf(ToolMessage);
+  });
+
+  it.each([
+    ['a skill body', 'TOKYO-NOTES'],
+    ['a long body with JSON-looking text', 'x'.repeat(13_000) + '{"a":1}'],
+  ])('runs an unrecorded tool without recording its result (%s)', async (_, output) => {
+    const model = scripted([[callChunk('c1', 'load_skill', { names: ['japan-tokyo'] })], textChunks('done')]);
+    const events = await collectUnrecorded(model, output);
+    expect(events[0]).toEqual({ type: 'tool_call', name: 'load_skill', args: { names: ['japan-tokyo'] } });
+    expect(events.some((e) => e.type === 'tool_results')).toBe(false);
+    const message = model.seen[1].at(-1);
+    expect(message).toBeInstanceOf(ToolMessage);
+    expect(message?.content).toBe(output);
   });
 
   it('shows the model each result with the callId that show_results items must cite', async () => {
