@@ -1,11 +1,14 @@
 import { HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/messages';
+import type { StructuredToolInterface } from '@langchain/core/tools';
 import { z } from 'zod';
 import type { ResultGroup } from '@autix/contracts';
 import type { McpService } from '../llm/mcp/mcp.service.js';
 import { createChatModel } from '../llm/model.factory.js';
+import { LOAD_SKILL, loadSkillTool } from '../skills/load-skill-tool.js';
+import type { Skill } from '../skills/registry.js';
 import { ClassifiedSchema, type Classified } from './commands.js';
 import { TripDaySchema, type Locale, type TripDay, type TripState } from './state.js';
-import { showResultsTool, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
+import { MAX_TOOL_ROUNDS, showResultsTool, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
 
 export const TRIP_LLM = Symbol('TRIP_LLM');
 
@@ -42,9 +45,10 @@ const TOOL_RULES = `- Fill tool arguments from the request and the conversation;
 const TASKS: Record<LlmTask, string> = {
   answer: `Task: answer the user's latest message. Call tools only when live data is needed.`,
   itinerary: `Task: the trip requirements in serverContext are complete and validated. Write the itinerary draft.
-- If the trip has overnight stays and a lodging tool is available, search accommodation first: destination,
-  check-in = departureDate, check-out = returnDate, travelers, preferences, and budget if stated. For a
-  multi-city trip, search each city. Skip the search for a same-day trip or when the user already has lodging.
+- serverContext.nights is the number of overnight stays. If it is above 0 and a lodging tool is available,
+  search accommodation first: destination, check-in = departureDate, check-out = returnDate, travelers,
+  preferences, and budget if stated. For a multi-city trip, search each city. If nights is 0 (a same-day
+  trip) or the user already has lodging, do not search accommodation and do not show hotels.
 - Call show_results with panel "hotels" for the options you recommend.
 - Then write the draft day by day in Markdown. Every day that ends with an overnight stay closes with one
   line naming exactly one hotel for that night, chosen from show_results (translation first, original in
@@ -52,14 +56,30 @@ const TASKS: Record<LlmTask, string> = {
   was found, say that live hotel data was unavailable. Never invent a hotel. Label it as a draft.`,
 };
 
-function systemPrompt(task: LlmTask, locale: Locale): string {
-  return `You are Hilda, a travel assistant. Reply in ${language(locale)}. ${DATA_RULE}
-Never invent prices, availability, addresses or distances; only state facts that come from tool results.
+const FACTS_RULE = 'Never invent prices, availability, addresses or distances; only state facts that come from tool results.';
+// With a skill loaded (the Japan rules), the draft needs travel legs that no tool provides yet.
+const SKILL_FACTS_RULE = `Never invent prices, availability, addresses or opening hours; only state facts that come from tool results. Travel times, walking distances and transfers may be estimated when no tool gives them; mark every estimate as approximate ("约" in Chinese, "approx." in English).`;
+
+function systemPrompt(task: LlmTask, locale: Locale, always: Skill[] = [], onDemand: Skill[] = []): string {
+  let prompt = `You are Hilda, a travel assistant. Reply in ${language(locale)}. ${DATA_RULE}
+${always.length ? SKILL_FACTS_RULE : FACTS_RULE}
 Use show_results to show items from tool results as cards.
 ${TOOL_RULES}
 Today is ${new Date().toISOString().slice(0, 10)}.
 
 ${TASKS[task]}`;
+  for (const skill of always) prompt += `\n\nSkill ${skill.name}:\n${skill.body}`;
+  if (onDemand.length)
+    prompt += `\n\nSkills you can load with ${LOAD_SKILL} (load every skill for a city you plan in, including day trips, before writing about it; call it in your first round together with any searches):\n${onDemand
+      .map((s) => `- ${s.name}: ${s.description}`)
+      .join('\n')}`;
+  return prompt;
+}
+
+/** Nights between the trip dates; null until both are known. */
+export function countNights({ departureDate, returnDate }: TripState['requirements']): number | null {
+  if (!departureDate || !returnDate) return null;
+  return Math.round((Date.parse(returnDate) - Date.parse(departureDate)) / 86_400_000);
 }
 
 const context = (state: TripState) =>
@@ -68,16 +88,32 @@ const context = (state: TripState) =>
       serverContext: {
         stage: state.stage,
         requirements: state.requirements,
+        nights: countNights(state.requirements),
         locale: state.locale,
         toolResults: state.toolResults,
       },
     }),
   );
 
-const DaysSchema = z.object({ days: z.array(TripDaySchema) });
+// DeepSeek's strict mode does not hold `type: ["string", "null"]`, and it leaves out stayRef on days without
+// a hotel. A missing nullable key means null, so fill it before validating; the schema sent is unchanged.
+const DaysSchema = z.object({
+  days: z.array(
+    z.preprocess((day) => (day && typeof day === 'object' ? { stayRef: null, ...day } : day), TripDaySchema),
+  ),
+});
 
 export class ModelTripLlm implements TripLlm {
-  constructor(private readonly mcp?: McpService) {}
+  private readonly always: Skill[];
+  private readonly onDemand: Skill[];
+
+  constructor(
+    private readonly mcp?: McpService,
+    skills: Skill[] = [],
+  ) {
+    this.always = skills.filter((s) => s.always);
+    this.onDemand = skills.filter((s) => !s.always);
+  }
 
   async classify(input: { text: string; state: TripState; history: BaseMessage[] }, signal: AbortSignal) {
     const output = await createChatModel()
@@ -91,14 +127,18 @@ export class ModelTripLlm implements TripLlm {
     input: { text: string | null; state: TripState; history: BaseMessage[] },
     signal: AbortSignal,
   ): AsyncIterable<LoopEvent> {
-    const tools = this.mcp?.mcpManager.getTools() ?? [];
+    const tools: StructuredToolInterface[] = [...(this.mcp?.mcpManager.getTools() ?? [])];
+    if (this.onDemand.length) tools.push(loadSkillTool(this.onDemand));
     const model = createChatModel().bindTools([...tools, showResultsTool]) as unknown as StreamingModel;
     const last = input.text ?? (task === 'itinerary' ? 'Write the itinerary draft now.' : '');
+    const system = systemPrompt(task, input.state.locale, this.always, this.onDemand);
     yield* streamToolLoop(
       model,
       tools,
-      [new SystemMessage(systemPrompt(task, input.state.locale)), ...input.history, context(input.state), new HumanMessage(last)],
+      [new SystemMessage(system), ...input.history, context(input.state), new HumanMessage(last)],
       signal,
+      MAX_TOOL_ROUNDS,
+      new Set([LOAD_SKILL]),
     );
   }
 
@@ -111,6 +151,11 @@ export class ModelTripLlm implements TripLlm {
           new SystemMessage(
             `Extract the days of this itinerary draft as structured data in ${language(locale)}. ${DATA_RULE}
 Extract only what the draft says; do not plan anything new. Use null for unknown times and notes.
+Travel legs (train, subway, bus, walking between places) are not stops; put them in the note of the stop they lead to.
+A line that only moves between places (e.g. "A → B by train, approx. 40 min") is a leg: if B is the next stop, add the leg
+to its note; otherwise name the stop after where the leg ends (B, e.g. an airport or a station) and put the leg in its note.
+A line that walks through several places (e.g. "A → B → C") visits them all: make each place its own stop, in order.
+A stop name is just the place, never a route or an arrow.
 stayRef is the hotel for that night: one of the refs below, or null.
 Hotels:
 ${hotels}`,
