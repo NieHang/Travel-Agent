@@ -82,7 +82,13 @@ const context = (state: TripState) =>
     }),
   );
 
-const DaysSchema = z.object({ days: z.array(TripDaySchema) });
+// DeepSeek's strict mode does not hold `type: ["string", "null"]`, and it leaves out stayRef on days without
+// a hotel. A missing nullable key means null, so fill it before validating; the schema sent is unchanged.
+const DaysSchema = z.object({
+  days: z.array(
+    z.preprocess((day) => (day && typeof day === 'object' ? { stayRef: null, ...day } : day), TripDaySchema),
+  ),
+});
 
 export class ModelTripLlm implements TripLlm {
   constructor(private readonly mcp?: McpService) {}

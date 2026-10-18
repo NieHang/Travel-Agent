@@ -51,3 +51,11 @@ describe('countNights', () => {
     expect(countNights({ departureDate: '2026-12-01' })).toBeNull();
   });
 });
+
+describe('extractDays', () => {
+  it('reads a day without stayRef as no hotel that night', async () => {
+    model.classify.mockReset().mockResolvedValue({ days: [{ title: 'Day 1', stops: [] }] });
+    const days = await new ModelTripLlm().extractDays('Day 1', null, 'en', new AbortController().signal);
+    expect(days).toEqual([{ title: 'Day 1', stops: [], stayRef: null }]);
+  });
+});
