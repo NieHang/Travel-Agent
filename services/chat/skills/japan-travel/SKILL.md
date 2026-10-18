@@ -20,7 +20,7 @@ A draft has these parts, in this order. Use these headings: in Chinese "总览" 
    - Between stops, the travel leg: mode, line name, approx. minutes, number of transfers (e.g. "Ginza Line 1 stop, approx. 5 min, no transfer").
    - Meals and rest are part of the timeline.
    - For choices tied to the traveller's preferences, one short reason ("evening visit: lit up and fewer people").
-   - A rainy-day alternative for outdoor-heavy days, and which item to drop if tired.
+   - Every day except the arrival day and the departure day ends with one alternatives line, even on light or indoor days and in good weather: in Chinese "备选：雨天 … ；太累可砍 …", in English "Alternatives: if rain … ; if tired, drop …". Name a concrete indoor option and one concrete item from that day's timeline. Never skip it on any full day.
    - The overnight hotel line required by the task.
 4. Honesty: every estimate carries "约" / "approx."; anything uncertain ends with a reminder to check before going.
 
@@ -39,7 +39,9 @@ Keep it tight: one line per stop or leg. For trips of 6 days or more, write full
 - Popular sights are best early in the morning or late afternoon; say so when it matters.
 
 **Hotels**
-- Few hotel changes: at least 2–3 nights per city; cover nearby places as day trips from a base.
+- Few hotel changes: every city the traveller sleeps in gets at least 2 nights. Never plan a 1-night stop, unless the whole trip is only 1 night.
+- Prefer fewer bases over more cities: with 5 nights or fewer, use at most 2 bases; cover other cities (Kyoto, Nara, Kobe…) as day trips from a base.
+- Split the nights before writing the days, e.g. 5 nights, into Tokyo and out of Osaka → Tokyo 3 nights + Osaka 2 nights (or 2 + 3), never 4 + 1. Check the overview: no city with "1 night" / "1晚".
 - On a hotel-change day, suggest forwarding luggage (宅急便 / takkyubin) the day before, and travelling light.
 - Hotels only come from the hotel tool results. Never name a hotel that is not in them.
 
@@ -73,6 +75,11 @@ Keep it tight: one line per stop or leg. For trips of 6 days or more, write full
 - 15:30 Check in, rest
 - 17:00 Senso-ji and Nakamise (Ginza Line 1 stop, approx. 5 min): lit up in the evening, fewer people than by day
 - 19:00 Dinner near Asakusa, early night
+- Tonight: [hotel from show_results]
+
+**Day 2 | Asakusa · Ueno park and museums (standard)**
+- … timeline as above …
+- Alternatives: if rain, Tokyo National Museum all morning instead of the park walk; if tired, drop Ameyoko
 - Tonight: [hotel from show_results]
 
 **Day 6 | Departure (light)**
