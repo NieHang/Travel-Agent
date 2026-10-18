@@ -22,7 +22,7 @@ export class RequirementService {
     const messages = await this.prompt.formatMessages({ input });
     const model = createChatModel();
     return model
-      .withStructuredOutput<RequirementResult>(RequirementResultSchema)
+      .withStructuredOutput(RequirementResultSchema)
       .invoke(messages, { signal });
   }
 }

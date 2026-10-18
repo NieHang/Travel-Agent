@@ -44,7 +44,7 @@ bun run typecheck                   # `lint` is also just tsc --noEmit
 bun run test:e2e                    # Playwright, Chromium only; builds/starts backend with fake LLM on 4101, web on 3102
 ```
 
-Env: `services/chat/.env` needs `DATABASE_URL`, `JWT_ACCESS_SECRET` (≥32 chars, startup fails otherwise), for real models the keys of the provider picked in `config/langchain.yaml` (`anthropic`: `CLAUDE_API_KEY`, optional `CLAUDE_BASE_URL`; `openai`: `OPENAI_API_KEY`/`OPENAI_BASE_URL`; unit tests pin the OpenAI settings via `test/setup-unit.ts`), `ROLLING_GO`/`ROLLING_GO_API_KEY` for the hotel MCP server. `LLM_FAKE=1` swaps in a fake model (refused when `NODE_ENV=production`). Integration/e2e tests read `services/chat/.env.test` (copy `.env.test.example`); its DB name must end in `_test` or tests refuse to run, because each test file truncates tables. Frontend API base is `NEXT_PUBLIC_API_BASE_URL` (build-time, default `http://localhost:4001`) and must match backend `CORS_ORIGIN`.
+Env: `services/chat/.env` needs `DATABASE_URL`, `JWT_ACCESS_SECRET` (≥32 chars, startup fails otherwise), `OPENAI_API_KEY`/`OPENAI_BASE_URL` for real models, `ROLLING_GO`/`ROLLING_GO_API_KEY` for the hotel MCP server. `LLM_FAKE=1` swaps in a fake model (refused when `NODE_ENV=production`). Integration/e2e tests read `services/chat/.env.test` (copy `.env.test.example`); its DB name must end in `_test` or tests refuse to run, because each test file truncates tables. Frontend API base is `NEXT_PUBLIC_API_BASE_URL` (build-time, default `http://localhost:4001`) and must match backend `CORS_ORIGIN`.
 
 ## Architecture
 

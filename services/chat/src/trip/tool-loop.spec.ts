@@ -49,16 +49,6 @@ describe('streamToolLoop', () => {
     expect(events).toEqual([{ type: 'text', delta: '你' }, { type: 'text', delta: '好' }]);
   });
 
-  it('streams text from content blocks, skipping thinking (Claude with tools bound)', async () => {
-    const blocks = [
-      new AIMessageChunk({ content: [{ index: 0, type: 'thinking', thinking: '', signature: 'sig' }] }),
-      new AIMessageChunk({ content: [{ index: 1, type: 'text', text: '你' }] }),
-      new AIMessageChunk({ content: [{ index: 1, type: 'text', text: '好' }] }),
-    ];
-    const events = await collect(scripted([blocks]));
-    expect(events).toEqual([{ type: 'text', delta: '你' }, { type: 'text', delta: '好' }]);
-  });
-
   it('runs tools, reports results, then streams the final text', async () => {
     const model = scripted([[callChunk('c1', 'searchHotels', { city: 'Lisboa' })], textChunks('done')]);
     const events = await collect(model);

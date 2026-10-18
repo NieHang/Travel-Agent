@@ -21,7 +21,6 @@ describe('estimateTextTokens', () => {
 describe('getModelPricing', () => {
   it('returns the per-1M-token USD price of a known model', () => {
     expect(getModelPricing('gpt-5.4')).toEqual({ input: 2.5, cachedInput: 0.25, output: 15 });
-    expect(getModelPricing('claude-haiku-5-5')).toEqual({ input: 0.1, cachedInput: 0.01, output: 0.5 });
   });
   it('resolves dated snapshots to the longest matching model', () => {
     expect(getModelPricing('gpt-5.4-2026-03-05')).toEqual(PRICING['gpt-5.4']);

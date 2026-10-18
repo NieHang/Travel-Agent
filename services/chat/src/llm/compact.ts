@@ -1,10 +1,10 @@
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages';
-import { loadLangChainConfig } from '../config/load-langchain-config.js';
 import { estimateTextTokens } from './cost/token-estimator.js';
 import { createChatModel } from './model.factory.js';
 
 export const COMPACT_THRESHOLD = 80_000;
 export const KEEP_RECENT_MESSAGES = 10;
+export const COMPACT_MODEL = 'gpt-5.4-mini';
 const MAX_TOOL_USE_LENGTH = 200;
 const MAX_TOOL_RESULT_LENGTH = 500;
 
@@ -60,7 +60,7 @@ export async function maybeCompact(messages: BaseMessage[], signal?: AbortSignal
   if (start <= head) return false;
 
   const content = buildSummaryContent(messages.slice(head, start));
-  const reply = await createChatModel({ model: loadLangChainConfig().llm.compactModel }).invoke(
+  const reply = await createChatModel({ model: COMPACT_MODEL }).invoke(
     [new SystemMessage(SUMMARY_PROMPT), new HumanMessage(content)],
     { signal },
   );

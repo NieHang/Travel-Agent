@@ -3,8 +3,8 @@ import type { Classified } from './commands.js';
 
 const model = vi.hoisted(() => ({ seen: [] as BaseMessage[][], classify: vi.fn() }));
 vi.mock('../llm/model.factory.js', () => ({
-  createStructuredModel: () => ({ invoke: model.classify }),
   createChatModel: () => ({
+    withStructuredOutput: () => ({ invoke: model.classify }),
     bindTools: () => ({
       async stream(messages: BaseMessage[]) {
         model.seen.push([...messages]);

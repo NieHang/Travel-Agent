@@ -65,9 +65,7 @@ export async function* streamToolLoop(
     for await (const chunk of await model.stream(conversation, { signal })) {
       signal.throwIfAborted();
       reply = reply ? reply.concat(chunk) : chunk;
-      // `text` reads both string content and text blocks (Claude streams blocks, thinking included).
-      const delta = chunk.text;
-      if (delta) yield { type: 'text', delta };
+      if (typeof chunk.content === 'string' && chunk.content) yield { type: 'text', delta: chunk.content };
     }
     const calls = reply?.tool_calls ?? [];
     if (!reply || !calls.length) return;
