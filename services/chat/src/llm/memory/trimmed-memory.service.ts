@@ -9,16 +9,23 @@ import { RunnableMemoryService } from './runnable-memory.service.js';
 const requireFromCore = createRequire(
   import.meta.resolve('@langchain/core/messages'),
 );
-const { encodingForModel } = requireFromCore('js-tiktoken') as {
-  encodingForModel: (model: string) => {
-    encode: (
-      text: string,
-      allowed?: string[],
-      disallowed?: string[],
-    ) => number[];
-  };
+type Encoder = {
+  encode: (text: string, allowed?: string[], disallowed?: string[]) => number[];
 };
-const encoders = new Map<string, ReturnType<typeof encodingForModel>>();
+const { encodingForModel, getEncoding } = requireFromCore('js-tiktoken') as {
+  encodingForModel: (model: string) => Encoder;
+  getEncoding: (encoding: string) => Encoder;
+};
+const encoders = new Map<string, Encoder>();
+
+// tiktoken only knows OpenAI models; others (e.g. deepseek-flash) get an estimate from o200k_base.
+function encoderFor(modelName: string): Encoder {
+  try {
+    return encodingForModel(modelName);
+  } catch {
+    return getEncoding('o200k_base');
+  }
+}
 
 @Injectable()
 export class TrimmedMemoryService extends RunnableMemoryService {
@@ -34,7 +41,7 @@ export class TrimmedMemoryService extends RunnableMemoryService {
     const modelName = getModelNameForTiktoken(model.model);
     let encoder = encoders.get(modelName);
     if (!encoder) {
-      encoder = encodingForModel(modelName);
+      encoder = encoderFor(modelName);
       encoders.set(modelName, encoder);
     }
     const tokenizer = encoder;

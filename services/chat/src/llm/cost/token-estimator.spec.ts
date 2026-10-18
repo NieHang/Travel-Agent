@@ -26,6 +26,10 @@ describe('getModelPricing', () => {
     expect(getModelPricing('gpt-5.4-2026-03-05')).toEqual(PRICING['gpt-5.4']);
     expect(getModelPricing('gpt-5.4-mini-2026-03-17')).toEqual(PRICING['gpt-5.4-mini']);
   });
+  it('prices DeepSeek models at their peak rates', () => {
+    expect(getModelPricing('deepseek-flash')).toEqual({ input: 0.3, cachedInput: 0.006, output: 1.2 });
+  });
+
   it('falls back to gpt-5.4 pricing for unknown models', () => {
     expect(getModelPricing('some-other-model')).toEqual(PRICING['gpt-5.4']);
   });

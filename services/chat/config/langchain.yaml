@@ -1,6 +1,13 @@
 llm:
-  provider: openai
-  model: gpt-5.4
+  # openai (OPENAI_API_KEY / OPENAI_BASE_URL) or deepseek (Deepseek_API_KEY / Deepseek_BASE_URL),
+  # both through the OpenAI-compatible client. Strict tool calls on DeepSeek need its /beta base URL.
+  provider: deepseek
+  model: deepseek-flash
+  # Model that summarizes long conversations (src/llm/compact.ts).
+  compactModel: deepseek-flash
+  # DeepSeek thinks by default and then wants reasoning_content sent back on every later
+  # request, which ChatOpenAI drops (400). false sends thinking: { type: disabled }.
+  thinking: false
   temperature: 0
   maxTokens: 4096
 

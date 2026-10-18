@@ -31,7 +31,7 @@ describe('maybeCompact', () => {
     expect(model.invoke).not.toHaveBeenCalled();
   });
 
-  it('summarizes older messages with gpt-5.4-mini, keeping the system prompt and the last 10', async () => {
+  it('summarizes older messages with the configured compact model, keeping the system prompt and the last 10', async () => {
     const system = new SystemMessage('You are Hilda.');
     const messages: BaseMessage[] = [system, new HumanMessage(tokens(COMPACT_THRESHOLD - 20)), ...turns(21)];
     const old = messages.slice(1, -KEEP_RECENT_MESSAGES);
@@ -40,7 +40,7 @@ describe('maybeCompact', () => {
 
     expect(await maybeCompact(messages, signal)).toBe(true);
 
-    expect(model.create).toHaveBeenCalledWith({ model: 'gpt-5.4-mini' });
+    expect(model.create).toHaveBeenCalledWith({ model: 'deepseek-flash' });
     const [prompt, options] = model.invoke.mock.calls[0] as [BaseMessage[], unknown];
     expect(prompt[1].text).toBe(buildSummaryContent(old));
     expect(options).toEqual({ signal });

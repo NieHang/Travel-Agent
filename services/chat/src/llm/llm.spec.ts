@@ -22,6 +22,7 @@ describe.each(['direct', 'HTTPS_PROXY', 'HTTP_PROXY'])(
     const requests: Array<{
       messages: Array<{ role: string; content: string }>;
       model: string;
+      thinking?: { type: string };
       temperature: number;
       max_completion_tokens?: number;
       max_tokens?: number;
@@ -180,13 +181,14 @@ describe.each(['direct', 'HTTPS_PROXY', 'HTTP_PROXY'])(
         expect(proxiedRequests).toBe(4);
       }
       for (const body of requests) {
-        expect(body.model).toBe('gpt-5.4');
+        expect(body.model).toBe('deepseek-flash');
+        expect(body.thinking).toEqual({ type: 'disabled' });
         expect(body.temperature).toBe(0);
         expect(body.max_completion_tokens ?? body.max_tokens).toBe(4096);
         expect(body.messages).toEqual([
-          // ChatOpenAI maps SystemMessage to developer for GPT-5 models.
+          // ChatOpenAI keeps "system" for non-reasoning models (it maps it to "developer" for GPT-5).
           {
-            role: 'developer',
+            role: 'system',
             content: REQUIREMENT_SYSTEM_PROMPT,
           },
           {
