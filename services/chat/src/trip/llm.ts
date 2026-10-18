@@ -152,6 +152,10 @@ export class ModelTripLlm implements TripLlm {
             `Extract the days of this itinerary draft as structured data in ${language(locale)}. ${DATA_RULE}
 Extract only what the draft says; do not plan anything new. Use null for unknown times and notes.
 Travel legs (train, subway, bus, walking between places) are not stops; put them in the note of the stop they lead to.
+A line that only moves between places (e.g. "A → B by train, approx. 40 min") is a leg: if B is the next stop, add the leg
+to its note; otherwise name the stop after where the leg ends (B, e.g. an airport or a station) and put the leg in its note.
+A line that walks through several places (e.g. "A → B → C") visits them all: make each place its own stop, in order.
+A stop name is just the place, never a route or an arrow.
 stayRef is the hotel for that night: one of the refs below, or null.
 Hotels:
 ${hotels}`,

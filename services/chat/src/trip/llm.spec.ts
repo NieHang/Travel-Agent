@@ -120,5 +120,9 @@ describe('extractDays', () => {
     await new ModelTripLlm().extractDays('Day 1', null, 'en', new AbortController().signal);
     const [sent] = model.classify.mock.calls[0] as [BaseMessage[]];
     expect(sent[0].text).toContain('Travel legs');
+    // Lines like "Narita Airport → Ueno (Skyliner)" were extracted as stops in live runs.
+    expect(sent[0].text).toContain('name the stop after where the leg ends');
+    // ...and walks like "清水寺 → 三年坂 → 八坂神社" became one stop.
+    expect(sent[0].text).toContain('make each place its own stop');
   });
 });
