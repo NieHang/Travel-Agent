@@ -1,11 +1,11 @@
-import { AIMessageChunk, HumanMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages';
+import { AIMessage, AIMessageChunk, HumanMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { MAX_TOOL_ROUNDS, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
 
 const textChunks = (...parts: string[]) => parts.map((content) => new AIMessageChunk({ content }));
-const callChunk = (id: string, name: string, args: unknown) =>
-  new AIMessageChunk({ content: '', tool_call_chunks: [{ id, name, args: JSON.stringify(args), index: 0, type: 'tool_call_chunk' }] });
+const callChunk = (id: string, name: string, args: unknown, raw = JSON.stringify(args)) =>
+  new AIMessageChunk({ content: '', tool_call_chunks: [{ id, name, args: raw, index: 0, type: 'tool_call_chunk' }] });
 
 /** Each invocation streams the next scripted round and records the conversation it saw. */
 function scripted(rounds: AIMessageChunk[][]): StreamingModel & { seen: BaseMessage[][] } {
@@ -44,6 +44,22 @@ const validItem = {
 };
 
 describe('streamToolLoop', () => {
+  it('asks the model to retry a tool call whose arguments are not valid JSON', async () => {
+    const model = scripted([
+      [callChunk('c1', 'show_results', null, '{"panel": "hotels", "items": [{"source": "c1"}}, "x"]}')],
+      [callChunk('c2', 'show_results', { panel: 'hotels', items: [validItem] })],
+      textChunks('done'),
+    ]);
+    const events = await collect(model);
+    expect(events.filter((e) => e.type === 'show_results')).toHaveLength(1);
+    expect(events.at(-1)).toEqual({ type: 'text', delta: 'done' });
+    // The broken call is not sent back (the API would reject a ToolMessage for it); a server note is.
+    expect(model.seen[1].some((m) => AIMessage.isInstance(m))).toBe(false);
+    const note = model.seen[1].at(-1);
+    expect(note).toBeInstanceOf(HumanMessage);
+    expect(note?.text).toContain('show_results');
+  });
+
   it('streams plain text from a round without tool calls', async () => {
     const events = await collect(scripted([textChunks('你', '好')]));
     expect(events).toEqual([{ type: 'text', delta: '你' }, { type: 'text', delta: '好' }]);

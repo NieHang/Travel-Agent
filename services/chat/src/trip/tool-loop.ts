@@ -1,4 +1,4 @@
-import { ToolMessage, type AIMessageChunk, type BaseMessage } from '@langchain/core/messages';
+import { HumanMessage, ToolMessage, type AIMessageChunk, type BaseMessage } from '@langchain/core/messages';
 import { tool, type StructuredToolInterface } from '@langchain/core/tools';
 import { compactToolContent } from '../llm/mcp/compact.js';
 import {
@@ -68,8 +68,11 @@ export async function* streamToolLoop(
       if (typeof chunk.content === 'string' && chunk.content) yield { type: 'text', delta: chunk.content };
     }
     const calls = reply?.tool_calls ?? [];
-    if (!reply || !calls.length) return;
-    conversation.push(reply);
+    // Calls whose arguments are not valid JSON (DeepSeek truncates long show_results payloads now and then).
+    const invalid = reply?.invalid_tool_calls ?? [];
+    if (!reply || (!calls.length && !invalid.length)) return;
+    // Only valid calls are sent back to the API, so invalid ones get no ToolMessage (it would be orphaned).
+    if (calls.length) conversation.push(reply);
     for (const call of calls) {
       const callId = call.id ?? `${call.name}-${round}`;
       if (call.name === SHOW_RESULTS) {
@@ -108,5 +111,13 @@ export async function* streamToolLoop(
         }),
       );
     }
+    if (invalid.length)
+      conversation.push(
+        new HumanMessage(
+          `[Server note, not from the user] These tool calls were not run because their arguments were not valid JSON: ${invalid
+            .map((c) => c.name ?? 'unknown')
+            .join(', ')}. Call them again with complete, valid JSON; keep the arguments short.`,
+        ),
+      );
   }
 }
