@@ -42,9 +42,10 @@ const TOOL_RULES = `- Fill tool arguments from the request and the conversation;
 const TASKS: Record<LlmTask, string> = {
   answer: `Task: answer the user's latest message. Call tools only when live data is needed.`,
   itinerary: `Task: the trip requirements in serverContext are complete and validated. Write the itinerary draft.
-- If the trip has overnight stays and a lodging tool is available, search accommodation first: destination,
-  check-in = departureDate, check-out = returnDate, travelers, preferences, and budget if stated. For a
-  multi-city trip, search each city. Skip the search for a same-day trip or when the user already has lodging.
+- serverContext.nights is the number of overnight stays. If it is above 0 and a lodging tool is available,
+  search accommodation first: destination, check-in = departureDate, check-out = returnDate, travelers,
+  preferences, and budget if stated. For a multi-city trip, search each city. If nights is 0 (a same-day
+  trip) or the user already has lodging, do not search accommodation and do not show hotels.
 - Call show_results with panel "hotels" for the options you recommend.
 - Then write the draft day by day in Markdown. Every day that ends with an overnight stay closes with one
   line naming exactly one hotel for that night, chosen from show_results (translation first, original in
@@ -62,12 +63,19 @@ Today is ${new Date().toISOString().slice(0, 10)}.
 ${TASKS[task]}`;
 }
 
+/** Nights between the trip dates; null until both are known. */
+export function countNights({ departureDate, returnDate }: TripState['requirements']): number | null {
+  if (!departureDate || !returnDate) return null;
+  return Math.round((Date.parse(returnDate) - Date.parse(departureDate)) / 86_400_000);
+}
+
 const context = (state: TripState) =>
   new HumanMessage(
     JSON.stringify({
       serverContext: {
         stage: state.stage,
         requirements: state.requirements,
+        nights: countNights(state.requirements),
         locale: state.locale,
         toolResults: state.toolResults,
       },

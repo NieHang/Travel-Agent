@@ -16,7 +16,7 @@ vi.mock('../llm/model.factory.js', () => ({
   }),
 }));
 
-import { ModelTripLlm } from './llm.js';
+import { countNights, ModelTripLlm } from './llm.js';
 import { initialState } from './state.js';
 
 const history = Array.from({ length: 30 }, (_, i) => (i % 2 ? new AIMessage(`m${i}`) : new HumanMessage(`m${i}`)));
@@ -41,5 +41,13 @@ describe('ModelTripLlm', () => {
     await new ModelTripLlm().classify({ text: 'next', state: initialState(), history }, new AbortController().signal);
     const [sent] = model.classify.mock.calls[0] as [BaseMessage[]];
     expect(sent.slice(1, 31)).toEqual(history);
+  });
+});
+
+describe('countNights', () => {
+  it('counts nights between the trip dates, 0 for a same-day trip', () => {
+    expect(countNights({ departureDate: '2026-12-01', returnDate: '2026-12-03' })).toBe(2);
+    expect(countNights({ departureDate: '2026-12-01', returnDate: '2026-12-01' })).toBe(0);
+    expect(countNights({ departureDate: '2026-12-01' })).toBeNull();
   });
 });
