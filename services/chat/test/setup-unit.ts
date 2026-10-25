@@ -1,3 +1,5 @@
+process.env.LOG_LEVEL ??= 'silent';
+
 // Unit tests fake an OpenAI-compatible server through OPENAI_API_KEY / OPENAI_BASE_URL, so pin the
 // provider to openai instead of reading it from config/langchain.yaml. Other settings stay real.
 vi.mock('../src/config/load-langchain-config.js', async (importOriginal) => {

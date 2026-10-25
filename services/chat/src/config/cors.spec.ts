@@ -5,7 +5,7 @@ describe('corsOptions', () => {
     expect(corsOptions({})).toEqual({
       origin: 'http://localhost:3002',
       credentials: true,
-      exposedHeaders: ['Retry-After'],
+      exposedHeaders: ['Retry-After', 'x-trace-id'],
     });
   });
   it('来源取自 CORS_ORIGIN', () => {

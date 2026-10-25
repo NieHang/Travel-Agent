@@ -1,13 +1,15 @@
 import {
   Catch,
   HttpException,
-  Logger,
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common';
 import type { ApiError, ErrorCode } from '@autix/contracts';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import { createLogger } from '../observability/logger.js';
 import { AppException } from './app.exception.js';
+
+export const errorLog = createLogger('AllExceptionsFilter');
 
 const GENERIC_MESSAGES: Partial<Record<ErrorCode, string>> = {
   VALIDATION_FAILED: 'Invalid request',
@@ -42,8 +44,6 @@ function codeForStatus(status: number | undefined): ErrorCode {
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  private readonly logger = new Logger(AllExceptionsFilter.name);
-
   catch(exception: unknown, host: ArgumentsHost): void {
     const res = host.switchToHttp().getResponse<Response>();
 
@@ -60,7 +60,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const code = codeForStatus(statusOf(exception));
       if (code === 'INTERNAL_ERROR') {
         status = 500;
-        this.logger.error(exception);
+        const req = host.switchToHttp().getRequest<Request>();
+        errorLog.error(
+          { err: exception, method: req.method, path: req.path },
+          'unhandled exception',
+        );
       } else {
         status = statusOf(exception)!;
       }

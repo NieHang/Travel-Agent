@@ -5,6 +5,6 @@ export function corsOptions(env: NodeJS.ProcessEnv = process.env): CorsOptions {
   return {
     origin: env.CORS_ORIGIN || 'http://localhost:3002',
     credentials: true,
-    exposedHeaders: ['Retry-After'],
+    exposedHeaders: ['Retry-After', 'x-trace-id'],
   };
 }

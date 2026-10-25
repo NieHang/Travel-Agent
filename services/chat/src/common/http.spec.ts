@@ -5,7 +5,6 @@ import {
   Controller,
   Get,
   HttpException,
-  Logger,
   Post,
   type INestApplication,
 } from '@nestjs/common';
@@ -13,7 +12,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { z } from 'zod';
-import { AllExceptionsFilter } from './all-exceptions.filter.js';
+import { AllExceptionsFilter, errorLog } from './all-exceptions.filter.js';
 import { AppException } from './app.exception.js';
 import { ZodValidationPipe } from './zod-validation.pipe.js';
 
@@ -95,9 +94,7 @@ describe('common http', () => {
       }));
 
   it('未知异常不泄露细节', async () => {
-    const spy = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
+    const spy = vi.spyOn(errorLog, 'error').mockImplementation(() => undefined);
     try {
       const res = await request(server).get('/t/boom').expect(500);
       expect(res.body.code).toBe('INTERNAL_ERROR');
@@ -105,7 +102,9 @@ describe('common http', () => {
       expect(spy).toHaveBeenCalledTimes(1);
       const logged = spy.mock.calls[0];
       expect(logged[0]).toEqual(
-        expect.objectContaining({ message: 'secret detail' }),
+        expect.objectContaining({
+          err: expect.objectContaining({ message: 'secret detail' }),
+        }),
       );
     } finally {
       spy.mockRestore();
@@ -138,9 +137,7 @@ describe('common http', () => {
       .expect((r) => expect(r.body.code).toBe('NOT_FOUND')));
 
   it('超出解析上限的请求体是 413 VALIDATION_FAILED，不记错误日志', async () => {
-    const spy = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
+    const spy = vi.spyOn(errorLog, 'error').mockImplementation(() => undefined);
     try {
       const res = await request(server)
         .post('/t/body')
@@ -160,7 +157,7 @@ describe('common http', () => {
     '非请求体解析的错误即使带 4xx status 也是 500 INTERNAL_ERROR，并记日志（%s）',
     async (route) => {
       const spy = vi
-        .spyOn(Logger.prototype, 'error')
+        .spyOn(errorLog, 'error')
         .mockImplementation(() => undefined);
       try {
         const res = await request(server).get(`/t/${route}`).expect(500);
