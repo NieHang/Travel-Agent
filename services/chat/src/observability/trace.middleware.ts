@@ -2,7 +2,7 @@ import { Injectable, type NestMiddleware } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import { createLogger } from './logger.js';
 import { httpDuration } from './metrics.js';
-import { newTraceId, runWithTrace } from './trace-context.js';
+import { createLlmTotals, newTraceId, runWithTrace } from './trace-context.js';
 
 const TRACE_HEADER = 'x-trace-id';
 const accessLog = createLogger('http');
@@ -13,12 +13,16 @@ export class TraceMiddleware implements NestMiddleware {
     const traceId = readTraceId(req) ?? newTraceId();
     res.setHeader(TRACE_HEADER, traceId);
     const startedAt = performance.now();
+    const llm = createLlmTotals();
     let logged = false;
-    const done = () => {
+    const done = async () => {
       if (logged) return;
       logged = true;
       const durationMs = Math.round(performance.now() - startedAt);
       const route = routeOf(req);
+      const aborted = !res.writableFinished;
+      // A close listener in the controller aborts the model after this listener runs.
+      await llm.whenIdle();
       // finish/close may execute outside the request's async context.
       accessLog.info(
         {
@@ -28,7 +32,19 @@ export class TraceMiddleware implements NestMiddleware {
           path: req.path,
           status: res.statusCode,
           durationMs,
-          aborted: !res.writableFinished,
+          aborted,
+          ...(llm.calls > 0
+            ? {
+                llm: {
+                  calls: llm.calls,
+                  inputTokens: llm.inputTokens,
+                  cachedInputTokens: llm.cachedInputTokens,
+                  outputTokens: llm.outputTokens,
+                  costUsd: llm.costUsd,
+                  estimated: llm.estimated,
+                },
+              }
+            : {}),
         },
         'request completed',
       );
@@ -39,7 +55,7 @@ export class TraceMiddleware implements NestMiddleware {
     };
     res.on('finish', done);
     res.on('close', done);
-    runWithTrace(traceId, () => next());
+    runWithTrace(traceId, () => next(), llm);
   }
 }
 

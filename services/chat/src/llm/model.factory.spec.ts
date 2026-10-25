@@ -1,7 +1,16 @@
 import { createChatModel } from './model.factory.js';
+import { LlmMeteringHandler } from './cost/llm-metering.js';
 
 describe('createChatModel', () => {
   afterEach(() => vi.unstubAllEnvs());
+
+  it('attaches metering to every model, including operation-tagged calls', () => {
+    vi.stubEnv('OPENAI_API_KEY', 'local-test-key');
+    vi.stubEnv('OPENAI_BASE_URL', 'http://localhost:1234/v1');
+    const model = createChatModel({ operation: 'trip.classify' });
+    expect(model.callbacks).toEqual([expect.any(LlmMeteringHandler)]);
+    expect(createChatModel().callbacks).toEqual([expect.any(LlmMeteringHandler)]);
+  });
 
   it('requires an API key from the environment', () => {
     vi.stubEnv('OPENAI_API_KEY', '');

@@ -116,7 +116,7 @@ export class ModelTripLlm implements TripLlm {
   }
 
   async classify(input: { text: string; state: TripState; history: BaseMessage[] }, signal: AbortSignal) {
-    const output = await createChatModel()
+    const output = await createChatModel({ operation: 'trip.classify' })
       .withStructuredOutput(ClassifiedSchema, { name: 'classify', method: 'functionCalling', strict: true })
       .invoke([new SystemMessage(CLASSIFY_PROMPT), ...input.history, context(input.state), new HumanMessage(input.text)], { signal });
     return ClassifiedSchema.parse(output);
@@ -129,7 +129,7 @@ export class ModelTripLlm implements TripLlm {
   ): AsyncIterable<LoopEvent> {
     const tools: StructuredToolInterface[] = [...(this.mcp?.mcpManager.getTools() ?? [])];
     if (this.onDemand.length) tools.push(loadSkillTool(this.onDemand));
-    const model = createChatModel().bindTools([...tools, showResultsTool]) as unknown as StreamingModel;
+    const model = createChatModel({ operation: 'trip.respond' }).bindTools([...tools, showResultsTool]) as unknown as StreamingModel;
     const last = input.text ?? (task === 'itinerary' ? 'Write the itinerary draft now.' : '');
     const system = systemPrompt(task, input.state.locale, this.always, this.onDemand);
     yield* streamToolLoop(
@@ -144,7 +144,7 @@ export class ModelTripLlm implements TripLlm {
 
   async extractDays(draft: string, stays: ResultGroup | null, locale: Locale, signal: AbortSignal) {
     const hotels = (stays?.items ?? []).map((h) => `${h.ref}: ${h.title.original}`).join('\n') || '(none)';
-    const output = await createChatModel()
+    const output = await createChatModel({ operation: 'trip.extract_days' })
       .withStructuredOutput(DaysSchema, { name: 'travel_days', method: 'functionCalling', strict: true })
       .invoke(
         [

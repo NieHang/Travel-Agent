@@ -13,14 +13,50 @@ import { AllExceptionsFilter } from '../common/all-exceptions.filter.js';
 import { Test } from '@nestjs/testing';
 import type { Response } from 'express';
 import request from 'supertest';
+import { HumanMessage } from '@langchain/core/messages';
+import { LlmMeteringHandler } from '../llm/cost/llm-metering.js';
 import { httpDuration, registry } from './metrics.js';
-import { getTraceId } from './trace-context.js';
+import { getLlmTotals, getTraceId } from './trace-context.js';
 import { TraceMiddleware } from './trace.middleware.js';
+
+const accessInfo = vi.hoisted(() => vi.fn());
+vi.mock('./logger.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./logger.js')>();
+  return {
+    ...actual,
+    createLogger: () => ({ info: accessInfo, warn: vi.fn() }),
+  };
+});
 
 @Controller('t')
 class TraceController {
+  @Get('metered')
+  metered() {
+    getLlmTotals()?.add({
+      inputTokens: 100,
+      cachedInputTokens: 40,
+      outputTokens: 20,
+      costUsd: 0.01,
+      usageSource: 'provider',
+    });
+    return { ok: true };
+  }
+
   @Get('stream')
   stream(@Res() res: Response) {
+    const handler = new LlmMeteringHandler();
+    handler.handleChatModelStart(
+      { lc: 1, type: 'not_implemented', id: ['test'] },
+      [[new HumanMessage('a'.repeat(400))]],
+      'stream-run',
+    );
+    // The controller aborts after the middleware's close listener has run.
+    res.on('close', () => {
+      setTimeout(
+        () => handler.handleLLMError(new Error('AbortError'), 'stream-run'),
+        10,
+      );
+    });
     res.setHeader('Content-Type', 'text/event-stream');
     res.write('data: ready\n\n');
   }
@@ -60,7 +96,10 @@ describe('TraceMiddleware', () => {
     await app.listen(0, '127.0.0.1');
     server = app.getHttpServer();
   });
-  beforeEach(() => registry.resetMetrics());
+  beforeEach(() => {
+    registry.resetMetrics();
+    accessInfo.mockClear();
+  });
   afterAll(async () => {
     await app?.close();
   });
@@ -69,6 +108,29 @@ describe('TraceMiddleware', () => {
     const response = await request(server).get('/t/123').expect(200);
     expect(response.headers['x-trace-id']).toMatch(uuid);
     expect(response.body).toEqual({ traceId: response.headers['x-trace-id'] });
+  });
+
+  it('includes request totals in the access log after finish', async () => {
+    await request(server).get('/t/metered').expect(200);
+    expect(accessInfo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        llm: {
+          calls: 1,
+          inputTokens: 100,
+          cachedInputTokens: 40,
+          outputTokens: 20,
+          costUsd: 0.01,
+          estimated: false,
+        },
+      }),
+      'request completed',
+    );
+  });
+
+  it('omits the llm field when no model was called', async () => {
+    await request(server).get('/t/123').expect(200);
+    expect(accessInfo).toHaveBeenCalledTimes(1);
+    expect(accessInfo.mock.calls[0][0]).not.toHaveProperty('llm');
   });
 
   it('reuses a valid incoming trace id', async () => {
@@ -157,6 +219,20 @@ describe('TraceMiddleware', () => {
         route: '/t/stream',
         status_code: '200',
       });
+      expect(accessInfo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aborted: true,
+          llm: {
+            calls: 1,
+            inputTokens: 100,
+            cachedInputTokens: 0,
+            outputTokens: 0,
+            costUsd: 0.00025,
+            estimated: true,
+          },
+        }),
+        'request completed',
+      );
     } finally {
       observation.mockRestore();
     }

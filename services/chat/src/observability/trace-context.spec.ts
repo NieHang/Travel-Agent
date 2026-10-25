@@ -1,4 +1,6 @@
 import {
+  createLlmTotals,
+  getLlmTotals,
   getElapsedMs,
   getTraceId,
   newTraceId,
@@ -6,6 +8,74 @@ import {
 } from './trace-context.js';
 
 describe('trace context', () => {
+  it('waits for every in-flight call before finalizing a request summary', async () => {
+    const totals = createLlmTotals();
+    totals.beginCall();
+    totals.beginCall();
+    const settled = vi.fn();
+    const waiting = totals.whenIdle().then(settled);
+    totals.endCall();
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
+    totals.endCall();
+    await waiting;
+    expect(settled).toHaveBeenCalledTimes(1);
+    await totals.whenIdle();
+  });
+  it('creates an empty request summary by default', () => {
+    expect(getLlmTotals()).toBeUndefined();
+    runWithTrace('default', () => {
+      expect(getLlmTotals()).toMatchObject({
+        calls: 0,
+        inputTokens: 0,
+        cachedInputTokens: 0,
+        outputTokens: 0,
+        costUsd: 0,
+        estimated: false,
+      });
+    });
+  });
+
+  it('accumulates usage and keeps summaries isolated across nested contexts', () => {
+    const totals = createLlmTotals();
+    runWithTrace(
+      'outer',
+      () => {
+        getLlmTotals()?.add({
+          inputTokens: 100,
+          cachedInputTokens: 40,
+          outputTokens: 20,
+          costUsd: 0.01,
+          usageSource: 'provider',
+        });
+        runWithTrace('inner', () => expect(getLlmTotals()?.calls).toBe(0));
+        getLlmTotals()?.add({
+          inputTokens: 200,
+          cachedInputTokens: 0,
+          outputTokens: 30,
+          costUsd: 0.02,
+          usageSource: 'estimate',
+        });
+      },
+      totals,
+    );
+    expect(totals).toMatchObject({
+      calls: 2,
+      inputTokens: 300,
+      cachedInputTokens: 40,
+      outputTokens: 50,
+      costUsd: 0.03,
+      estimated: true,
+    });
+    totals.add({
+      inputTokens: 0,
+      cachedInputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0,
+      usageSource: 'provider',
+    });
+    expect(totals.estimated).toBe(true);
+  });
   it('has no trace or elapsed time outside a context', () => {
     expect(getTraceId()).toBeUndefined();
     expect(getElapsedMs()).toBeUndefined();

@@ -1,5 +1,23 @@
 import { estimateTextTokens, getModelPricing } from './token-estimator.js';
 
+export interface UsageCostInput {
+  model: string;
+  inputTokens: number;
+  cachedInputTokens?: number;
+  outputTokens: number;
+}
+
+/** Prices provider usage, including discounted cache hits where available. */
+export function costFromUsage({ model, inputTokens, cachedInputTokens = 0, outputTokens }: UsageCostInput): number {
+  const pricing = getModelPricing(model);
+  const cached = Math.min(cachedInputTokens, inputTokens);
+  return (
+    (inputTokens - cached) * pricing.input +
+    cached * (pricing.cachedInput ?? pricing.input) +
+    outputTokens * pricing.output
+  ) / 1_000_000;
+}
+
 export interface CostEstimateInput {
   model: string;
   /** Prompt texts sent to the model: system prompt, history and the new user message. */
