@@ -4,8 +4,6 @@
 
 - **Reuse HeroUI before building UI.** Before you create or change a React component, check whether HeroUI already provides it, and use that instead of writing your own.
 
-- Before adding complexity for a speculative or vanishingly unlikely race or security edge case, explain the concrete failure mode, likelihood, and complexity cost to the user and get their buy-in. Do not silently expand scope for theoretical robustness.
-
 - **`main` is the base branch.** Base branches and worktrees on `origin/main`, target PRs at `main`, and diff against `origin/main` unless told otherwise.
 
 ## Style Guide
@@ -13,6 +11,7 @@
 These apply to new and changed code. Do not rewrite untouched code just to match them.
 
 - **Validate once, at the boundary.** Parse unknown input with the Zod schemas from `@autix/contracts` where it enters (controllers, SSE parsing, `ComponentRenderer`), then pass typed values inward. Do not re-check fields a schema already guarantees.
+- **Ask before adding speculative robustness.** Before adding complexity for a speculative or vanishingly unlikely race or security edge case, explain the concrete failure mode, likelihood, and complexity cost to the user and get their buy-in. Do not silently expand scope for theoretical robustness.
 - **No `any`.** Use `unknown` plus a schema or type guard.
 - **Do not extract single-use helpers preemptively.** Inline the logic unless the helper is reused, hides a genuinely complex boundary, or has a name that clearly helps the caller.
 - **Make the main function read as the happy path.** When a function has several validation branches, move them into small named helpers below it (for example `requireConfig`, `readMetadata`), not into many one-line wrappers.
