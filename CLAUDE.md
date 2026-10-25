@@ -2,7 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-@AGENT.md
 @AGENTS.md
 @LESSON.md
 
