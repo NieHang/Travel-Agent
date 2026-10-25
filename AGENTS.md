@@ -6,6 +6,32 @@
 
 - Before adding complexity for a speculative or vanishingly unlikely race or security edge case, explain the concrete failure mode, likelihood, and complexity cost to the user and get their buy-in. Do not silently expand scope for theoretical robustness.
 
+## Style Guide
+
+These apply to new and changed code. Do not rewrite untouched code just to match them.
+
+- **Validate once, at the boundary.** Parse unknown input with the Zod schemas from `@autix/contracts` where it enters (controllers, SSE parsing, `ComponentRenderer`), then pass typed values inward. Do not re-check fields a schema already guarantees.
+- **No `any`.** Use `unknown` plus a schema or type guard.
+- **Do not extract single-use helpers preemptively.** Inline the logic unless the helper is reused, hides a genuinely complex boundary, or has a name that clearly helps the caller.
+- **Make the main function read as the happy path.** When a function has several validation branches, move them into small named helpers below it (for example `requireConfig`, `readMetadata`), not into many one-line wrappers.
+- **Prefer `const` over `let`, and early returns over `else`.** Use a ternary or an early return instead of reassigning a variable.
+
+  ```ts
+  // Good
+  const label = done ? 'Done' : 'Pending'
+  if (!state) return null
+  return render(state)
+
+  // Bad
+  let label
+  if (done) label = 'Done'
+  else label = 'Pending'
+  ```
+
+- **Comment the non-obvious only.** Write comments for surprising constraints and behavior, not for obvious assignments or control flow.
+- **Load heavy frontend modules lazily.** In `clients/chat-web`, use `next/dynamic` or a dynamic `import()` for large components or libraries needed only on some paths, and keep the import inside the branch that needs it.
+- **Tests exercise the real implementation.** Do not copy the logic under test into the test to compute the expected value; assert against concrete expected output.
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know
