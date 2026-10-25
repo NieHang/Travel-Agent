@@ -5,6 +5,7 @@ import { McpService } from '../llm/mcp/mcp.service.js';
 import { FakeTripLlm } from './fake-llm.js';
 import { ModelTripLlm, TRIP_LLM } from './llm.js';
 import { TurnService } from './turn.js';
+import { loadSkills } from '../skills/registry.js';
 
 @Module({
   imports: [McpModule],
@@ -12,7 +13,7 @@ import { TurnService } from './turn.js';
     {
       provide: TRIP_LLM,
       inject: [McpService],
-      useFactory: (mcp: McpService) => (isLlmFakeEnabled() ? new FakeTripLlm() : new ModelTripLlm(mcp)),
+      useFactory: (mcp: McpService) => (isLlmFakeEnabled() ? new FakeTripLlm() : new ModelTripLlm(mcp, loadSkills())),
     },
     TurnService,
   ],

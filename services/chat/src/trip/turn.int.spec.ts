@@ -26,7 +26,7 @@ const hotelItem = {
   details: [], amenities: [{ original: 'Kitchen', translation: '厨房' }], summary: null,
 };
 const searchAndShow = (panel: 'hotels'): LoopEvent[] => [
-  { type: 'tool_call', name: 'searchHotels' },
+  { type: 'tool_call', name: 'searchHotels', args: {} },
   { type: 'tool_results', results: [hotelResult] },
   { type: 'show_results', input: { panel, items: [hotelItem] }, results: [hotelResult] },
 ];
@@ -172,7 +172,7 @@ describe('TurnService', () => {
     llm.classifications.push(chatted);
     const other = { callId: 'p1', tool: 'otherServer__places', args: {}, content: '{"places":[{"name":"Lingyin Temple"}]}', isError: false };
     llm.responses.push([
-      { type: 'tool_call', name: 'otherServer__places' },
+      { type: 'tool_call', name: 'otherServer__places', args: {} },
       { type: 'tool_results', results: [other] },
       { type: 'show_results', input: { panel: 'hotspots', items: [{ ...hotelItem, source: 'p1', id: null, price: null, rating: null, amenities: [], title: { original: 'Lingyin Temple', translation: '灵隐寺' } }] }, results: [other] },
       { type: 'text', delta: '灵隐寺' },

@@ -1,4 +1,4 @@
-import { ToolMessage, type AIMessageChunk, type BaseMessage } from '@langchain/core/messages';
+import { HumanMessage, ToolMessage, type AIMessageChunk, type BaseMessage } from '@langchain/core/messages';
 import { tool, type StructuredToolInterface } from '@langchain/core/tools';
 import { compactToolContent } from '../llm/mcp/compact.js';
 import {
@@ -9,12 +9,13 @@ import {
   type ToolResult,
 } from './results.js';
 
-export const MAX_TOOL_ROUNDS = 4;
+// Japan drafts may load city skills, search hotels per city, then show_results before writing.
+export const MAX_TOOL_ROUNDS = 5;
 export const MAX_RESULT_LENGTH = 12_000;
 export const MAX_STORED_RESULTS = 8;
 
 export type LoopEvent =
-  | { type: 'tool_call'; name: string }
+  | { type: 'tool_call'; name: string; args: Record<string, unknown> }
   | { type: 'tool_results'; results: ToolResult[] }
   | { type: 'show_results'; input: ShowResultsInput; results: ToolResult[] }
   | { type: 'text'; delta: string };
@@ -48,6 +49,7 @@ function toResult(callId: string, name: string, args: Record<string, unknown>, o
 /**
  * One tool-calling conversation: each round is streamed; a round with tool calls runs them and
  * continues, a round with only text is the answer. Text is yielded as it arrives.
+ * Tools named in `unrecorded` (e.g. load_skill) reach the model as raw text and are not reported as results.
  */
 export async function* streamToolLoop(
   model: StreamingModel,
@@ -55,6 +57,7 @@ export async function* streamToolLoop(
   messages: BaseMessage[],
   signal: AbortSignal,
   maxRounds = MAX_TOOL_ROUNDS,
+  unrecorded: ReadonlySet<string> = new Set(),
 ): AsyncGenerator<LoopEvent> {
   const byName = new Map(tools.map((t) => [t.name, t]));
   const conversation = [...messages];
@@ -68,8 +71,11 @@ export async function* streamToolLoop(
       if (typeof chunk.content === 'string' && chunk.content) yield { type: 'text', delta: chunk.content };
     }
     const calls = reply?.tool_calls ?? [];
-    if (!reply || !calls.length) return;
-    conversation.push(reply);
+    // Calls whose arguments are not valid JSON (DeepSeek truncates long show_results payloads now and then).
+    const invalid = reply?.invalid_tool_calls ?? [];
+    if (!reply || (!calls.length && !invalid.length)) return;
+    // Only valid calls are sent back to the API, so invalid ones get no ToolMessage (it would be orphaned).
+    if (calls.length) conversation.push(reply);
     for (const call of calls) {
       const callId = call.id ?? `${call.name}-${round}`;
       if (call.name === SHOW_RESULTS) {
@@ -85,7 +91,7 @@ export async function* streamToolLoop(
         );
         continue;
       }
-      yield { type: 'tool_call', name: call.name };
+      yield { type: 'tool_call', name: call.name, args: call.args };
       const found = byName.get(call.name);
       let output: unknown;
       try {
@@ -97,6 +103,13 @@ export async function* streamToolLoop(
         output = { content: `Tool ${call.name} failed`, isError: true };
       }
       signal.throwIfAborted();
+      if (unrecorded.has(call.name)) {
+        const raw = output && typeof output === 'object' && 'content' in output ? output.content : output;
+        conversation.push(
+          new ToolMessage({ tool_call_id: callId, content: typeof raw === 'string' ? raw : JSON.stringify(raw) }),
+        );
+        continue;
+      }
       const result = toResult(callId, call.name, call.args, output);
       results.push(result);
       yield { type: 'tool_results', results: [...results] };
@@ -108,5 +121,13 @@ export async function* streamToolLoop(
         }),
       );
     }
+    if (invalid.length)
+      conversation.push(
+        new HumanMessage(
+          `[Server note, not from the user] These tool calls were not run because their arguments were not valid JSON: ${invalid
+            .map((c) => c.name ?? 'unknown')
+            .join(', ')}. Call them again with complete, valid JSON; keep the arguments short.`,
+        ),
+      );
   }
 }

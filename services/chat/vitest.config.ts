@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.spec.ts'],
+    setupFiles: ['./test/setup-unit.ts'],
     exclude: [...configDefaults.exclude, '**/*.int.spec.ts'],
   },
 });

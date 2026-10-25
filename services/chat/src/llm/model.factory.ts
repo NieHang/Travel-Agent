@@ -1,8 +1,8 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { fetch, ProxyAgent } from 'undici';
 import {
-  getApiKeys,
   loadLangChainConfig,
+  PROVIDER_ENV,
 } from '../config/load-langchain-config.js';
 
 // Reuse connection pools across invoke, stream, and batch requests.
@@ -11,11 +11,13 @@ const proxyAgents = new Map<string, ProxyAgent>();
 /** `model` overrides the model from config/langchain.yaml, e.g. a cheaper one for side tasks. */
 export function createChatModel(options: { model?: string } = {}): ChatOpenAI {
   const { llm } = loadLangChainConfig();
-  const { openaiApiKey, openaiBaseUrl } = getApiKeys();
-  if (llm.provider !== 'openai')
+  if (!Object.hasOwn(PROVIDER_ENV, llm.provider))
     throw new Error(`Unsupported LLM provider: ${llm.provider}`);
-  if (!openaiApiKey?.trim()) throw new Error('OPENAI_API_KEY is required');
-  if (!openaiBaseUrl?.trim()) throw new Error('OPENAI_BASE_URL is required');
+  const env = PROVIDER_ENV[llm.provider as keyof typeof PROVIDER_ENV];
+  const apiKey = process.env[env.apiKey];
+  const baseURL = process.env[env.baseUrl];
+  if (!apiKey?.trim()) throw new Error(`${env.apiKey} is required`);
+  if (!baseURL?.trim()) throw new Error(`${env.baseUrl} is required`);
   const proxyUrl =
     process.env.HTTPS_PROXY?.trim() || process.env.HTTP_PROXY?.trim();
   let dispatcher: ProxyAgent | undefined;
@@ -30,9 +32,10 @@ export function createChatModel(options: { model?: string } = {}): ChatOpenAI {
     model: options.model ?? llm.model,
     temperature: llm.temperature,
     maxTokens: llm.maxTokens,
-    apiKey: openaiApiKey,
+    ...(llm.thinking === false ? { modelKwargs: { thinking: { type: 'disabled' } } } : {}),
+    apiKey,
     configuration: {
-      baseURL: openaiBaseUrl,
+      baseURL,
       ...(dispatcher
         ? {
             // Undici's Fetch types differ from the SDK's Web Fetch types.
