@@ -80,6 +80,16 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   const legStops = japan.next.days.flatMap((d) => d.stops.map((s) => s.name)).filter((name) => legs.test(name));
   check(`${locale}: travel legs are not stops`, legStops.length === 0);
   if (legStops.length) console.log(`  leg stops: ${JSON.stringify(legStops)}`);
+  // Full days (all but the first and last block) each need a rainy-day / drop-if-tired line.
+  const dayBlocks = japan.draft.split(/^(?=[#*\s]*(?:Day\s*\d+|第\s*\d+\s*天|D\d+\b))/im).filter((b) => /^[#*\s]*(?:Day\s*\d+|第\s*\d+\s*天|D\d+\b)/i.test(b));
+  const missingAlt = dayBlocks.slice(1, -1).filter((b) => !/备选|Alternative/i.test(b)).map((b) => b.split('\n')[0].trim());
+  check(`${locale}: every full day has an alternatives line`, dayBlocks.length >= 6 && missingAlt.length === 0);
+  if (missingAlt.length || dayBlocks.length < 6) console.log(`  day blocks ${dayBlocks.length}, missing alternatives: ${JSON.stringify(missingAlt)}`);
+  // 5 nights is not a short trip: every city gets at least 2 nights.
+  const overview = japan.draft.slice(0, japan.draft.search(zh ? /出发前要办/ : /Before you go/i));
+  const nights = [...overview.matchAll(zh ? /(\d+)\s*晚/g : /(\d+)\s*nights?\b/gi)].map((m) => Number(m[1]));
+  check(`${locale}: no city gets a single night`, nights.length >= 2 && nights.every((n) => n >= 2));
+  if (!(nights.length >= 2 && nights.every((n) => n >= 2))) console.log(`  overview nights: ${JSON.stringify(nights)}`);
   if (process.env.PRINT_DRAFT) console.log(japan.draft);
   console.log(`${locale}: loaded ${JSON.stringify(japan.loaded)}, days ${japan.next.days.length}, draft ${japan.draft.length} chars, tool calls ${JSON.stringify(japan.calls)}`);
 }
