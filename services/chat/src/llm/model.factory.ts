@@ -1,4 +1,5 @@
 import { ChatOpenAI } from '@langchain/openai';
+import type { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import { fetch, ProxyAgent } from 'undici';
 import { LlmMeteringHandler } from './cost/llm-metering.js';
 import {
@@ -10,7 +11,7 @@ import {
 const proxyAgents = new Map<string, ProxyAgent>();
 
 /** `model` overrides the model from config/langchain.yaml, e.g. a cheaper one for side tasks. */
-export function createChatModel(options: { model?: string; operation?: string } = {}): ChatOpenAI {
+export function createChatModel(options: { model?: string; operation?: string; callbacks?: BaseCallbackHandler[] } = {}): ChatOpenAI {
   const { llm } = loadLangChainConfig();
   if (!Object.hasOwn(PROVIDER_ENV, llm.provider))
     throw new Error(`Unsupported LLM provider: ${llm.provider}`);
@@ -30,7 +31,7 @@ export function createChatModel(options: { model?: string; operation?: string } 
     }
   }
   return new ChatOpenAI({
-    callbacks: [new LlmMeteringHandler({ operation: options.operation })],
+    callbacks: [new LlmMeteringHandler({ operation: options.operation }), ...(options.callbacks ?? [])],
     model: options.model ?? llm.model,
     temperature: llm.temperature,
     maxTokens: llm.maxTokens,

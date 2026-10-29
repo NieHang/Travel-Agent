@@ -1,8 +1,20 @@
 import { createChatModel } from './model.factory.js';
 import { LlmMeteringHandler } from './cost/llm-metering.js';
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 
 describe('createChatModel', () => {
   afterEach(() => vi.unstubAllEnvs());
+
+  it('appends extra callbacks after metering in caller order', () => {
+    vi.stubEnv('OPENAI_API_KEY', 'local-test-key');
+    vi.stubEnv('OPENAI_BASE_URL', 'http://localhost:1234/v1');
+    class ExtraHandler extends BaseCallbackHandler { name = 'extra'; }
+    const first = new ExtraHandler();
+    const second = new ExtraHandler();
+    expect(createChatModel({ callbacks: [first, second] }).callbacks).toEqual([
+      expect.any(LlmMeteringHandler), first, second,
+    ]);
+  });
 
   it('attaches metering to every model, including operation-tagged calls', () => {
     vi.stubEnv('OPENAI_API_KEY', 'local-test-key');

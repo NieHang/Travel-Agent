@@ -1,9 +1,10 @@
 import { AIMessage, AIMessageChunk, HumanMessage, type BaseMessage } from '@langchain/core/messages';
 import type { Classified } from './commands.js';
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 
 const model = vi.hoisted(() => ({ seen: [] as BaseMessage[][], bound: [] as string[], classify: vi.fn() }));
 vi.mock('../llm/model.factory.js', () => ({
-  createChatModel: () => ({
+  createChatModel: vi.fn(() => ({
     withStructuredOutput: () => ({ invoke: model.classify }),
     bindTools: (tools: { name: string }[]) => {
       model.bound = tools.map((t) => t.name);
@@ -16,12 +17,13 @@ vi.mock('../llm/model.factory.js', () => ({
       },
       };
     },
-  }),
+  })),
 }));
 
 import { countNights, ModelTripLlm } from './llm.js';
 import { initialState } from './state.js';
 import type { Skill } from '../skills/registry.js';
+import { createChatModel } from '../llm/model.factory.js';
 
 const core: Skill = { name: 'japan-travel', description: 'Japan rules', always: true, body: 'JAPAN-RULES' };
 const tokyo: Skill = { name: 'japan-tokyo', description: 'Tokyo (东京)', always: false, body: 'TOKYO-NOTES' };
@@ -44,6 +46,23 @@ describe('ModelTripLlm', () => {
   beforeEach(() => {
     model.seen = [];
     model.classify.mockReset().mockResolvedValue(chatted);
+  });
+
+  it('passes callbacks to classify, respond and extractDays', async () => {
+    class ExtraHandler extends BaseCallbackHandler { name = 'extra'; }
+    const callbacks = [new ExtraHandler()];
+    const llm = new ModelTripLlm(undefined, [], { callbacks });
+    const input = { text: 'next', state: initialState(), history: [] };
+    vi.mocked(createChatModel).mockClear();
+    await llm.classify(input, signal());
+    await respond(llm, 'answer');
+    model.classify.mockResolvedValue({ days: [] });
+    await llm.extractDays('Day 1', null, 'zh', signal());
+    expect(vi.mocked(createChatModel).mock.calls).toEqual([
+      [{ operation: 'trip.classify', callbacks }],
+      [{ operation: 'trip.respond', callbacks }],
+      [{ operation: 'trip.extract_days', callbacks }],
+    ]);
   });
 
   it('answers with every message of the context, not only the last 20', async () => {
