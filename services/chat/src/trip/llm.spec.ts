@@ -48,6 +48,11 @@ describe('ModelTripLlm', () => {
     model.classify.mockReset().mockResolvedValue(chatted);
   });
 
+  it('uses the injected date in the system prompt sent by respond', async () => {
+    expect(await respond(new ModelTripLlm(undefined, [], { today: '2026-01-15' }), 'answer'))
+      .toContain('Today is 2026-01-15.');
+  });
+
   it('passes callbacks to classify, respond and extractDays', async () => {
     class ExtraHandler extends BaseCallbackHandler { name = 'extra'; }
     const callbacks = [new ExtraHandler()];

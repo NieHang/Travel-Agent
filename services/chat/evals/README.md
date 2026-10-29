@@ -48,9 +48,32 @@ The spike checks that, under Bun:
 
 It prints PASS/FAIL per check and the experiment URL, and exits non-zero on failure.
 
+## Replay
+
+Record/replay fixes MCP tool definitions and results so repeated model runs can
+be compared without changes in live hotel data. From `services/chat`:
+
+```sh
+bun run eval:replay-check --record
+bun run eval:replay-check
+```
+
+Record mode uses the live model and MCP servers and writes
+`evals/cassettes/p1/kyoto-hotels.json`. Review and commit that cassette when ready.
+The default check still calls the live model, but uses only recorded MCP results;
+it runs the fixed Chinese Kyoto hotel question three times and passes only when
+tool-call names and arguments match across runs with no replay misses. Both modes
+load `.env` and need no Langfuse. Use temperature 0 in the model config.
+
+`LANGCHAIN_CONFIG=evals/configs/<name>.yaml` selects a config relative to
+`services/chat`; the default is `config/langchain.yaml`. A replay miss falls back
+to the first recorded result for that tool and signals that the cassette may need
+to be recorded again. Replay cannot catch live MCP regressions;
+`scripts/test-trip-live.ts` remains responsible for those.
+
 ## Rules for eval scripts
 
-- Load env, then import `./instrumentation.js`, before importing LangChain or
+- For scripts that send traces to Langfuse, load env, then import `./instrumentation.js`, before importing LangChain or
   application modules. Call `shutdown()` in `finally`, or traces are lost.
 - Pass the Langfuse `CallbackHandler` to `ModelTripLlm` through
   `{ callbacks }`. Tools need it too (`tool.callbacks`). `streamToolLoop`

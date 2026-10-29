@@ -93,6 +93,18 @@ Findings that differ from the assumptions above:
 
 Acceptance: replaying one case 3 times at temperature 0 gives the same tool call sequence (apart from the model's own variance), and replay sends no network requests to MCP.
 
+**Outcome (2026-10-29): done.**
+
+- `ModelTripLlm` takes `{ today }`, and its MCP parameter is narrowed to `McpToolSource` (`{ mcpManager: { getTools() } }`).
+- `LANGCHAIN_CONFIG` selects the config file.
+- `evals/replay/` has `recordMcp`, `ReplayMcp` (with `misses`) and the cassette schema.
+- Datasets don't exist yet, so P1 ships `bun run eval:replay-check [--record]` with one built-in case (Kyoto hotel question, zh) instead of `eval:record <suite>`. That command moves to P2.
+- Results:
+  - The recorded cassette `evals/cassettes/p1/kyoto-hotels.json` has one `searchHotels` call.
+  - The replay check passed: 3 runs on DeepSeek at temperature 0 gave identical tool calls and no misses.
+  - Replay mode never constructs `McpService`, so it makes no MCP network calls.
+- Cassettes contain RollingGo's opaque `nextPageToken`, which is harmless, but review cassettes before committing in case a future server echoes something sensitive.
+
 ## P2. L1 / L2 + runner
 
 ### 2.1 Layout

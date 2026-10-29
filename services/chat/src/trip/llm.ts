@@ -3,7 +3,6 @@ import type { StructuredToolInterface } from '@langchain/core/tools';
 import type { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import { z } from 'zod';
 import type { ResultGroup } from '@autix/contracts';
-import type { McpService } from '../llm/mcp/mcp.service.js';
 import { createChatModel } from '../llm/model.factory.js';
 import { LOAD_SKILL, loadSkillTool } from '../skills/load-skill-tool.js';
 import type { Skill } from '../skills/registry.js';
@@ -14,6 +13,10 @@ import { MAX_TOOL_ROUNDS, showResultsTool, streamToolLoop, type LoopEvent, type 
 export const TRIP_LLM = Symbol('TRIP_LLM');
 
 export type LlmTask = 'answer' | 'itinerary';
+
+export interface McpToolSource {
+  mcpManager: { getTools(): StructuredToolInterface[] };
+}
 
 export interface TripLlm {
   /** `history` is the conversation's context (see ContextManager), without this turn's message. */
@@ -61,12 +64,12 @@ const FACTS_RULE = 'Never invent prices, availability, addresses or distances; o
 // With a skill loaded (the Japan rules), the draft needs travel legs that no tool provides yet.
 const SKILL_FACTS_RULE = `Never invent prices, availability, addresses or opening hours; only state facts that come from tool results. Travel times, walking distances and transfers may be estimated when no tool gives them; mark every estimate as approximate ("约" in Chinese, "approx." in English).`;
 
-function systemPrompt(task: LlmTask, locale: Locale, always: Skill[] = [], onDemand: Skill[] = []): string {
+function systemPrompt(task: LlmTask, locale: Locale, always: Skill[] = [], onDemand: Skill[] = [], today = new Date().toISOString().slice(0, 10)): string {
   let prompt = `You are Hilda, a travel assistant. Reply in ${language(locale)}. ${DATA_RULE}
 ${always.length ? SKILL_FACTS_RULE : FACTS_RULE}
 Use show_results to show items from tool results as cards.
 ${TOOL_RULES}
-Today is ${new Date().toISOString().slice(0, 10)}.
+Today is ${today}.
 
 ${TASKS[task]}`;
   for (const skill of always) prompt += `\n\nSkill ${skill.name}:\n${skill.body}`;
@@ -109,9 +112,9 @@ export class ModelTripLlm implements TripLlm {
   private readonly onDemand: Skill[];
 
   constructor(
-    private readonly mcp?: McpService,
+    private readonly mcp?: McpToolSource,
     skills: Skill[] = [],
-    private readonly options: { callbacks?: BaseCallbackHandler[] } = {},
+    private readonly options: { callbacks?: BaseCallbackHandler[]; today?: string } = {},
   ) {
     this.always = skills.filter((s) => s.always);
     this.onDemand = skills.filter((s) => !s.always);
@@ -133,7 +136,7 @@ export class ModelTripLlm implements TripLlm {
     if (this.onDemand.length) tools.push(loadSkillTool(this.onDemand));
     const model = createChatModel({ operation: 'trip.respond', callbacks: this.options.callbacks }).bindTools([...tools, showResultsTool]) as unknown as StreamingModel;
     const last = input.text ?? (task === 'itinerary' ? 'Write the itinerary draft now.' : '');
-    const system = systemPrompt(task, input.state.locale, this.always, this.onDemand);
+    const system = systemPrompt(task, input.state.locale, this.always, this.onDemand, this.options.today);
     yield* streamToolLoop(
       model,
       tools,

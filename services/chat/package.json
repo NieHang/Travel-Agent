@@ -20,6 +20,7 @@
     "start:debug": "nest start --debug --watch --exec bun",
     "start:prod": "bun run dist/main.js",
     "lint": "oxlint --type-aware src/ test/ evals/",
+    "eval:replay-check": "bun run evals/replay-check.ts",
     "eval:spike": "bun run evals/spike.ts",
     "test": "vitest run",
     "test:watch": "vitest",
