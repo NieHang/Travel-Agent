@@ -15,10 +15,10 @@ const types = (components: Component[]) => components.map((c) => c.type);
 describe('render', () => {
   it('idle renders nothing', () => expect(render(at({}), zh)).toEqual([]));
 
-  it('trip_type renders the four options in both languages', () => {
+  it('trip_type renders every trip type in both languages', () => {
     const [choice] = render(at({ stage: 'trip_type' }), zh);
     expect(choice).toMatchObject({ type: 'choice', command: 'set_trip_type' });
-    expect(choice.type === 'choice' && choice.options.map((o) => o.value)).toEqual(['business', 'family', 'solo', 'couple']);
+    expect(choice.type === 'choice' && choice.options.map((o) => o.value)).toEqual(['business', 'family', 'solo', 'couple', 'friends']);
     expect(choice.type === 'choice' && choice.options[1].label).toBe('亲子游');
     const [enChoice] = render(at({ stage: 'trip_type' }), en);
     expect(enChoice.type === 'choice' && enChoice.options[1].label).toBe('Family travel');

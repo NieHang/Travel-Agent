@@ -7,7 +7,7 @@ import { createChatModel } from '../llm/model.factory.js';
 import { LOAD_SKILL, loadSkillTool } from '../skills/load-skill-tool.js';
 import type { Skill } from '../skills/registry.js';
 import { ClassifiedSchema, type Classified } from './commands.js';
-import { TripDaySchema, type Locale, type TripDay, type TripState } from './state.js';
+import { MAX_CLARIFY_OPTIONS, TripDaySchema, type Locale, type TripDay, type TripState } from './state.js';
 import { MAX_TOOL_ROUNDS, showResultsTool, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
 
 export const TRIP_LLM = Symbol('TRIP_LLM');
@@ -30,12 +30,22 @@ const language = (locale: Locale) => (locale === 'zh' ? 'Simplified Chinese' : '
 
 export const CLASSIFY_PROMPT = `You read one travel-chat message and report what the user said. ${DATA_RULE}
 - intent: "plan" when the message starts or changes a trip plan (destination, trip type, dates, travelers,
-  preferences, budget); "chat" for anything else, including hotel, flight and place questions.
-- patch: only values the user explicitly stated in this message; every other key null. Dates as YYYY-MM-DD
-  in their stated role (a return date is not a departure date). travelers 1-100. budgetCurrency only when
-  an ISO code is explicit.
-- clarify: an inference the user has not confirmed (e.g. "somewhere warm" → destination options); never put
-  a guess in patch. Otherwise null.
+  preferences, budget), even with a single detail, and always when patch has a value; "chat" for anything
+  else, including hotel, flight and place questions.
+- patch: the values the user stated in this message and what they directly imply: a solo trip is 1 traveler,
+  a couple's trip is 2, "just me" with no other trip type is solo, 一家三口 is a family of 3. A head count
+  alone sets no other trip type ("the two of us" may be friends), and neither do colleagues without a stated
+  work purpose. Every other key null. A place, hotel or
+  date the user only asks about is not a value. Dates as YYYY-MM-DD in their stated role (a return date is
+  not a departure date); resolve relative dates and dates without a year from today's date (given below),
+  taking the next such date on or after today. travelers 1-100. budgetCurrency is the ISO code of the
+  currency the user names (euros → EUR, 人民币 → CNY), null when none is named.
+- clarify: only for an inference the user has not confirmed, or when the user asks for suggestions; at most
+  ${MAX_CLARIFY_OPTIONS} options. Inferences: "somewhere warm" → destination options; a season or holiday instead of days
+  ("early summer", "国庆前后") → dates options; companions that fit more than one trip type ("with my
+  brother and his girlfriend") → tripType options. Never put the guess in patch: leave that field null.
+  Never use clarify to ask for details the user has not mentioned: the app asks for missing details itself.
+  Otherwise null.
 - locale: "zh" or "en", the language of the message (serverContext.locale for short or ambiguous messages).`;
 
 const TOOL_RULES = `- Fill tool arguments from the request and the conversation; follow each parameter description exactly.
@@ -55,16 +65,17 @@ const TASKS: Record<LlmTask, string> = {
   trip) or the user already has lodging, do not search accommodation and do not show hotels.
 - Call show_results with panel "hotels" for the options you recommend.
 - Then write the draft day by day in Markdown. Every day that ends with an overnight stay closes with one
-  line naming exactly one hotel for that night, chosen from show_results (translation first, original in
-  brackets); do not list hotel alternatives per night or put the nights in a separate section. If no hotel
-  was found, say that live hotel data was unavailable. Never invent a hotel. Label it as a draft.`,
+  line naming exactly one hotel for that night, chosen from show_results: its translation with the original in
+  brackets, or only the original when it has no translation (never the same name twice). Do not list hotel
+  alternatives per night or put the nights in a separate section. If no hotel was found, say that live hotel
+  data was unavailable. Never invent a hotel. Label it as a draft.`,
 };
 
 const FACTS_RULE = 'Never invent prices, availability, addresses or distances; only state facts that come from tool results.';
 // With a skill loaded (the Japan rules), the draft needs travel legs that no tool provides yet.
 const SKILL_FACTS_RULE = `Never invent prices, availability, addresses or opening hours; only state facts that come from tool results. Travel times, walking distances and transfers may be estimated when no tool gives them; mark every estimate as approximate ("约" in Chinese, "approx." in English).`;
 
-function systemPrompt(task: LlmTask, locale: Locale, always: Skill[] = [], onDemand: Skill[] = [], today = new Date().toISOString().slice(0, 10)): string {
+function systemPrompt(task: LlmTask, locale: Locale, always: Skill[], onDemand: Skill[], today: string): string {
   let prompt = `You are Hilda, a travel assistant. Reply in ${language(locale)}. ${DATA_RULE}
 ${always.length ? SKILL_FACTS_RULE : FACTS_RULE}
 Use show_results to show items from tool results as cards.
@@ -107,6 +118,38 @@ const DaysSchema = z.object({
   ),
 });
 
+// DeepSeek's strict mode does not hold maxItems either; extra clarify options failed the whole turn.
+const ClassifyOutputSchema = ClassifiedSchema.extend({
+  clarify: z.preprocess(
+    (clarify) => (clarify && typeof clarify === 'object' && 'options' in clarify && Array.isArray(clarify.options)
+      ? { ...clarify, options: clarify.options.slice(0, MAX_CLARIFY_OPTIONS) }
+      : clarify),
+    ClassifiedSchema.shape.clarify,
+  ),
+});
+
+export function extractDaysPrompt(locale: Locale, stays: ResultGroup | null): string {
+  const hotels = (stays?.items ?? []).map((h) => `${h.ref}: ${h.title.original}`).join('\n') || '(none)';
+  return `Extract the days of this itinerary draft as structured data in ${language(locale)}. ${DATA_RULE}
+Extract only what the draft says; do not plan anything new. Use null for unknown times and notes.
+Stops are the places the traveler visits, in order, one place per stop:
+- A line naming several places ("A and B", "A、B", "A / B") or walking through them ("A → B → C") visits them all:
+  make each place its own stop.
+- An area named as a destination is a stop, and so is each place visited within it.
+- The hotel is never a stop (it is stayRef), including check-in, check-out and resting there.
+- A meal, break or free time is a stop only at a named place ("lunch in Nishiki Market", not "lunch nearby").
+- Options ("A or B"), alternatives, backup plans and conditional add-ons are not stops.
+- An airport is a stop only where the trip arrives or departs and the draft names it. A station is a stop only where
+  a day trip or a change of city starts or ends, or where something is done there; not where the traveler only
+  boards or changes trains.
+Travel legs (train, subway, bus, walking between places) are not stops: a line like "A → B by train, approx. 40 min"
+goes in the note of the next stop.
+A stop name is just the place, never a route or an arrow.
+stayRef is the hotel for that night: one of the refs below, or null.
+Hotels:
+${hotels}`;
+}
+
 export class ModelTripLlm implements TripLlm {
   private readonly always: Skill[];
   private readonly onDemand: Skill[];
@@ -120,11 +163,15 @@ export class ModelTripLlm implements TripLlm {
     this.onDemand = skills.filter((s) => !s.always);
   }
 
+  private today(): string {
+    return this.options.today ?? new Date().toISOString().slice(0, 10);
+  }
+
   async classify(input: { text: string; state: TripState; history: BaseMessage[] }, signal: AbortSignal) {
     const output = await createChatModel({ operation: 'trip.classify', callbacks: this.options.callbacks })
-      .withStructuredOutput(ClassifiedSchema, { name: 'classify', method: 'functionCalling', strict: true })
-      .invoke([new SystemMessage(CLASSIFY_PROMPT), ...input.history, context(input.state), new HumanMessage(input.text)], { signal });
-    return ClassifiedSchema.parse(output);
+      .withStructuredOutput(ClassifyOutputSchema, { name: 'classify', method: 'functionCalling', strict: true })
+      .invoke([new SystemMessage(`${CLASSIFY_PROMPT}\nToday is ${this.today()}.`), ...input.history, context(input.state), new HumanMessage(input.text)], { signal });
+    return ClassifyOutputSchema.parse(output);
   }
 
   async *respond(
@@ -136,7 +183,7 @@ export class ModelTripLlm implements TripLlm {
     if (this.onDemand.length) tools.push(loadSkillTool(this.onDemand));
     const model = createChatModel({ operation: 'trip.respond', callbacks: this.options.callbacks }).bindTools([...tools, showResultsTool]) as unknown as StreamingModel;
     const last = input.text ?? (task === 'itinerary' ? 'Write the itinerary draft now.' : '');
-    const system = systemPrompt(task, input.state.locale, this.always, this.onDemand, this.options.today);
+    const system = systemPrompt(task, input.state.locale, this.always, this.onDemand, this.today());
     yield* streamToolLoop(
       model,
       tools,
@@ -148,23 +195,11 @@ export class ModelTripLlm implements TripLlm {
   }
 
   async extractDays(draft: string, stays: ResultGroup | null, locale: Locale, signal: AbortSignal) {
-    const hotels = (stays?.items ?? []).map((h) => `${h.ref}: ${h.title.original}`).join('\n') || '(none)';
     const output = await createChatModel({ operation: 'trip.extract_days', callbacks: this.options.callbacks })
       .withStructuredOutput(DaysSchema, { name: 'travel_days', method: 'functionCalling', strict: true })
       .invoke(
         [
-          new SystemMessage(
-            `Extract the days of this itinerary draft as structured data in ${language(locale)}. ${DATA_RULE}
-Extract only what the draft says; do not plan anything new. Use null for unknown times and notes.
-Travel legs (train, subway, bus, walking between places) are not stops; put them in the note of the stop they lead to.
-A line that only moves between places (e.g. "A → B by train, approx. 40 min") is a leg: if B is the next stop, add the leg
-to its note; otherwise name the stop after where the leg ends (B, e.g. an airport or a station) and put the leg in its note.
-A line that walks through several places (e.g. "A → B → C") visits them all: make each place its own stop, in order.
-A stop name is just the place, never a route or an arrow.
-stayRef is the hotel for that night: one of the refs below, or null.
-Hotels:
-${hotels}`,
-          ),
+          new SystemMessage(extractDaysPrompt(locale, stays)),
           new HumanMessage(draft),
         ],
         { signal },

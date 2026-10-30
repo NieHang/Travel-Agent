@@ -14,10 +14,11 @@ export type Stage = (typeof STAGES)[number];
 
 export const REQUIRED = ['destination', 'tripType', 'departureDate', 'returnDate', 'travelers'] as const;
 
+export const MAX_CLARIFY_OPTIONS = 5;
 export const ClarifySchema = z.object({
   field: z.enum(['destination', 'tripType', 'dates', 'other']),
   question: z.string().min(1).max(300),
-  options: z.array(z.string().min(1).max(100)).max(5),
+  options: z.array(z.string().min(1).max(100)).max(MAX_CLARIFY_OPTIONS),
 });
 export type Clarify = z.infer<typeof ClarifySchema>;
 

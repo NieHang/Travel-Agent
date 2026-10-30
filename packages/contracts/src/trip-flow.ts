@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { MessageSchema } from './chat';
 
-export const TRIP_TYPES = ['business', 'family', 'solo', 'couple'] as const;
+export const TRIP_TYPES = ['business', 'family', 'solo', 'couple', 'friends'] as const;
 export const TripTypeSchema = z.enum(TRIP_TYPES);
 export type TripType = z.infer<typeof TripTypeSchema>;
 

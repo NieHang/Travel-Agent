@@ -1,5 +1,5 @@
 'use client'
-import type { Command, Component } from '@autix/contracts'
+import type { Command, Component, TripType } from '@autix/contracts'
 import { buttonClass, panelClass } from './styles'
 
 export function ChoiceCard({ component, onCommand, disabled = false }: {
@@ -20,7 +20,7 @@ export function ChoiceCard({ component, onCommand, disabled = false }: {
             onClick={() =>
               onCommand(
                 component.command === 'set_trip_type'
-                  ? { type: 'set_trip_type', value: option.value as 'business' | 'family' | 'solo' | 'couple' }
+                  ? { type: 'set_trip_type', value: option.value as TripType }
                   : { type: 'set_destination', value: option.value },
               )
             }
