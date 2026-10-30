@@ -283,7 +283,7 @@ Itinerary hotel line:
 Still open:
 
 - A person should spot-check the labels.
-- The baselines are `-dirty` and must be rerun from a clean commit.
+- The baselines are `-dirty` and must be rerun from a clean commit (done: see "Clean baselines" below).
 
 **Clarify coverage (2026-10-30).** All 10 should-ask classify items asked for a destination, so precision 1.00 said nothing about dates or trip type. 12 items were added (`vague_dates`, `vague_trip_type`): 8 should ask and 4 are near-misses that should not.
 
@@ -314,6 +314,12 @@ Still open:
 - `clarify_match` now counts toward regressed items: the first wording made a suggestion request stop asking with `patch_exact` still 1, and the list missed it.
 - The prompt is kept byte-for-byte as evaluated (including a short line), since reflowing it would change the prompt that was measured.
 - Live check on the kept prompt: 33/34 in each of two runs, failing a different reply-path check each time; every classify check passed. (1) zh hotel question showed no cards: the output tokens show DeepSeek sending invalid `show_results` JSON round after round until the 5-round limit; 5 of 5 reruns of that question showed cards, one with an empty reply. (2) The en Japan overview listed a 1-night city. The three earlier runs passed 34/34. The reply path is unchanged here; it gets measured in P3.
+
+**Clean baselines (2026-10-30).** A/A from `3c741ab` with a clean tree and both datasets synced first, 3 trials per run. Compare later changes against `classify@3c741ab-base-a` and `extract-days@3c741ab-base-a`.
+
+- classify (144 items): base-a and base-b gave the same verdict on every item in all six trials. intent_acc 1.00, patch_exact 1.00, patch_hallucination 0, clarify_match 0.986, clarify_recall 0.89, clarify_precision 1.00, task_error 0. The only misses are the two coworker items, which leave `tripType` null without asking, as in `coworkers3`. `cls-en-full-05` did not flake this time.
+- extract-days (22 items): stop_f1 0.836 / 0.831 (sd 0.005); day_count_exact and stay_ref_acc 1.00; leg_as_stop and task_error 0. Single drafts still vary between trials (`ext-zh-single-03`: 0.72–0.93), but the mean barely moves.
+- `eval:noise` suggests 0.02 for every gate, and every current gate is at or above that, so `thresholds.json` is unchanged. The zero noise belongs to this prompt: earlier prompts had flaky items (the `-dirty` A/A, `cls-en-full-05` in the coworker runs), and gates must also hold for candidate prompts, so the wider gates (intent_acc, clarify_*, patch_field_preferences) stay.
 
 ## P3. L3 itineraries (itinerary / answer, 15–20 scenarios)
 Entry shape: `{ id, today, locale, text, history, expected: { effect, nights, budget? }, must: string[] }`. `must` holds the case-specific requirements a person writes; it is used in P4.
