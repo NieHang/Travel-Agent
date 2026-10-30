@@ -1,0 +1,233 @@
+{
+  "tools": [
+    {
+      "name": "mcp_rollingGo_getHotelDetail",
+      "description": "查询单个酒店实时房型与价格明细（房型、价税、可售状态、退改规则等）。用于用户已选定具体酒店后的二次查价",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dateParam": {
+            "type": "object",
+            "properties": {
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式 YYYY-MM-DD。建议传合法未来日期"
+              },
+              "checkOutDate": {
+                "type": "string",
+                "description": "离店日期，格式 YYYY-MM-DD，必须晚于 checkInDate"
+              }
+            },
+            "description": "入离店日期对象"
+          },
+          "filter": {
+            "type": "object",
+            "properties": {
+              "cancelPolicy": {
+                "type": "string",
+                "enum": [
+                  "CANCELABLE",
+                  "NON_CANCELABLE"
+                ],
+                "description": "取消政策筛选。CANCELABLE：仅可免费取消房型；NON_CANCELABLE：仅不可取消房型。非法值忽略。"
+              },
+              "mealType": {
+                "type": "string",
+                "enum": [
+                  "WITH_BREAKFAST",
+                  "SINGLE_BREAKFAST",
+                  "DOUBLE_BREAKFAST",
+                  "NO_MEAL"
+                ],
+                "description": "餐食类别枚举。WITH_BREAKFAST（含早餐，mealAmount>0）/ SINGLE_BREAKFAST（单份早餐，mealAmount=1）/ DOUBLE_BREAKFAST（双份早餐，mealAmount=2）/ NO_MEAL（不含餐食，mealAmount=0）。非法值忽略。"
+              }
+            },
+            "description": "房型筛选条件对象。未传或为空时返回全部房型；多条件 AND 组合。"
+          },
+          "hotelId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "酒店唯一ID。与 name 二选一；若同时传入，优先使用 hotelId（从searchHotels工具获取）"
+          },
+          "name": {
+            "type": "string",
+            "description": "酒店名称（模糊匹配）。仅在没有 hotelId 时使用"
+          },
+          "occupancyParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房成人数，整数，>=1，默认2"
+              },
+              "childAgeDetails": {
+                "description": "儿童年龄数组，如 [3,5]；长度应与 childCount 一致",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "childCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房儿童数，整数，>=0，默认0"
+              },
+              "roomCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "房间数，整数，>=1，默认1"
+              }
+            },
+            "description": "入住人数与房间数量对象"
+          }
+        }
+      }
+    },
+    {
+      "name": "mcp_rollingGo_getHotelSearchTags",
+      "description": "获取酒店搜索元数据（AI Cache），包含可用的标签列表（以当前启用数据为准）。",
+      "schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "mcp_rollingGo_searchHotels",
+      "description": "该工具用于查询全球酒店。根据地点及结构化筛选条件（日期、入住晚数、人数、星级、距离、标签、品牌、预算）返回符合条件的酒店候选列表与最低价格，用于酒店初筛与比选。",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "checkInParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房入住的成人数量，默认两成人"
+              },
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式：YYYY-MM-DD，例如：2026-02-01。可不传；未传或早于今天时，自动使用明天；格式错误会返回参数错误"
+              },
+              "stayNights": {
+                "type": "integer",
+                "format": "int32",
+                "description": "入住天数（晚数），可不传，默认 1 晚。最多 28 晚，超出限制将返回参数错误。"
+              }
+            },
+            "description": "入住信息参数，包括入住日期、入住天数和每间房成人数量"
+          },
+          "filterOptions": {
+            "type": "object",
+            "properties": {
+              "distanceInMeter": {
+                "type": "integer",
+                "format": "int32",
+                "description": "直线距离，单位（米），当地点是一个POI位置时生效，生效时默认设定值为2000"
+              },
+              "starRatings": {
+                "description": "酒店星级(0.0-5.0, 梯度为0.5)，默认[0.0, 5.0]以上，例如 [4.5, 5.0]，[0.0, 2.0]",
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                }
+              }
+            },
+            "description": "酒店筛选选项，例如酒店星级、每间房成人数、距离等"
+          },
+          "hotelTags": {
+            "type": "object",
+            "properties": {
+              "maxPricePerNight": {
+                "type": "number",
+                "format": "double",
+                "description": "每晚价格上限（人民币，数值）"
+              },
+              "preferredBrands": {
+                "description": "偏好品牌",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requiredTags": {
+                "description": "必须命中标签（硬约束，未命中应被过滤）",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "酒店筛选标签参数（可选）。当传入此参数时，将直接使用这些标签进行筛选和排序，无需服务端额外解析。包含字段：requiredTags（必须标签）、preferredBrands（偏好品牌）、maxPricePerNight（每晚最高预算）"
+          },
+          "nextPageToken": {
+            "type": "string",
+            "description": "分页游标。仅当获取下一页(换一批)时,原样回传上一页返回的 nextPageToken;首页查询不传。传入有效 Token 时,核心检索条件以 Token 内快照为准。"
+          },
+          "originQuery": {
+            "type": "string",
+            "description": "综合多轮对话，归纳用户的完整住宿/预订意图。"
+          },
+          "place": {
+            "type": "string",
+            "description": "搜索地点关键词/酒店名称。具体酒店直接填入酒店名称；位置或区县需用空格补齐城市，填入 位置 城市；仅查询城市需补齐国家，填入 城市 国家。"
+          },
+          "placeType": {
+            "type": "string",
+            "description": "place 的类型，必须与 place 的实际内容一致。可选值：城市、机场、景点、火车站、地铁站、酒店、区/县、详细地址。"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "返回酒店结果数量，默认5个酒店，最大不超过10个"
+          }
+        },
+        "required": [
+          "originQuery",
+          "place",
+          "placeType"
+        ]
+      }
+    }
+  ],
+  "calls": [
+    {
+      "tool": "mcp_rollingGo_searchHotels",
+      "args": {
+        "originQuery": "Tokyo and Hakone trip with friends, 2026-12-05 to 2026-12-09, 3 travelers, 4 nights, hotel in Tokyo",
+        "place": "Tokyo Japan",
+        "placeType": "城市",
+        "checkInParam": {
+          "checkInDate": "2026-12-05",
+          "stayNights": 2,
+          "adultCount": 3
+        },
+        "size": 6
+      },
+      "result": {
+        "content": "{\"success\":true,\"code\":2000,\"message\":\"酒店搜索成功\",\"nextPageToken\":\"LkHzLgI4W31WgkAzdXhOb0raJL4Jsclk-IUhOQHdVsREywccwBAN2hb7R7yhw7sqcL8LVyYx8xW_hsEJterY0qlo7qrlh4v-hzCqhUsKlnA3NfPoER6qGkw0BKkPFYkQVPMzNStiIxIkjyJF0FVWNB4mSsmkiYSW6ixxRj6XCQzlFKYVFJGuzVhpp-TaDMZMJ0n6ipD_5xrqhUUKaOc\",\"hotelInformationList\":[{\"hotelId\":537,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=537&checkInDate=2026-12-05&checkOutDate=2026-12-07&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"新宿华盛顿主酒店\",\"nameEn\":\"Shinjuku Washington Hotel Main\",\"brand\":\"Gracery\",\"address\":\"3-2-9 Nishishinjuku, Shinjuku-ku\",\"destinationId\":\"3593\",\"latitude\":35.68718,\"longitude\":139.69296,\"distanceInMeters\":6204,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。2晚总价：3,144CNY（约1,572CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1572.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>新宿华盛顿主酒店坐落于东京中心地段，距离涩谷交叉口和新宿御苑不到 5 分钟车程。 此酒店距离东京巨蛋 4.5 英里（7.2 公里），距离皇居 4.5 英里（7.2 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>东京都政府大楼 - 0.1 公里 / 0.1 英里 <br /> 新宿中央公园 - 0.5 公里 / 0.3 英里 <br /> 东京观光信息中心巴士新宿 - 0.9 公里 / 0.6 英里 <br /> 东京歌剧城音乐厅 - 1 公里 / 0.6 英里 <br /> 思出横丁 - 1.1 公里 / 0.7 英里 <br /> 新宿伊势丹 - 1.3 公里 / 0.8 英里 <br /> 新宿御苑 - 1.4 公里 / 0.9 英里 <br /> 明治神宫 - 1.9 公里 / 1.2 英里 <br /> 代代木公园 - 2.1 公里 / 1.3 英里 <br /> 东京体育馆 - 2.4 公里 / 1.5 英里 <br /> 表参道 - 2.6 公里 / 1.6 英里 <br /> 竹下通 - 2.7 公里 / 1.7 英里 <br /> 日本国立竞技场 - 2.7 公里 / 1.7 英里 <br /> 明治神宫球场 - 3 公里 / 1.8 英里 <br /> 国立代代木竞技场 - 3 公里 / 1.9 英里 <br /> </p><p>附近的机场有：<br />羽田机场 (HND) - 22.2 公里 / 13.8 英里<br /> 成田国际机场 (NRT) - 74.7 公里 / 46.4 英里<br /> </p><p>新宿华盛顿主酒店的主要机场是成田国际机场 (NRT)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>这个酒店拥有 1 座楼，共 25 层，并提供指定吸烟区。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括干洗/洗衣服务、24 小时前台服务和多语言服务。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/537/hotel/250716172130/0/image/34022875.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"自动取款机\",\"商场\",\"咖啡厅\",\"前台服务语言\",\"洗衣设施\",\"公共区可上网\",\"客房WIFI（免费）\",\"吸烟区\",\"微波炉\",\"餐厅\",\"洗衣房\",\"停车场\",\"托管晚餐\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供家庭房\",\"提供可吸烟房\",\"提供大床房\",\"提供双床房\",\"提供三人间\"]},{\"hotelId\":5333,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=5333&checkInDate=2026-12-05&checkOutDate=2026-12-07&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"东京湾有明华盛顿酒店\",\"nameEn\":\"Tokyo Bay Ariake Washington Hotel\",\"brand\":\"Gracery\",\"address\":\"东京都江东区有明3-7-11\",\"destinationId\":\"3593\",\"latitude\":35.63252,\"longitude\":139.79359,\"distanceInMeters\":5615,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。2晚总价：5,670CNY（约2,835CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":2835.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>东京湾有明华盛顿酒店位于东京江东区，步行到东京花园剧场和有明花园不超过 15 分钟。 此酒店距离小世界TOKYO 0.7 英里（1.1 公里），距离台场购物广场 1.5 英里（2.4 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>东京国际展示场 - 0.3 公里 / 0.2 英里 <br /> 东京湾 - 0.4 公里 / 0.3 英里 <br /> 东京花园剧场 - 0.7 公里 / 0.4 英里 <br /> 有明花园 - 0.9 公里 / 0.5 英里 <br /> 小世界TOKYO - 1.1 公里 / 0.7 英里 <br /> 丰洲市场 - 1.8 公里 / 1.1 英里 <br /> 台场海滨公园 - 2 公里 / 1.3 英里 <br /> 台场购物广场 - 2.1 公里 / 1.3 英里 <br /> DECKS东京海滩 - 2.3 公里 / 1.4 英里 <br /> Aqua City 购物中心 - 2.3 公里 / 1.4 英里 <br /> TeamLab星球TOKYO DMM.com - 2.4 公里 / 1.5 英里 <br /> 都市船坞 LaLaport 丰洲 - 3.3 公里 / 2 英里 <br /> KidZania 东京(儿童社会体验活动中心) - 3.5 公里 / 2.2 英里 <br /> 彩虹大桥 - 3.5 公里 / 2.2 英里 <br /> 筑地场外市场 - 4.7 公里 / 2.9 英里 <br /> </p><p>附近的机场有：<br />羽田机场 (HND) - 13.8 公里 / 8.6 英里<br /> 成田国际机场 (NRT) - 66.9 公里 / 41.6 英里<br /> </p><p>东京湾有明华盛顿酒店的主要机场是成田国际机场 (NRT)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、礼宾服务和宴会厅等便利服务和设施。如果计划去附近的主题公园游玩，您可以搭乘免费班车。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、快速入住和快速退房。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/5333/7d36127b_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"快速入住退房\",\"班车服务\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"自动取款机\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"洗衣设施\",\"客房清洁服务\",\"客房WIFI（免费）\",\"公共区域禁烟\",\"微波炉\",\"餐厅\",\"自动售货机\",\"储物柜\",\"洗衣房\",\"无障碍通道\",\"停车场\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"宴会厅\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供无障碍客房\",\"提供大床房\",\"提供双床房\",\"提供三人间\",\"提供四人间\",\"提供家庭房\"]},{\"hotelId\":617191,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=617191&checkInDate=2026-12-05&checkOutDate=2026-12-07&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"三井花园酒店五反田\",\"nameEn\":\"Mitsui Garden Hotel Gotanda Tokyo\",\"brand\":\"米特斯乌伊花园酒店\",\"address\":\"东京品川区Higashi Gotanda 2-2-6\",\"destinationId\":\"3593\",\"latitude\":35.625225,\"longitude\":139.725365,\"distanceInMeters\":6358,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。2晚总价：3,265CNY（约1,632.5CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1632.5},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>三井花园酒店五反田位于东京品川区，距离东京湾和六本木之丘不到 5 分钟车程。 此酒店距离东京铁塔 3.1 英里（4.9 公里），距离涩谷交叉口 4.2 英里（6.7 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>Happoen Garden (哈彭花园) - 1.7 公里 / 1.1 英里 <br /> 泉岳寺 - 1.8 公里 / 1.1 英里 <br /> 东京湾 - 3.2 公里 / 2 英里 <br /> 庆应义塾大学 - 3.2 公里 / 2 英里 <br /> 芝公园 - 4.2 公里 / 2.6 英里 <br /> 国际文化会馆 - 4.3 公里 / 2.6 英里 <br /> 东京铁塔 - 4.6 公里 / 2.8 英里 <br /> 六本木之丘 - 4.6 公里 / 2.9 英里 <br /> 东京城市观景 - 4.7 公里 / 2.9 英里 <br /> 彩虹大桥 - 4.8 公里 / 3 英里 <br /> 涩谷Scramble广场 - 4.9 公里 / 3 英里 <br /> 涩谷天空 - 4.9 公里 / 3 英里 <br /> 森大厦数字艺术博物馆：爱普生团队无界 - 4.9 公里 / 3.1 英里 <br /> 东京中城 - 6 公里 / 3.7 英里 <br /> 东京国立新美术馆 - 6 公里 / 3.8 英里 <br /> </p><p>附近的机场有：<br />羽田机场 (HND) - 13.6 公里 / 8.5 英里<br /> 成田国际机场 (NRT) - 78.9 公里 / 49.1 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可到露台欣赏美景，还可利用免费 WiFi和自动售货机等服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括24 小时前台服务、行李寄存和洗衣设施。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/617191/hotel/default/14/image/1mc6x12000h0pote18D0D_R_960_660_R5_D.jpg\",\"hotelAmenities\":[\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"无障碍通道\",\"洗衣设施\",\"入口坡道\",\"客房WIFI（免费）\",\"吸烟区\",\"露台\",\"餐厅\",\"自动售货机\",\"无障碍通道\",\"无障碍卫生间\",\"提供轮椅\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供无障碍客房\",\"提供大床房\",\"提供双床房\",\"提供三人间\"]},{\"hotelId\":5293,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=5293&checkInDate=2026-12-05&checkOutDate=2026-12-07&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"三井花园酒店汐留意大利街\",\"nameEn\":\"Mitsui Garden Hotel Shiodome Italia-gai Tokyo\",\"brand\":\"米特斯乌伊花园酒店\",\"address\":\"2-14-24 Higashi-Shimbashi, Minato-ku\",\"destinationId\":\"3593\",\"latitude\":35.660207,\"longitude\":139.756739,\"distanceInMeters\":1671,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。2晚总价：3,306CNY（约1,653CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1653.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>三井花园酒店汐留意大利街坐落于东京中心地段，步行到旧芝离宫恩赐庭园和芝大神宮不超过 10 分钟。 此酒店距离尼特蒂厄广场(购物中心) 0.5 英里（0.8 公里），距离东京铁塔 0.8 英里（1.2 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>旧芝离宫恩赐庭园 - 0.6 公里 / 0.4 英里 <br /> 芝大神宮 - 0.7 公里 / 0.4 英里 <br /> 尼特蒂厄广场(购物中心) - 0.7 公里 / 0.4 英里 <br /> 滨离宫庭园 - 0.8 公里 / 0.5 英里 <br /> 旧新桥停车场 - 0.9 公里 / 0.6 英里 <br /> 东京湾 - 1.1 公里 / 0.7 英里 <br /> 东京铁塔 - 1.3 公里 / 0.8 英里 <br /> Ginza Six 百货商城 - 1.3 公里 / 0.8 英里 <br /> 芝公园 - 1.3 公里 / 0.8 英里 <br /> 日比谷公园 - 1.5 公里 / 0.9 英里 <br /> 银座和光大厦 - 1.6 公里 / 1 英里 <br /> 森大厦数字艺术博物馆：爱普生团队无界 - 1.6 公里 / 1 英里 <br /> 筑地场外市场 - 1.7 公里 / 1 英里 <br /> 歌舞伎座剧场 - 1.7 公里 / 1 英里 <br /> 东京国际会议中心 - 2.2 公里 / 1.3 英里 <br /> </p><p>附近的机场有：<br />羽田机场 (HND) - 19.2 公里 / 11.9 英里<br /> 成田国际机场 (NRT) - 74 公里 / 46 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi和自动售货机等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、24 小时前台服务和多语言服务。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/5293/b1168fa5_b.jpg\",\"hotelAmenities\":[\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"无障碍通道\",\"前台服务语言\",\"洗衣设施\",\"客房WIFI（免费）\",\"餐厅\",\"自动售货机\",\"无障碍通道\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"商务中心\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供无障碍客房\",\"提供大床房\",\"提供双床房\",\"提供三人间\",\"性价比酒店\",\"品质酒店\"]},{\"hotelId\":529,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=529&checkInDate=2026-12-05&checkOutDate=2026-12-07&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"新宿灿路都广场大酒店\",\"nameEn\":\"Hotel Sunroute Plaza Shinjuku\",\"brand\":\"酒店Sunroute\",\"address\":\"日本，东京，涩谷区，Shibuya-ku, Yoyogi 2-3-1\",\"destinationId\":\"3593\",\"latitude\":35.687056,\"longitude\":139.698824,\"distanceInMeters\":5686,\"starRating\":3.5,\"price\":{\"message\":\"查价成功。2晚总价：6,106CNY（约3,053CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":3053.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>新宿灿路都广场大酒店位于东京涩谷，距离皇居和涩谷交叉口不到 5 分钟车程。 此SPA酒店距离新宿御苑 0.6 英里（1 公里），距离东京巨蛋 4.2 英里（6.7 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>东京观光信息中心巴士新宿 - 0.4 公里 / 0.3 英里 <br /> 东京都政府大楼 - 0.7 公里 / 0.4 英里 <br /> 思出横丁 - 0.7 公里 / 0.4 英里 <br /> 新宿伊势丹 - 0.8 公里 / 0.5 英里 <br /> 新宿御苑 - 1 公里 / 0.6 英里 <br /> 新宿中央公园 - 1.1 公里 / 0.7 英里 <br /> 东京歌剧城音乐厅 - 1.5 公里 / 0.9 英里 <br /> 东京体育馆 - 1.8 公里 / 1.1 英里 <br /> 明治神宫 - 1.8 公里 / 1.1 英里 <br /> 代代木公园 - 1.8 公里 / 1.1 英里 <br /> 日本国立竞技场 - 2.1 公里 / 1.3 英里 <br /> 竹下通 - 2.1 公里 / 1.3 英里 <br /> 表参道 - 2.3 公里 / 1.4 英里 <br /> 明治神宫球场 - 2.5 公里 / 1.6 英里 <br /> 表参道之丘 - 2.7 公里 / 1.7 英里 <br /> </p><p>附近的机场有：<br />羽田机场 (HND) - 22.9 公里 / 14.2 英里<br /> 成田国际机场 (NRT) - 84.1 公里 / 52.3 英里<br /> </p><p>新宿灿路都广场大酒店的主要机场是成田国际机场 (NRT)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可抽空慰劳一下自己，享受一下全方位服务的 SPA。此酒店的其他设施包括免费 WiFi、接待大厅和自动售货机。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括快速入住、干洗/洗衣服务和24 小时前台服务。计划在东京举办活动？这家酒店拥有 260 平方米（2799 平方英尺）的空间，包括会议场地和会议室。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/529/4985268a_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"行李寄存\",\"快速入住退房\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"会议厅\",\"酒吧\",\"无障碍通道\",\"前台服务语言\",\"接待大厅\",\"洗衣设施\",\"客房WIFI（免费）\",\"公共区域禁烟\",\"微波炉\",\"餐厅\",\"自动售货机\",\"洗衣房\",\"无障碍通道\",\"无障碍卫生间\",\"提供轮椅\",\"全方位服务水疗中心\",\"停车场\",\"提供早餐\"],\"tags\":[\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"客房点餐\",\"提供双床房\",\"提供三人间\",\"SPA服务\"]},{\"hotelId\":3912,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=3912&checkInDate=2026-12-05&checkOutDate=2026-12-07&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"新宿格拉斯丽酒店\",\"nameEn\":\"Hotel Gracery Shinjuku\",\"brand\":\"Gracery\",\"address\":\"1-19-1 Kabukicho, Shinjuku-ku\",\"destinationId\":\"3593\",\"latitude\":35.695383,\"longitude\":139.702018,\"distanceInMeters\":5707,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。2晚总价：5,262CNY（约2,631CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":2631.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>新宿格拉斯丽酒店坐落于东京中心地段，距离新宿御苑和日本国立竞技场不到 5 分钟车程。 此酒店距离涩谷交叉口 3.1 英里（5 公里），距离皇居 3.4 英里（5.5 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>思出横丁 - 0.4 公里 / 0.2 英里 <br /> 新宿伊势丹 - 0.7 公里 / 0.4 英里 <br /> 东京观光信息中心巴士新宿 - 1.1 公里 / 0.7 英里 <br /> 新宿御苑 - 1.2 公里 / 0.7 英里 <br /> 东京都政府大楼 - 1.2 公里 / 0.7 英里 <br /> 新宿中央公园 - 1.3 公里 / 0.8 英里 <br /> 东京体育馆 - 2.4 公里 / 1.5 英里 <br /> 东京歌剧城音乐厅 - 2.4 公里 / 1.5 英里 <br /> 日本国立竞技场 - 2.7 公里 / 1.7 英里 <br /> 明治神宫 - 2.7 公里 / 1.7 英里 <br /> 早稻田大学 - 2.8 公里 / 1.8 英里 <br /> 竹下通 - 2.9 公里 / 1.8 英里 <br /> 代代木公园 - 2.9 公里 / 1.8 英里 <br /> 表参道 - 3.2 公里 / 2 英里 <br /> 明治神宫球场 - 3.3 公里 / 2 英里 <br /> </p><p>新宿格拉斯丽酒店的主要机场为 羽田机场 (HND) - 31 公里 / 19.3 英里 </p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可到露台欣赏美景，还可利用免费 WiFi和礼宾服务等服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、干洗/洗衣服务和24 小时前台服务。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/3912/hotel/250630143445/1/image/9104481_12_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"前台贵重物品保险柜\",\"自动取款机\",\"商场\",\"咖啡厅\",\"酒吧\",\"前台服务语言\",\"洗衣设施\",\"资源回收\",\"客房WIFI（免费）\",\"旅游票务专柜\",\"吸烟区\",\"微波炉\",\"露台\",\"自动售货机\",\"洗衣房\",\"饮水机\",\"咖啡壶/茶壶\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"备有拖鞋\",\"客房备有吹风机\",\"提供无障碍客房\",\"提供双床房\",\"提供三人间\"]}]}",
+        "isError": false
+      }
+    },
+    {
+      "tool": "mcp_rollingGo_searchHotels",
+      "args": {
+        "originQuery": "Tokyo and Hakone trip with friends, 2026-12-05 to 2026-12-09, 3 travelers, hotel in Hakone with onsen",
+        "place": "Hakone Japan",
+        "placeType": "城市",
+        "checkInParam": {
+          "checkInDate": "2026-12-07",
+          "stayNights": 2,
+          "adultCount": 3
+        },
+        "size": 6
+      },
+      "result": {
+        "content": "{\"success\":true,\"code\":2000,\"message\":\"酒店搜索成功\",\"nextPageToken\":\"d1klc5VX29htMKTMcpEaFIBi3bSpFCbTGX1hGqokvi_W-1AhAy4dtth0M5cGlTR-sm6OQbDosP7WRzFrJzfVJsr1XStsFQqZCB4z54p-iCMz4f2AXSn8YBCtL4LHBXyBr_r8BAZ1xKmYlrrjPNXmWnpzVs9gHFr_EaANAuV1t6XgM02ozFwLaypZfywL2L_vUtsBOSOakBx85ZA-yG4UAmev-sXH5xL6Pe0\",\"hotelInformationList\":[{\"hotelId\":369077,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=369077&checkInDate=2026-12-07&checkOutDate=2026-12-09&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"箱根强罗温泉季之汤雪月花\",\"nameEn\":\"HAKONE Setsugetsuka\",\"brand\":\"Kyoritsu度假村\",\"address\":\"神奈川县足柄下郡箱根Gora 1300-34, 250-0408\",\"destinationId\":\"55318\",\"latitude\":35.24981,\"longitude\":139.04796,\"distanceInMeters\":2463,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。2晚总价：5,308CNY（约2,654CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":2654.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>箱根雪月花饭店位于箱根町强罗，步行前往箱根强罗公园只需 3 分钟、前往箱根露天博物馆需 12 分钟。 此日式旅馆距离箱根温泉 3.8 英里（6.1 公里），距离芦之湖 6 英里（9.7 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>箱根强罗公园 - 0.2 公里 / 0.1 英里 <br /> 箱根美术馆 - 0.6 公里 / 0.3 英里 <br /> 白云洞茶苑 - 0.6 公里 / 0.4 英里 <br /> 箱根露天博物馆 - 1 公里 / 0.6 英里 <br /> 宫城野早川堤之樱 - 1.1 公里 / 0.7 英里 <br /> 冈田美术馆 - 1.7 公里 / 1 英里 <br /> 箱根小涌园 - 2 公里 / 1.2 英里 <br /> 千条瀑布 - 2.1 公里 / 1.3 英里 <br /> 大涌谷 - 2.5 公里 / 1.6 英里 <br /> 仙石原温泉 - 2.9 公里 / 1.8 英里 <br /> 宝丽美术馆 - 3.9 公里 / 2.4 英里 <br /> 箱根空中缆车 - 4.1 公里 / 2.5 英里 <br /> 箱根玻璃之森美术馆 - 4.8 公里 / 3 英里 <br /> 箱根温泉 - 6.1 公里 / 3.8 英里 <br /> 箱根拉利克美术馆 - 6.4 公里 / 4 英里 <br /> </p><p>附近的机场有：<br />羽田机场 (HND) - 99.2 公里 / 61.6 英里<br /> 成田国际机场 (NRT) - 165.7 公里 / 103 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可到花园欣赏美景，还可利用免费 WiFi和自动售货机等服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括24 小时前台服务、行李寄存和电梯。酒店提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/369077/hotel/default/6/image/f6c6ba6f_z.jpg\",\"hotelAmenities\":[\"行李寄存\",\"24小时前台\",\"电梯\",\"无障碍通道\",\"客房WIFI（免费）\",\"吸烟区\",\"餐厅\",\"自动售货机\",\"无障碍通道\",\"花园\",\"停车场\",\"茶道体验\"],\"tags\":[\"单体酒店\",\"公共温泉\",\"备有拖鞋\",\"客房备有吹风机\",\"提供双床房\",\"SPA服务\"]},{\"hotelId\":245313,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=245313&checkInDate=2026-12-07&checkOutDate=2026-12-09&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"箱根小涌园天悠\",\"nameEn\":\"Hakone Kowakien TEN-YU\",\"brand\":\"弗奇伊特阿Kanko\",\"address\":\"1297 Ninotaira\",\"destinationId\":\"55318\",\"latitude\":35.238558,\"longitude\":139.044561,\"distanceInMeters\":1385,\"starRating\":4.5,\"price\":{\"message\":\"查价成功。2晚总价：8,160CNY（约4,080CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":4080.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>箱根小涌园天悠位于箱根町二之平， 距离箱根小涌园仅咫尺之遥，而距离冈田美术馆有 3 分钟步行路程。 此豪华日式旅馆距离箱根露天博物馆 0.9 英里（1.4 公里），距离宫城野早川堤之樱 1.9 英里（3 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>冈田美术馆 - 0.3 公里 / 0.2 英里 <br /> 箱根小涌园 - 0.3 公里 / 0.2 英里 <br /> 千条瀑布 - 0.8 公里 / 0.5 英里 <br /> 箱根露天博物馆 - 1.4 公里 / 0.9 英里 <br /> 箱根强罗公园 - 2 公里 / 1.3 英里 <br /> 白云洞茶苑 - 2.1 公里 / 1.3 英里 <br /> 箱根美术馆 - 2.3 公里 / 1.4 英里 <br /> 仙石原温泉 - 2.4 公里 / 1.5 英里 <br /> 大涌谷 - 2.8 公里 / 1.8 英里 <br /> 宫城野早川堤之樱 - 2.9 公里 / 1.8 英里 <br /> 宝丽美术馆 - 4.1 公里 / 2.5 英里 <br /> 仙石原芒草草原 - 5.8 公里 / 3.6 英里 <br /> 箱根空中缆车 - 6.1 公里 / 3.8 英里 <br /> 箱根玻璃之森美术馆 - 6.5 公里 / 4 英里 <br /> 箱根温泉 - 6.5 公里 / 4 英里 <br /> </p><p>附近的机场有：<br />羽田机场 (HND) - 99.6 公里 / 61.9 英里<br /> 成田国际机场 (NRT) - 166.1 公里 / 103.2 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>享受按摩、身体护理和面部护理，慰劳一下自己。您可以充分利用温泉和桑拿等度假设施。此日式旅馆的其他特色包括免费 WiFi、礼宾服务和礼品店/报摊。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括大堂免费报纸、24 小时前台服务和多语言服务。酒店提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/245313/hotel/default/6/image/869563a3_z.jpg-t\",\"hotelAmenities\":[\"专职行李员\",\"行李寄存\",\"24小时前台\",\"SPA\",\"温泉\",\"电梯\",\"酒吧\",\"大堂报纸\",\"前台服务语言\",\"客房WIFI（免费）\",\"礼品廊\",\"公共区域禁烟\",\"桑拿\",\"露台\",\"餐厅\",\"儿童玩具\",\"自动售货机\",\"儿童桌面游戏/拼图\",\"花园\",\"手语服务\",\"停车场\",\"远足步道\"],\"tags\":[\"提供双床房\",\"公共温泉\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"SPA服务\",\"度假酒店\"]},{\"hotelId\":147315,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=147315&checkInDate=2026-12-07&checkOutDate=2026-12-09&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"王子箱根芦之湖酒店\",\"nameEn\":\"The Prince Hakone Lake Ashinoko\",\"brand\":\"普里恩斯酒店\",\"address\":\"144 Moto-hakone\",\"destinationId\":\"55318\",\"latitude\":35.213727,\"longitude\":139.007431,\"distanceInMeters\":2998,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。2晚总价：2,406CNY（约1,203CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1203.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>王子箱根芦之湖酒店位于箱根町元箱根，步行到芦之湖和箱根驹岳索道不超过 5 分钟。 此SPA酒店距离箱根园水族馆 0.1 英里（0.2 公里），距离九头龙神社 0.9 英里（1.5 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>芦之湖 - 0.3 公里 / 0.2 英里 <br /> 箱根驹岳索道 - 0.3 公里 / 0.2 英里 <br /> 箱根园水族馆 - 0.4 公里 / 0.3 英里 <br /> 九头龙神社 - 1.5 公里 / 0.9 英里 <br /> 箱根神社 - 2.5 公里 / 1.6 英里 <br /> 仙石原温泉 - 3.4 公里 / 2.1 英里 <br /> 箱根海盗船 - 3.5 公里 / 2.2 英里 <br /> 箱根访客中心 - 3.9 公里 / 2.4 英里 <br /> 箱根关所资料馆 - 4.2 公里 / 2.6 英里 <br /> 恩赐箱根公园 - 4.3 公里 / 2.7 英里 <br /> 箱根寄木细工关所机器人美术馆 - 4.3 公里 / 2.7 英里 <br /> 箱根驿伝博物馆 - 4.7 公里 / 2.9 英里 <br /> 箱根元宫 - 4.9 公里 / 3 英里 <br /> 箱根峠道之驿 - 6.1 公里 / 3.8 英里 <br /> 箱根空中缆车 - 7.7 公里 / 4.8 英里 <br /> </p><p>附近的机场有：<br />羽田机场 (HND) - 104.7 公里 / 65.1 英里<br /> 成田国际机场 (NRT) - 171.2 公里 / 106.4 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可到 SPA 慰劳一下自己，这里提供按摩。一定要去体验温泉和桑拿等度假设施。此酒店的其他特色包括免费 WiFi、礼宾服务和礼品店/报摊。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、大堂免费报纸和干洗/洗衣服务。酒店免费提供火车站接车服务，此外还提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/147315/Featured%20Image/70a13f7c_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"SPA\",\"温泉\",\"钓鱼\",\"电梯\",\"前台贵重物品保险柜\",\"商场\",\"咖啡厅\",\"酒吧\",\"大堂报纸\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"婚宴服务\",\"接待大厅\",\"洗衣设施\",\"入口坡道\",\"酒店内购物\",\"客房WIFI（免费）\",\"接站服务\",\"专职门童\",\"礼品廊\",\"公共区域禁烟\",\"桑拿\",\"露台\",\"餐厅\",\"自动售货机\",\"无障碍通道\",\"花园\",\"蒸汽室\",\"高尔夫球场景观\",\"楼梯扶手\",\"提供轮椅\",\"全方位服务水疗中心\",\"停车场\",\"远足步道\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"公共温泉\",\"宴会厅\",\"儿童玩乐设施\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"无障碍停车位\",\"客房点餐\",\"提供双床房\",\"提供四人间\",\"部分客房带有花园景\",\"SPA服务\",\"性价比酒店\"]},{\"hotelId\":64773,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=64773&checkInDate=2026-12-07&checkOutDate=2026-12-09&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"箱根酒店小涌园\",\"nameEn\":\"Hakone Kowakien\",\"address\":\"神奈川县足柄下郡箱根1297 Ninotaira, 250-0407\",\"destinationId\":\"55318\",\"latitude\":35.238865,\"longitude\":139.047447,\"distanceInMeters\":1631,\"starRating\":5.0,\"price\":{\"message\":\"查价成功。2晚总价：12,842CNY（约6,421CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":6421.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>箱根酒店小涌园位于箱根町二之平，步行前往箱根小涌园只需 4 分钟、前往箱根露天博物馆需 14 分钟。 此酒店距离箱根温泉 3.9 英里（6.3 公里），距离芦之湖 4.8 英里（7.7 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>冈田美术馆 - 0.2 公里 / 0.1 英里 <br /> 箱根小涌园 - 0.3 公里 / 0.2 英里 <br /> 千条瀑布 - 0.8 公里 / 0.5 英里 <br /> 箱根露天博物馆 - 1.1 公里 / 0.7 英里 <br /> 箱根强罗公园 - 1.7 公里 / 1 英里 <br /> 白云洞茶苑 - 1.8 公里 / 1.1 英里 <br /> 箱根美术馆 - 2 公里 / 1.2 英里 <br /> 宫城野早川堤之樱 - 2.6 公里 / 1.6 英里 <br /> 仙石原温泉 - 2.6 公里 / 1.6 英里 <br /> 大涌谷 - 3.1 公里 / 1.9 英里 <br /> 宝丽美术馆 - 4.3 公里 / 2.7 英里 <br /> 仙石原芒草草原 - 6.1 公里 / 3.8 英里 <br /> 箱根玻璃之森美术馆 - 6.2 公里 / 3.9 英里 <br /> 箱根温泉 - 6.3 公里 / 3.9 英里 <br /> 箱根空中缆车 - 6.3 公里 / 3.9 英里 <br /> </p><p>附近的机场有：<br />羽田机场 (HND) - 99.3 公里 / 61.7 英里<br /> 成田国际机场 (NRT) - 165.9 公里 / 103.1 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可充分利用酒店提供的度假设施，例如温泉、漂流河和桑拿。此酒店的其他设施包括免费 WiFi、游乐厅/游戏室和礼品店/报摊。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括快速入住、大堂免费报纸和干洗/洗衣服务。酒店提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/64773/09a348f0_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"行李寄存\",\"快速入住退房\",\"24小时前台\",\"棋牌室\",\"室内泳池\",\"SPA\",\"温泉\",\"前台贵重物品保险柜\",\"酒吧\",\"大堂报纸\",\"前台服务语言\",\"室外泳池\",\"洗衣设施\",\"不提供一次性塑料吸管\",\"不提供一次性塑料搅拌棒\",\"仅提供可重复使用的杯子\",\"酒店内购物\",\"实木地板\",\"客房WIFI（免费）\",\"礼品廊\",\"公共区域禁烟\",\"桑拿\",\"露台\",\"餐厅\",\"自动售货机\",\"花园\",\"沙滩遮阳伞\",\"地毯\",\"室内泳池（季节性开放）\",\"咖啡壶/茶壶\",\"登山\",\"停车场\",\"充电车位\",\"救生员\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"户外泳池\",\"备有拖鞋\",\"客房备有吹风机\",\"提供双床房\",\"性价比酒店\"]},{\"hotelId\":1419333,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=1419333&checkInDate=2026-12-07&checkOutDate=2026-12-09&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"IHGホテルインディゴ箱根强罗\",\"nameEn\":\"Hotel Indigo Hakone Gora by IHG\",\"brand\":\"英迪格酒店\",\"address\":\"足柄下郡箱根Kigaujishinden 924-1\",\"destinationId\":\"55318\",\"latitude\":35.252651,\"longitude\":139.050429,\"distanceInMeters\":2851,\"starRating\":4.5,\"price\":{\"message\":\"查价成功。2晚总价：4,634CNY（约2,317CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":2317.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>IHGホテルインディゴ箱根强罗位于箱根町强罗，距离箱根露天博物馆和箱根强罗公园不到 5 分钟车程。 此豪华酒店距离大涌谷 2.5 英里（4 公里），距离箱根神社 6.2 英里（10 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>宫城野早川堤之樱 - 0.6 公里 / 0.4 英里 <br /> 箱根强罗公园 - 0.9 公里 / 0.6 英里 <br /> 箱根美术馆 - 1.2 公里 / 0.7 英里 <br /> 白云洞茶苑 - 1.3 公里 / 0.8 英里 <br /> 箱根露天博物馆 - 1.4 公里 / 0.9 英里 <br /> 箱根小涌园 - 2.2 公里 / 1.4 英里 <br /> 冈田美术馆 - 2.4 公里 / 1.5 英里 <br /> 仙石原温泉 - 2.6 公里 / 1.6 英里 <br /> 千条瀑布 - 2.8 公里 / 1.8 英里 <br /> 大涌谷 - 3.2 公里 / 2 英里 <br /> 箱根玻璃之森美术馆 - 4.3 公里 / 2.7 英里 <br /> 宝丽美术馆 - 4.6 公里 / 2.9 英里 <br /> 箱根空中缆车 - 4.9 公里 / 3.1 英里 <br /> 仙石原芒草草原 - 5.2 公里 / 3.3 英里 <br /> 箱根温泉 - 5.4 公里 / 3.3 英里 <br /> </p><p>附近的机场有：<br />羽田机场 (HND) - 100.3 公里 / 62.3 英里<br /> 成田国际机场 (NRT) - 178.9 公里 / 111.2 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可享受温泉、桑拿和24 小时健身中心等丰富度假设施。此酒店的其他设施包括免费 WiFi、礼宾服务和礼品店/报摊。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括干洗/洗衣服务、24 小时前台服务和多语言服务。酒店免费提供火车站接车服务，此外还提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/1419333/hotel/default/3/image/0201q120007r3725d94FA.jpg-t\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"温泉\",\"钓鱼\",\"电梯\",\"酒吧\",\"无障碍通道\",\"前台服务语言\",\"健身中心\",\"客房WIFI（免费）\",\"接站服务\",\"礼品廊\",\"公共区域禁烟\",\"桑拿\",\"露台\",\"餐厅\",\"户外家具\",\"登山\",\"停车场\",\"充电车位\",\"火坑\",\"远足步道\",\"提供早餐\"],\"tags\":[\"国际连锁\",\"公共温泉\",\"宠物友好\",\"室内恒温泳池\",\"户外泳池\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"客房点餐\",\"提供大床房\",\"提供双床房\",\"SPA服务\",\"运动友好酒店\"]},{\"hotelId\":64760,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=64760&checkInDate=2026-12-07&checkOutDate=2026-12-09&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"汤本富士屋酒店\",\"nameEn\":\"Yumoto Fujiya Hotel\",\"brand\":\"Independent\",\"address\":\"256-1 Yumoto\",\"destinationId\":\"55318\",\"latitude\":35.232236,\"longitude\":139.105139,\"distanceInMeters\":6697,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。2晚总价：3,460CNY（约1,730CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1730.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>汤本富士屋酒店坐落于箱根町汤本，距离箱根温泉仅咫尺之遥，距离天山汤治乡也只有 5 分钟车程。 此酒店距离芦之湖 10.2 英里（16.5 公里），距离箱根小涌园 5.6 英里（9 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>箱根温泉 - 0.1 公里 / 0.1 英里 <br /> 箱根玩具美术馆 - 0.7 公里 / 0.5 英里 <br /> 玉帘瀑布 - 1.4 公里 / 0.9 英里 <br /> 神奈川县自然历史博物馆 - 2 公里 / 1.3 英里 <br /> 天山汤治乡 - 2.4 公里 / 1.5 英里 <br /> 伊豆国家公园 - 2.6 公里 / 1.6 英里 <br /> 小田原渔港 - 5 公里 / 3.1 英里 <br /> 小田原早川渔村 - 5.2 公里 / 3.2 英里 <br /> 小田原城 - 5.3 公里 / 3.3 英里 <br /> 城址公园 - 5.4 公里 / 3.4 英里 <br /> 小田原顽童公园 - 5.9 公里 / 3.6 英里 <br /> HaRuNe 小田原(地下街) - 6.4 公里 / 4 英里 <br /> 宫城野早川堤之樱 - 8.2 公里 / 5.1 英里 <br /> 千条瀑布 - 8.8 公里 / 5.4 英里 <br /> 箱根露天博物馆 - 8.9 公里 / 5.6 英里 <br /> </p><p>汤本富士屋酒店的主要机场为 成田国际机场 (NRT) - 157.1 公里 / 97.6 英里 </p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可享受温泉和季节性开放的室外游泳池等度假设施。此酒店还提供免费 WiFi、礼品店/报摊和婚庆服务。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括24 小时前台服务、行李寄存和洗衣设施。酒店提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/64760/86fffe6b_b.jpg-t\",\"hotelAmenities\":[\"行李寄存\",\"24小时前台\",\"SPA\",\"温泉\",\"电梯\",\"会议厅\",\"咖啡厅\",\"酒吧\",\"宴会厅\",\"婚宴服务\",\"洗衣设施\",\"酒店内购物\",\"客房WIFI（免费）\",\"礼品廊\",\"儿童俱乐部\",\"吸烟区\",\"餐厅\",\"自动售货机\",\"洗衣房\",\"沙滩遮阳伞\",\"室内泳池（季节性开放）\",\"停车场\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"公共温泉\",\"宴会厅\",\"儿童泳池\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"户外泳池\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供双床房\",\"提供三人间\",\"SPA服务\",\"性价比酒店\"]}]}",
+        "isError": false
+      }
+    }
+  ]
+}

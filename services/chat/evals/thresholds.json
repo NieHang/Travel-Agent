@@ -1,0 +1,66 @@
+{
+  "classify": {
+    "intent_acc": {
+      "maxDrop": 0.03
+    },
+    "patch_exact": {
+      "maxDrop": 0.02
+    },
+    "patch_field_destination": {
+      "maxDrop": 0.02
+    },
+    "patch_field_tripType": {
+      "maxDrop": 0.02
+    },
+    "patch_field_departureDate": {
+      "maxDrop": 0.02
+    },
+    "patch_field_returnDate": {
+      "maxDrop": 0.02
+    },
+    "patch_field_travelers": {
+      "maxDrop": 0.02
+    },
+    "patch_field_preferences": {
+      "maxDrop": 0.25
+    },
+    "patch_field_budget": {
+      "maxDrop": 0.02
+    },
+    "patch_field_budgetCurrency": {
+      "maxDrop": 0.02
+    },
+    "patch_hallucination": {
+      "maxRise": 0.02
+    },
+    "clarify_match": {
+      "maxDrop": 0.03
+    },
+    "clarify_recall": {
+      "maxDrop": 0.1
+    },
+    "clarify_precision": {
+      "maxDrop": 0.03
+    },
+    "task_error": {
+      "maxRise": 0
+    }
+  },
+  "extract-days": {
+    "day_count_exact": {
+      "maxDrop": 0.02
+    },
+    "stop_f1": {
+      "maxDrop": 0.02
+    },
+    "stay_ref_acc": {
+      "maxDrop": 0.02
+    },
+    "leg_as_stop": {
+      "maxRise": 0.02
+    },
+    "task_error": {
+      "maxRise": 0
+    }
+  }
+}

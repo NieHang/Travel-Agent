@@ -176,6 +176,145 @@ Acceptance:
 - After deliberately breaking one classify rule, `eval:compare` names the cases that got worse and exits with code 1.
 - The two sets of runs can be compared in Langfuse.
 
+**Outcome (2026-10-30): done, datasets need human review.**
+
+What shipped:
+
+- `eval`, `eval:sync` and `eval:compare` work.
+- A failed task is kept as a zero-scored item with `task_error=1` (gated at `maxRise: 0`) instead of aborting the run.
+- Free-text fields (destination, preferences, stop names) match by containment after normalization, not by exact string.
+
+Datasets:
+
+- **classify**: 120 entries drafted by Codex, 10 per category, 5 zh + 5 en each. Many read template-like ("出行人数1"), and the expected values are unreviewed.
+- **extract-days**: 10 real drafts from live itinerary runs (`evals/drafts/`), labeled by Codex with a note per judgment call, plus 2 synthetic entries.
+  - The two zh "朋友出游" requests never reached an itinerary: classify left tripType empty.
+  - The MCP calls from those runs are saved in `evals/cassettes/itinerary/` for P3.
+
+Baselines (`*@accc65d-dirty-baseline`, 3 trials each, DeepSeek flash, temperature 0):
+
+| Suite | Metric | Value |
+|---|---|---|
+| classify | intent_acc | 0.91 |
+| classify | patch_exact | 0.80 |
+| classify | patch_hallucination | 0.03 |
+| classify | clarify_match | 0.91 |
+| classify | clarify_recall | 1.00 |
+| classify | clarify_precision | 0.49 |
+| classify | departureDate | 0.76 |
+| classify | returnDate | 0.84 |
+| classify | relative_date category, patch_exact | 0 |
+| classify | cost per call | ~$0.00024 |
+| extract-days | day_count_exact | 1.00 |
+| extract-days | stop_f1 | 0.74 |
+| extract-days | stay_ref_acc | 1.00 |
+| extract-days | leg_as_stop | 0 |
+
+Regression check: removing "only values the user explicitly stated" from CLASSIFY_PROMPT gave patch_hallucination 0.03 → 0.10, patch_exact −0.09 and clarify_precision −0.28. `eval:compare` flagged the regressed items and exited 1, and the prompt was reverted.
+
+Findings for follow-up (each is a candidate experiment for the pipeline):
+
+1. **Relative dates fail completely.** CLASSIFY_PROMPT has no date in it, so "下周五" can't be resolved. Fix candidate: add `Today is …` to the classify system message. (Codex added this unasked; it was reverted so the baseline measures current behavior.)
+2. **Intermittent `classify` crash.** One trial in an early run returned 6 clarify options, more than `ClarifySchema`'s max of 5, so parsing failed. In the app, that turn errors out.
+3. **clarify_precision 0.49.** The model asks for clarification on about half the items whose label expects none. Either the model over-asks or the labels are too strict; review the labels first.
+4. **extractDays stops.** The model makes the arrival airport and the hotel into stops, and the extraction prompt doesn't say whether they count. Decide the rule, then put it in the prompt.
+5. **"朋友出游" doesn't map to a trip type** (see Datasets above).
+
+**Follow-up fixes (2026-10-30).** The labels were reviewed (by Claude, not yet by a person), the datasets grown, and the gates sized from measured noise. Then each fix ran as its own experiment and was compared with the step before it.
+
+Datasets:
+
+- **classify** has 132 entries (66 zh / 66 en):
+  - form-like texts are rewritten;
+  - follow-up states match their history;
+  - labels count direct implications and named currencies;
+  - new categories: `trip_type`, `natural_date`, and `chat_place` (questions that name a place).
+- **extract-days** has 22 entries, 20 of them real drafts, relabeled with the stop rules in `evals/README.md`.
+
+Gates: an A/A test (`base-a` and `base-b`, 3 trials each) showed little noise. Most fields never flipped, and stop_f1 had a standard deviation of 0.005. Gates were widened only where the noise needs it:
+
+| Metric | Gate | Why |
+|---|---|---|
+| intent_acc | 0.03 | measured noise |
+| clarify_match | 0.03 | measured noise |
+| clarify_precision | 0.03 | measured noise |
+| clarify_recall | 0.10 | measured noise |
+| patch_field_preferences | 0.25 | only 4 items |
+
+`bun run eval:noise` recomputes them.
+
+classify experiments. Each row is cumulative and compared with the row above; values are 3-trial means over the same 128 items.
+
+| Step | Change | intent_acc | patch_exact | clarify_precision | Result |
+|---|---|---|---|---|---|
+| `base-a` | none | 0.92 | 0.87 | 0.36 | 1 crash in 384 calls (6 clarify options) |
+| `date` | `Today is …`; resolve relative and yearless dates | 0.92 | 0.97 | 0.44 | natural_date 0 → 1, but 7 items regressed (see below) |
+| `clarify` | clarify only for unconfirmed inferences or requested suggestions; extra options trimmed to 5 | 0.96 | 0.99 | 1.00 | recall stays 1.00, no regressions |
+| `rules` | `plan` whenever patch has a value; direct implications; named currency → ISO code | 1.00 | 0.95 | 1.00 | gate failed (see below) |
+| `rules2` | implications narrowed to solo, couple, "just me" and 一家三口; a head count sets no other trip type | 1.00 | 0.99 | 1.00 | no regressions vs `clarify` |
+
+- In `date`, single-detail messages such as "We've got 7 travelers" became `chat`, which drops their patch. The mean intent_acc stayed equal and hid the swap; the regressed-items list showed it.
+- In `rules`, "the two of us" became a couple and a "100-person group" became friends.
+- `rules2` scores `cls-en-change-05` with a corrected label: a couple's trip is 2 travelers.
+
+`final` adds the 4 `chat_place` guard items (132 items). Results:
+
+- intent_acc 1.00, patch_exact 0.99, clarify precision and recall 1.00, task_error 0.
+- All guard items stay `chat` with an empty patch.
+- Remaining misses:
+  - "There are 100 travelers in our group" becomes `friends`, the same as at baseline;
+  - `cls-en-full-05` once put "day trip, back that evening" into preferences.
+
+extract-days `stops`: the extraction prompt now spells out the stop rules:
+
+- the hotel is never a stop;
+- airports count only where the trip arrives or departs;
+- stations count only where a day trip or city change starts or ends;
+- options and backups are not stops;
+- meals count only at a named place.
+
+stop_f1 went 0.71 → 0.84 with no regressed items, and every category rose (non_japan +0.18). The same rules wrote the labels, so this measures agreement with those rules.
+
+Itinerary hotel line:
+
+- **Duplicated names (fixed).** Kyoto replays wrote "京都三条格拉斯丽酒店（京都三条格拉斯丽酒店）" when a hotel had no translation. With the new wording, 3 of 3 replays name it once, and English still writes "Hotel Hankyu Respire Osaka (阪急大阪龙仕柏酒店)".
+- **"3-night Kyoto, no hotels" (not reproduced).** The report did not reproduce in 12 replays; grounding kept every hotel.
+
+Still open:
+
+- A person should spot-check the labels.
+- The baselines are `-dirty` and must be rerun from a clean commit.
+
+**Clarify coverage (2026-10-30).** All 10 should-ask classify items asked for a destination, so precision 1.00 said nothing about dates or trip type. 12 items were added (`vague_dates`, `vague_trip_type`): 8 should ask and 4 are near-misses that should not.
+
+- With the `rules2` prompt (run `vague`), recall fell to 0.56:
+  - vague dates were left empty but never asked about;
+  - ambiguous companions were guessed into `tripType` (coworkers → business or friends; parents + girlfriend → family).
+- The prompt now names three kinds of inference (destination, a season or holiday instead of days, companions that fit more than one trip type) and says to leave the inferred field null. The examples are worded differently from the eval items.
+- `vague-fix` against `vague`:
+  - recall 0.56 → 0.89, precision stays 1.00, patch_hallucination down;
+  - all near-misses unchanged; no gate crossed; no older item regressed.
+- Still failing:
+  - "with a few people from work" / "和几个同事" is still treated as `business` (once `friends`);
+  - "My wife and I … for our anniversary" now puts "anniversary" in preferences in 3 of 3 trials (1 of 3 before).
+  - Both are label decisions: is a trip with coworkers business by default, and is an occasion a preference?
+- The same compare showed `readRuns` matching by plain prefix: `…-vague` also read the `…-vague-fix` trials. It now reads the exact run name only.
+
+**Label decisions and the coworker rule (2026-10-30).** Coworkers alone stay ambiguous; an occasion is a preference (`cls-en-vague-trip-type-03` relabeled). Three wordings of the coworker rule, each 3 trials × 144 items. Failing trials use the new labels; `vague-fix` would count 6 under them (its stored scores used the old anniversary label).
+
+| Run | Rule placement | Failing trials | Which |
+|---|---|---|---|
+| `vague-fix` | none | 6 | both coworker items guess `business` (3/3 each) |
+| `coworkers` | own sentence in clarify: "coworkers alone are such companions…" | 7 | coworkers fixed; parents + girlfriend guesses `family` 2/3; two suggestion requests stop asking 3 of 6; full-05 1/3 |
+| `coworkers2` | in clarify's companions list | 6 | coworkers ask 3/3; "Help me choose where to go…" never asks; "I'm vegetarian…" becomes `chat` and drops the preference (both 3/3) |
+| `coworkers3` (kept) | in patch, next to "a head count alone sets no other trip type" | 8 | coworkers leave `tripType` null but don't ask (3/3 each); full-05 adds "day trip" 2/3 (flaky since the baseline) |
+
+- `coworkers3` is kept although it fails the most trials, because its failures cost the least: with `tripType` null the app asks the trip type itself, only without the tailored question. `coworkers2` drops a stated preference. No gate crossed; patch_exact 0.979 → 0.995, clarify_recall 0.89 (unchanged), precision 1.00.
+- Every trial within a run agreed (no flaky items apart from full-05), so 3 trials at temperature 0 measure almost no sampling noise. The noise that matters here is wording: each rewrite flipped a different borderline item that had passed in every earlier run. Judge a prompt change by the items it flips and what each failure costs, not only by the means.
+- `clarify_match` now counts toward regressed items: the first wording made a suggestion request stop asking with `patch_exact` still 1, and the list missed it.
+- The prompt is kept byte-for-byte as evaluated (including a short line), since reflowing it would change the prompt that was measured.
+- Live check on the kept prompt: 33/34 in each of two runs, failing a different reply-path check each time; every classify check passed. (1) zh hotel question showed no cards: the output tokens show DeepSeek sending invalid `show_results` JSON round after round until the 5-round limit; 5 of 5 reruns of that question showed cards, one with an empty reply. (2) The en Japan overview listed a 1-night city. The three earlier runs passed 34/34. The reply path is unchanged here; it gets measured in P3.
+
 ## P3. L3 itineraries (itinerary / answer, 15–20 scenarios)
 Entry shape: `{ id, today, locale, text, history, expected: { effect, nights, budget? }, must: string[] }`. `must` holds the case-specific requirements a person writes; it is used in P4.
 

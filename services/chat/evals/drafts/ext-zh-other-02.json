@@ -1,0 +1,321 @@
+{
+  "id": "ext-zh-other-02",
+  "category": "non_japan",
+  "locale": "zh",
+  "text": "杭州亲子游，2026-11-14 到 2026-11-16，3 个人",
+  "today": "2026-10-30",
+  "draft": "# 杭州亲子游行程草稿（2026-11-14 至 2026-11-16，3 人）\n\n## 总览\n- 杭州 2 晚，全程不换酒店（0 次换酒店），以西湖东岸为基地\n- 节奏：轻松 · 标准 · 轻松\n- 说明：11 月中旬是杭州赏秋旺季，周末人多，建议早点出门\n\n## 出发前要办\n- 提前在官方渠道预约西湖游船、灵隐寺等需要实名或限流的项目（建议提前几周，具体以官方为准）\n- 提前买好高铁票或机票，并确认到杭州东站或萧山机场后的接驳方式\n- 手机装好支付宝或微信乘车码，或到站后办一张交通卡，方便坐地铁和公交\n- 带一件薄外套和雨具：11 月早晚温差大，也可能下雨\n- 亲子出行建议带轻便推车；西湖边多为步行道，推车比抱娃省力\n\n## Day 1 | 抵达 · 西湖东岸（轻松）\n- 12:00 抵达杭州东站或萧山机场；从东站坐地铁 1 号线到凤起路站，约 20 分钟，无需换乘；从机场坐机场大巴或地铁，约 50–60 分钟，需换乘 1 次（约）\n- 13:30 酒店寄存行李，附近吃午饭\n- 15:00 湖滨步行街、湖滨公园散步，看西湖喷泉一带（步行约 10 分钟）\n- 17:00 湖边看日落，孩子可以在草坪上跑一跑\n- 18:30 湖滨商圈吃晚饭，早点回酒店休息\n- 今晚：忆泊酒店(杭州西湖店)\n\n## Day 2 | 西湖西线 · 灵隐（标准）\n- 08:30 酒店出发，坐公交或打车到断桥，约 15 分钟（约）\n- 09:00 白堤—孤山一带慢走，早上人少、光线好\n- 11:00 坐西湖游船到三潭印月或花港观鱼，约 20 分钟（约，需提前确认班次）\n- 12:30 花港观鱼附近吃午饭、休息\n- 14:00 打车到灵隐寺、飞来峰，约 20 分钟（约）；飞来峰的石刻孩子会感兴趣\n- 17:00 返回市区，约 30 分钟（约）\n- 18:30 晚饭后回酒店休息\n- 备选：如果下雨，改去浙江省博物馆或中国茶叶博物馆室内展馆；如果太累，可以不去灵隐，只在花港观鱼和湖边多待一会儿\n- 今晚：忆泊酒店(杭州西湖店)\n\n## Day 3 | 河坊街 · 返程（轻松）\n- 09:00 酒店退房、寄存行李\n- 09:30 步行或坐地铁到河坊街、南宋御街，约 15 分钟（约）；逛老街、买点伴手礼\n- 11:30 附近吃午饭\n- 13:00 回酒店取行李\n- 13:30 前往杭州东站，坐地铁约 20 分钟（约）；或前往萧山机场，约 50–60 分钟（约），请留足值机时间\n- 具体车次和航班时间请以实际预订为准，出发前再确认一次\n\n**住宿说明**：以上酒店来自实时搜索结果，价格为搜索时显示的最低每晚房价，房型和可订状态请点开卡片确认。如果更看重亲子设施（儿童餐椅、餐具、玩具、婴儿床），柏纳酒店(西湖文化广场地铁站店) 更合适，但它在商务楼 4 层，房间情况需要确认；如果更看重位置和舒适度，忆泊酒店(杭州西湖店) 离西湖和地铁最近。",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "478250",
+        "title": {
+          "original": "忆泊酒店(杭州西湖店)",
+          "translation": null
+        },
+        "address": {
+          "original": "凤起路435号 (地铁1、2号线凤起路站D3出口旁)",
+          "translation": null
+        },
+        "price": {
+          "amount": 655.5,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=478250&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/478250/hotel/default/14/image/0204x120008ccif4h0031_R_960_660_R5_D.jpg",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "距市中心直线距离（米）",
+            "value": {
+              "original": "2870",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低房价（每晚）",
+            "value": {
+              "original": "655.5 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "儿童拖鞋",
+            "translation": null
+          },
+          {
+            "original": "餐厅",
+            "translation": null
+          },
+          {
+            "original": "免费停车场",
+            "translation": null
+          },
+          {
+            "original": "24小时前台",
+            "translation": null
+          },
+          {
+            "original": "行李寄存",
+            "translation": null
+          },
+          {
+            "original": "洗衣房",
+            "translation": null
+          },
+          {
+            "original": "花园",
+            "translation": null
+          },
+          {
+            "original": "公用区wifi",
+            "translation": null
+          }
+        ],
+        "summary": "紧邻凤起路地铁站（1、2号线），步行可达西湖东岸，带儿童拖鞋，适合亲子出行；价格偏高。"
+      },
+      {
+        "ref": "h2",
+        "id": "2365447",
+        "title": {
+          "original": "柏纳酒店(西湖文化广场地铁站店)",
+          "translation": null
+        },
+        "address": {
+          "original": "文晖路271号越都商务大厦4层",
+          "translation": null
+        },
+        "price": {
+          "amount": 182.5,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=2365447&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/2365447/hotel/default/14/image/1mc1k12000jb31j547F9C_R_960_660_R5_D.jpg",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "2",
+              "translation": null
+            }
+          },
+          {
+            "label": "距市中心直线距离（米）",
+            "value": {
+              "original": "3034",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低房价（每晚）",
+            "value": {
+              "original": "182.5 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "儿童拖鞋",
+            "translation": null
+          },
+          {
+            "original": "儿童餐椅",
+            "translation": null
+          },
+          {
+            "original": "儿童餐具",
+            "translation": null
+          },
+          {
+            "original": "便携式婴儿床/婴儿床",
+            "translation": null
+          },
+          {
+            "original": "儿童玩具",
+            "translation": null
+          },
+          {
+            "original": "厨房",
+            "translation": null
+          },
+          {
+            "original": "洗衣机",
+            "translation": null
+          },
+          {
+            "original": "24小时前台",
+            "translation": null
+          }
+        ],
+        "summary": "亲子设施最全（儿童餐椅、餐具、玩具、婴儿床），带厨房和洗衣机，价格最低；位于商务楼4层，房间类型需确认。"
+      },
+      {
+        "ref": "h3",
+        "id": "2865632",
+        "title": {
+          "original": "杭州城东文澜大酒店",
+          "translation": null
+        },
+        "address": {
+          "original": "绍兴路95号",
+          "translation": null
+        },
+        "price": {
+          "amount": 383.5,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=2865632&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/2865632/hotel/default/14/image/1mc3w12000qqkbagtE9D9_R_960_660_R5_D.jpg",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "距市中心直线距离（米）",
+            "value": {
+              "original": "4318",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低房价（每晚）",
+            "value": {
+              "original": "383.5 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "儿童拖鞋",
+            "translation": null
+          },
+          {
+            "original": "儿童牙刷",
+            "translation": null
+          },
+          {
+            "original": "餐厅",
+            "translation": null
+          },
+          {
+            "original": "健身室",
+            "translation": null
+          },
+          {
+            "original": "行李寄存",
+            "translation": null
+          },
+          {
+            "original": "停车场",
+            "translation": null
+          },
+          {
+            "original": "24小时前台",
+            "translation": null
+          },
+          {
+            "original": "公用区wifi",
+            "translation": null
+          }
+        ],
+        "summary": "四星、价格适中，有儿童拖鞋和儿童牙刷；位置偏城东，去西湖需坐地铁约 20 分钟。"
+      },
+      {
+        "ref": "h4",
+        "id": "1090005",
+        "title": {
+          "original": "杭州富阳东方茂开元名都大酒店",
+          "translation": null
+        },
+        "address": {
+          "original": "富春街道金桥北路61号",
+          "translation": null
+        },
+        "price": {
+          "amount": 315,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=1090005&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/1090005/hotel/default/3/image/0221d1200084a0cdf79B1.jpg",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "5",
+              "translation": null
+            }
+          },
+          {
+            "label": "距市中心直线距离（米）",
+            "value": {
+              "original": "31515",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低房价（每晚）",
+            "value": {
+              "original": "315 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "儿童乐园",
+            "translation": null
+          },
+          {
+            "original": "室内恒温泳池",
+            "translation": null
+          },
+          {
+            "original": "儿童餐",
+            "translation": null
+          },
+          {
+            "original": "儿童浴袍",
+            "translation": null
+          },
+          {
+            "original": "儿童拖鞋",
+            "translation": null
+          },
+          {
+            "original": "儿童书籍/影音",
+            "translation": null
+          },
+          {
+            "original": "免费停车场",
+            "translation": null
+          },
+          {
+            "original": "健身室",
+            "translation": null
+          }
+        ],
+        "summary": "五星亲子设施强（儿童乐园、恒温泳池），但位于富阳，距市中心约 31 公里，不适合以西湖为主的 2 晚行程。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "tools": [
+    {
+      "name": "mcp_rollingGo_getHotelDetail",
+      "description": "查询单个酒店实时房型与价格明细（房型、价税、可售状态、退改规则等）。用于用户已选定具体酒店后的二次查价",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dateParam": {
+            "type": "object",
+            "properties": {
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式 YYYY-MM-DD。建议传合法未来日期"
+              },
+              "checkOutDate": {
+                "type": "string",
+                "description": "离店日期，格式 YYYY-MM-DD，必须晚于 checkInDate"
+              }
+            },
+            "description": "入离店日期对象"
+          },
+          "filter": {
+            "type": "object",
+            "properties": {
+              "cancelPolicy": {
+                "type": "string",
+                "enum": [
+                  "CANCELABLE",
+                  "NON_CANCELABLE"
+                ],
+                "description": "取消政策筛选。CANCELABLE：仅可免费取消房型；NON_CANCELABLE：仅不可取消房型。非法值忽略。"
+              },
+              "mealType": {
+                "type": "string",
+                "enum": [
+                  "WITH_BREAKFAST",
+                  "SINGLE_BREAKFAST",
+                  "DOUBLE_BREAKFAST",
+                  "NO_MEAL"
+                ],
+                "description": "餐食类别枚举。WITH_BREAKFAST（含早餐，mealAmount>0）/ SINGLE_BREAKFAST（单份早餐，mealAmount=1）/ DOUBLE_BREAKFAST（双份早餐，mealAmount=2）/ NO_MEAL（不含餐食，mealAmount=0）。非法值忽略。"
+              }
+            },
+            "description": "房型筛选条件对象。未传或为空时返回全部房型；多条件 AND 组合。"
+          },
+          "hotelId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "酒店唯一ID。与 name 二选一；若同时传入，优先使用 hotelId（从searchHotels工具获取）"
+          },
+          "name": {
+            "type": "string",
+            "description": "酒店名称（模糊匹配）。仅在没有 hotelId 时使用"
+          },
+          "occupancyParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房成人数，整数，>=1，默认2"
+              },
+              "childAgeDetails": {
+                "description": "儿童年龄数组，如 [3,5]；长度应与 childCount 一致",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "childCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房儿童数，整数，>=0，默认0"
+              },
+              "roomCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "房间数，整数，>=1，默认1"
+              }
+            },
+            "description": "入住人数与房间数量对象"
+          }
+        }
+      }
+    },
+    {
+      "name": "mcp_rollingGo_getHotelSearchTags",
+      "description": "获取酒店搜索元数据（AI Cache），包含可用的标签列表（以当前启用数据为准）。",
+      "schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "mcp_rollingGo_searchHotels",
+      "description": "该工具用于查询全球酒店。根据地点及结构化筛选条件（日期、入住晚数、人数、星级、距离、标签、品牌、预算）返回符合条件的酒店候选列表与最低价格，用于酒店初筛与比选。",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "checkInParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房入住的成人数量，默认两成人"
+              },
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式：YYYY-MM-DD，例如：2026-02-01。可不传；未传或早于今天时，自动使用明天；格式错误会返回参数错误"
+              },
+              "stayNights": {
+                "type": "integer",
+                "format": "int32",
+                "description": "入住天数（晚数），可不传，默认 1 晚。最多 28 晚，超出限制将返回参数错误。"
+              }
+            },
+            "description": "入住信息参数，包括入住日期、入住天数和每间房成人数量"
+          },
+          "filterOptions": {
+            "type": "object",
+            "properties": {
+              "distanceInMeter": {
+                "type": "integer",
+                "format": "int32",
+                "description": "直线距离，单位（米），当地点是一个POI位置时生效，生效时默认设定值为2000"
+              },
+              "starRatings": {
+                "description": "酒店星级(0.0-5.0, 梯度为0.5)，默认[0.0, 5.0]以上，例如 [4.5, 5.0]，[0.0, 2.0]",
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                }
+              }
+            },
+            "description": "酒店筛选选项，例如酒店星级、每间房成人数、距离等"
+          },
+          "hotelTags": {
+            "type": "object",
+            "properties": {
+              "maxPricePerNight": {
+                "type": "number",
+                "format": "double",
+                "description": "每晚价格上限（人民币，数值）"
+              },
+              "preferredBrands": {
+                "description": "偏好品牌",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requiredTags": {
+                "description": "必须命中标签（硬约束，未命中应被过滤）",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "酒店筛选标签参数（可选）。当传入此参数时，将直接使用这些标签进行筛选和排序，无需服务端额外解析。包含字段：requiredTags（必须标签）、preferredBrands（偏好品牌）、maxPricePerNight（每晚最高预算）"
+          },
+          "nextPageToken": {
+            "type": "string",
+            "description": "分页游标。仅当获取下一页(换一批)时,原样回传上一页返回的 nextPageToken;首页查询不传。传入有效 Token 时,核心检索条件以 Token 内快照为准。"
+          },
+          "originQuery": {
+            "type": "string",
+            "description": "综合多轮对话，归纳用户的完整住宿/预订意图。"
+          },
+          "place": {
+            "type": "string",
+            "description": "搜索地点关键词/酒店名称。具体酒店直接填入酒店名称；位置或区县需用空格补齐城市，填入 位置 城市；仅查询城市需补齐国家，填入 城市 国家。"
+          },
+          "placeType": {
+            "type": "string",
+            "description": "place 的类型，必须与 place 的实际内容一致。可选值：城市、机场、景点、火车站、地铁站、酒店、区/县、详细地址。"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "返回酒店结果数量，默认5个酒店，最大不超过10个"
+          }
+        },
+        "required": [
+          "originQuery",
+          "place",
+          "placeType"
+        ]
+      }
+    }
+  ],
+  "calls": [
+    {
+      "tool": "mcp_rollingGo_searchHotels",
+      "args": {
+        "originQuery": "Solo trip to Seoul, 2026-11-20 to 2026-11-23, 1 person, 3 nights",
+        "place": "Seoul South Korea",
+        "placeType": "城市",
+        "checkInParam": {
+          "checkInDate": "2026-11-20",
+          "stayNights": 3,
+          "adultCount": 1
+        },
+        "size": 8
+      },
+      "result": {
+        "content": "{\"success\":true,\"code\":2000,\"message\":\"酒店搜索成功\",\"nextPageToken\":\"lU_Tprd8kOWpswhhEtjP183a31xNTzp4Kl43d0TXLX2dt__dz7MXY89WqVN57AsA5dQa3e1wO5h2uPSYvZ3TKOtdt_o01QbEwR-EBc67ZyGDYK-2RHz_jnhLKHGJPpS_Zkpz_-NW__an0CatrsUyWRcaiHWDrBFHMSDYNtzO179Tl8np8Pu-5kXRVM007FLSnQJM6RhJH2Kqfh_xxpKC\",\"hotelInformationList\":[{\"hotelId\":958548,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=958548&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"首尔万枫酒店\",\"nameEn\":\"Fairfield by Marriott Seoul\",\"brand\":\"万枫酒店\",\"address\":\"870, GYEONGIN-RO YEONGDEUNGPO-GU\",\"destinationId\":\"3124\",\"latitude\":37.51698,\"longitude\":126.90915,\"distanceInMeters\":8462,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。3晚总价：2,973CNY（约991CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":991.0},\"areaCode\":\"KR\",\"description\":\"<p><strong>酒店位置</strong><br>首尔万枫酒店位于首尔永登浦区，距离鹭梁津水产市场和弘益大学不到 5 分钟车程。 此酒店距离韩国国立中央博物馆 4.6 英里（7.3 公里），距离梨泰院街 5.1 英里（8.2 公里）。</p><p><strong>客房</strong><br>有 556 间客房提供冰箱和LED 电视；您定能在旅途中找到家的舒适。提供免费无线网络，方便您与朋友保持联系；有线频道可满足您的娱乐需求。配备淋浴设施的私人浴室提供大花洒淋浴喷头和吹风机。便利设施包括电话，以及保险箱和书桌。</p><p><strong>餐饮</strong><br>酒店设有多家餐饮设施，包括 2 间餐厅和咖啡馆。您不妨选择去Million Spoons享用 国际美食。 每天 6:30 至 10:30 提供收费的自助式早餐。</p><p><strong>休闲、SPA、高端服务设施</strong><br>您可充分利用健身中心等度假设施，此外还有免费 WiFi和礼宾服务等。</p><p><strong>商务及其他服务设施</strong><br>特色服务/设施包括24 小时商务中心、干洗/洗衣服务和24 小时前台服务。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/2/Image/958548/e3b6c475cee490a445c8bac589a05372.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"会议厅\",\"商场\",\"咖啡厅\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"健身设施\",\"所有窗户均为双层玻璃\",\"洗衣设施\",\"不提供一次性塑料搅拌棒\",\"仅使用节水淋浴\",\"客房清洁服务\",\"资源回收\",\"客房WIFI（免费）\",\"桌面游戏/拼图\",\"旅游票务专柜\",\"公共区域禁烟\",\"电脑\",\"餐厅\",\"被单更换：1客1换\",\"无障碍通道\",\"帆船运动\",\"无障碍卫生间\",\"提供轮椅\",\"停车场\",\"天台花园\",\"会议室辅助听力设备\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"自行车租赁\",\"提供家庭房\",\"提供大床房\",\"提供双床房\",\"SPA服务\"]},{\"hotelId\":2896,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=2896&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"江南欧克劳德酒店\",\"nameEn\":\"Ocloud Hotel Gangnam\",\"address\":\"12, Sapyeong-daero 58-gil, Seocho-gu\",\"destinationId\":\"3124\",\"latitude\":37.502977,\"longitude\":127.023416,\"distanceInMeters\":7879,\"starRating\":3.5,\"price\":{\"message\":\"查价成功。3晚总价：3,959.01CNY（约1,319.67CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1319.67},\"areaCode\":\"KR\",\"description\":\"<p><b>酒店位置</b><br/>江南欧克劳德酒店位于首尔瑞草区，距离宣靖陵位皇家陵墓和国际会议暨展示中心不到 5 分钟车程。 此酒店距离奉恩寺 2.2 英里（3.5 公里），距离LG 艺术中心 13.6 英里（21.9 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>江南大路 - 0.1 公里 / 0.1 英里 <br /> 德黑兰路 - 0.7 公里 / 0.4 英里 <br /> 江南金融中心 - 1.6 公里 / 1 英里 <br /> 中心城购物中心 - 1.7 公里 / 1.1 英里 <br /> 林荫树路 - 2 公里 / 1.2 英里 <br /> 宣靖陵位皇家陵墓 - 2.7 公里 / 1.7 英里 <br /> 盘浦洞公园 - 2.8 公里 / 1.7 英里 <br /> 现代百货商场 - 3.3 公里 / 2 英里 <br /> 狎鸥亭罗德奥街 - 3.4 公里 / 2.1 英里 <br /> 首尔艺术中心 - 3.6 公里 / 2.2 英里 <br /> 七乐娱乐场首尔江南店 - 3.8 公里 / 2.3 英里 <br /> 国际会议暨展示中心 - 3.8 公里 / 2.4 英里 <br /> 星院 COEX 商场 - 4 公里 / 2.5 英里 <br /> 奉恩寺 - 4.2 公里 / 2.6 英里 <br /> 梨泰院街 - 4.8 公里 / 3 英里 <br /> </p><p>附近的机场有：<br />金浦国际机场 (GMP) - 28.4 公里 / 17.6 英里<br /> 仁川国际机场 (ICN) - 63.1 公里 / 39.2 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>享受24 小时健身俱乐部等度假设施，或者到花园欣赏美景。此酒店的其他设施包括免费 WiFi和宴会厅。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括商务中心、干洗/洗衣服务和行李寄存。酒店提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/KR/2896/Featured%20Image/9368428_20_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"行李寄存\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"会议厅\",\"宴会厅\",\"健身中心\",\"健身设施\",\"洗衣设施\",\"客房WIFI（免费）\",\"非24小时前台\",\"公共区域禁烟\",\"电脑\",\"无障碍通道\",\"花园\",\"停车场\"],\"tags\":[\"单体酒店\",\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供大床房\",\"提供双床房\"]},{\"hotelId\":2300580,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=2300580&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"HOTEL BOTANIK 世运 明洞\",\"nameEn\":\"HOTEL THE BOTANIK SEWOON MYEONGDONG\",\"address\":\"23-1 Eulji-ro 19-gil, Jung-gu\",\"destinationId\":\"3124\",\"latitude\":37.567656,\"longitude\":126.99509,\"distanceInMeters\":1118,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。3晚总价：4,740.99CNY（约1,580.33CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1580.33},\"areaCode\":\"KR\",\"description\":\"<p><b>酒店位置</b><br/>HOTEL BOTANIK 世运 明洞坐落于首尔中心地段，距离清溪川仅咫尺之遥，距离明洞街也只有 15 分钟步行路程。 此酒店距离广藏市场 0.3 英里（0.5 公里），距离仁寺洞 0.6 英里（1 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>清溪川 - 0.1 公里 / 0.1 英里 <br /> 忠武路站 - 0.5 公里 / 0.3 英里 <br /> 广藏市场 - 0.5 公里 / 0.3 英里 <br /> 韩国之家 - 0.9 公里 / 0.6 英里 <br /> 仁寺洞 - 1 公里 / 0.6 英里 <br /> 明洞天主圣堂 - 1.2 公里 / 0.7 英里 <br /> 昌庆宫 - 1.2 公里 / 0.7 英里 <br /> 明洞街 - 1.2 公里 / 0.8 英里 <br /> 南山谷韩屋村 - 1.3 公里 / 0.8 英里 <br /> 东大门市场 - 1.3 公里 / 0.8 英里 <br /> 明洞乱打剧场 - 1.3 公里 / 0.8 英里 <br /> 东大门历史文化公园 - 1.3 公里 / 0.8 英里 <br /> 东大门设计广场 - 1.4 公里 / 0.9 英里 <br /> 乐天百货 - 1.6 公里 / 1 英里 <br /> 东大门城郭公园 - 1.7 公里 / 1.1 英里 <br /> </p><p>附近的机场有：<br />金浦国际机场 (GMP) - 24.1 公里 / 15 英里<br /> 仁川国际机场 (ICN) - 61.9 公里 / 38.5 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>享受健身中心等度假设施，或者到花园欣赏美景。此酒店的其他设施包括免费 WiFi和宴会厅。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括干洗/洗衣服务、24 小时前台服务和行李寄存。酒店提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/2300580/hotel/default/6/image/0e065979_z.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"行李寄存\",\"24小时前台\",\"会议厅\",\"宴会厅\",\"健身设施\",\"洗衣设施\",\"客房WIFI（免费）\",\"公共区域禁烟\",\"餐厅\",\"花园\",\"天花吊机\",\"共享办公空间\",\"停车场\",\"充电车位\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"宠物友好\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"客房点餐\",\"提供无障碍客房\",\"提供家庭房\",\"提供大床房\",\"提供双床房\",\"提供三人间\"]},{\"hotelId\":1631730,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=1631730&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"Local Stitch Creator Town 西桥洞\",\"nameEn\":\"Local Stitch Creator Town Seogyo\",\"address\":\"460-25 Seogyo-dong Mapo-gu\",\"destinationId\":\"3124\",\"latitude\":37.556305,\"longitude\":126.916752,\"distanceInMeters\":5901,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。3晚总价：2,877.99CNY（约959.33CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":959.33},\"areaCode\":\"KR\",\"description\":\"<p><b>酒店位置</b><br/><p>Local Stitch Creator Town 西桥洞坐落于首尔中心地段，步行前往弘大街只需 8 分钟、前往弘益大学需 13 分钟。 此酒店距离京义线森林公园 0.9 英里（1.4 公里）。</p></p><p><b>客房</b><br/>146 间空调客房提供加热地板；您定能在旅途中找到家的舒适。提供免费无线网络，方便您与朋友保持联系。便利设施包括书桌和独立的起居区；而且按要求提供提供客房服务。</p><p><b>餐饮</b><br/>每天 08:00 至 10:30 提供收费的当地美食早餐。</p><p><b>休闲、SPA、高端服务设施</b><br/>享受24 小时健身中心等度假设施，或者到花园欣赏美景。此酒店的其他设施包括免费 WiFi、公共客厅和宴会厅。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括快速入住、干洗/洗衣服务和多语言服务。酒店提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/6/Image/1631730/03043d75.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"快速入住退房\",\"24小时前台\",\"电梯\",\"无障碍通道\",\"非经营性客人休息区\",\"宴会厅\",\"前台服务语言\",\"健身中心\",\"洗衣设施\",\"客房清洁服务\",\"客房WIFI（免费）\",\"公共区域禁烟\",\"微波炉\",\"餐厅\",\"洗衣房\",\"无障碍通道\",\"花园\",\"饮水机\",\"盲文标牌\",\"无障碍卫生间\",\"提供轮椅\",\"共享办公空间\",\"停车场\",\"充电车位\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"宴会厅\",\"健身房\",\"备有热水壶\",\"客房备有吹风机\",\"无障碍停车位\",\"提供家庭房\",\"提供大床房\",\"提供双床房\",\"提供三人间\",\"提供四人间\",\"提供无障碍客房\"]},{\"hotelId\":107587,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=107587&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"美利来酒店首尔明洞\",\"nameEn\":\"Migliore Hotel Seoul Myeongdong\",\"address\":\"首尔中区115, Toegye-ro, Jung-gu\",\"destinationId\":\"3124\",\"latitude\":37.560798,\"longitude\":126.984899,\"distanceInMeters\":613,\"starRating\":3.5,\"price\":{\"message\":\"查价成功。3晚总价：3,858CNY（约1,286CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1286.0},\"areaCode\":\"KR\",\"description\":\"<p><b>酒店位置</b><br/>首尔明洞美利来酒店坐落于首尔中心地段，距离明洞街仅咫尺之遥，步行到南大门市场也不超过 10 分钟。 此酒店距离光化门 1.6 英里（2.5 公里），距离北村韩屋村 1.9 英里（3 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>明洞街 - 0.1 公里 / 0.1 英里 <br /> 新世界购物中心 - 0.4 公里 / 0.2 英里 <br /> 明洞乱打剧场 - 0.4 公里 / 0.3 英里 <br /> 南大门市场 - 0.6 公里 / 0.4 英里 <br /> 乐天百货 - 0.7 公里 / 0.4 英里 <br /> 明洞天主圣堂 - 0.7 公里 / 0.4 英里 <br /> 南山缆车 - 0.7 公里 / 0.5 英里 <br /> 南山公园 - 0.8 公里 / 0.5 英里 <br /> 忠武路站 - 0.9 公里 / 0.5 英里 <br /> 崇礼门 - 1 公里 / 0.6 英里 <br /> 韩国之家 - 1 公里 / 0.6 英里 <br /> 德寿宫 - 1.1 公里 / 0.7 英里 <br /> 南山谷韩屋村 - 1.1 公里 / 0.7 英里 <br /> 清溪川 - 1.2 公里 / 0.7 英里 <br /> 首尔市政厅 - 1.2 公里 / 0.7 英里 <br /> </p><p>附近的机场有：<br />金浦国际机场 (GMP) - 24.9 公里 / 15.5 英里<br /> 仁川国际机场 (ICN) - 60.7 公里 / 37.7 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、礼宾服务和宴会厅等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括商务中心、24 小时前台服务和多语言服务。这家酒店拥有 3 间会议室，可用来举办活动。酒店提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/KR/107587/Featured%20Image/9652850_41_b.jpg\",\"hotelAmenities\":[\"专职行李员\",\"行李寄存\",\"24小时前台\",\"电梯\",\"商务中心\",\"会议厅\",\"商场\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"洗衣设施\",\"客房WIFI（免费）\",\"公共区域禁烟\",\"餐厅\",\"储物柜\",\"洗衣房\",\"停车场\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"商务中心\",\"宴会厅\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供家庭房\",\"提供大床房\",\"提供双床房\",\"提供三人间\",\"部分客房无窗\"]},{\"hotelId\":943471,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=943471&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"纽维酒店\",\"nameEn\":\"Hotel Newv\",\"address\":\"6 Seolleung-ro 85-gil, 江南区, 60212 首尔, 韩国\",\"destinationId\":\"3124\",\"latitude\":37.503189,\"longitude\":127.049182,\"distanceInMeters\":9125,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。3晚总价：3,261.99CNY（约1,087.33CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1087.33},\"areaCode\":\"KR\",\"description\":\"<p><b>酒店位置</b><br/>纽维酒店坐落于首尔中心地段，距离国际会议暨展示中心和星院 COEX 商场不到 5 分钟车程。 此酒店距离乐天世界 2.8 英里（4.5 公里），距离乐天世界塔 3.3 英里（5.3 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>德黑兰路 - 0.1 公里 / 0.1 英里 <br /> 江南金融中心 - 1.4 公里 / 0.9 英里 <br /> 国际会议暨展示中心 - 1.4 公里 / 0.9 英里 <br /> 星院 COEX 商场 - 1.6 公里 / 1 英里 <br /> 七乐娱乐场首尔江南店 - 1.7 公里 / 1.1 英里 <br /> 奉恩寺 - 2.1 公里 / 1.3 英里 <br /> 江南大路 - 2.5 公里 / 1.6 英里 <br /> 蚕室棒球场 - 2.7 公里 / 1.7 英里 <br /> 狎鸥亭罗德奥街 - 2.9 公里 / 1.8 英里 <br /> 首尔奥林匹克主竞技场 - 2.9 公里 / 1.8 英里 <br /> 蚕室体育场 - 3.2 公里 / 2 英里 <br /> 林荫树路 - 3.6 公里 / 2.2 英里 <br /> 现代百货商场 - 4.1 公里 / 2.5 英里 <br /> 中心城购物中心 - 4.5 公里 / 2.8 英里 <br /> 首尔艺术中心 - 4.8 公里 / 3 英里 <br /> </p><p>附近的机场有：<br />金浦国际机场 (GMP) - 31.5 公里 / 19.6 英里<br /> 仁川国际机场 (ICN) - 65.9 公里 / 41 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可充分利用健身中心等度假设施，此外还有免费 WiFi和礼宾服务等。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括24 小时前台服务、多语言服务和行李寄存。酒店提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/2/Image/943471/01097dbc62ba64a0d03d6b11d16ed1fc.jpg\",\"hotelAmenities\":[\"专职行李员\",\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"无障碍通道\",\"非经营性客人休息区\",\"前台服务语言\",\"健身设施\",\"入口坡道\",\"客房WIFI（免费）\",\"旅游票务专柜\",\"公共区域禁烟\",\"无障碍通道\",\"提供轮椅\",\"停车场\",\"提供早餐\"],\"tags\":[\"商务中心\",\"宴会厅\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"无障碍停车位\",\"提供家庭房\",\"提供双床房\",\"提供无障碍客房\"]},{\"hotelId\":2297929,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=2297929&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"新布兰克中央明洞\",\"nameEn\":\"New Blanc Central Myeongdong\",\"address\":\"20 Changgyeonggung-ro, Jung-gu\",\"destinationId\":\"3124\",\"latitude\":37.564123,\"longitude\":126.998552,\"distanceInMeters\":1423,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。3晚总价：3,435CNY（约1,145CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1145.0},\"areaCode\":\"KR\",\"description\":\"<p><span style=\\\"background-color:rgb(255,255,255);color:rgb(15,41,77);\\\">新布兰克中央明洞地处首尔中心，距离广场传统市场和东大门设计广场不到 15 分钟步行路程。 此酒店距离明洞街 1 英里（1.7 公里），距离南大门市场 1.3 英里（2.1 公里）。</span><br><span style=\\\"background-color:rgb(255,255,255);color:rgb(15,41,77);\\\">您可充分利用健身中心等度假设施，此外还有免费 WiFi和礼宾服务等。</span><br><span style=\\\"background-color:rgb(255,255,255);color:rgb(15,41,77);\\\">特色服务/设施包括电脑站点、干洗/洗衣服务和24 小时前台服务。酒店提供收费自助停车。</span><br><span style=\\\"background-color:rgb(255,255,255);color:rgb(15,41,77);\\\">182 间空调客房定能让您在旅途中找到家的舒适。提供免费无线网络，方便您与朋友保持联系。配备淋浴设施的私人浴室提供吹风机和拖鞋。便利设施包括保险箱和遮光窗帘；而且每天提供客房服务。</span></p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/2/Image/2297929/29694b50c3b14a033f92632ffafa131a_15dc546c20c6583974090f256d6713dc.jpg\",\"hotelAmenities\":[\"行李寄存\",\"24小时前台\",\"电梯\",\"无障碍通道\",\"非经营性客人休息区\",\"健身中心\",\"健身设施\",\"洗衣设施\",\"毛巾更换\",\"入口坡道\",\"客房WIFI（免费）\",\"公共区域禁烟\",\"微波炉\",\"电脑\",\"餐厅\",\"自动售货机\",\"洗衣房\",\"无障碍通道\",\"花园\",\"饮水机\",\"无障碍卫生间\",\"停车场\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"洗衣服务\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"中文标识\",\"无障碍通道\",\"24小时前台\",\"提供无障碍客房\",\"提供家庭房\",\"提供大床房\",\"提供双床房\",\"提供四人间\",\"无障碍友好酒店\"]},{\"hotelId\":419840,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=419840&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"首尔龙山大使宜必思尚品酒店 - 首尔龙城\",\"nameEn\":\"ibis Styles Ambassador Seoul Yongsan - Seoul Dragon City\",\"brand\":\"宜必思尚品酒店\",\"address\":\"95 Cheongpa-ro 20-gil, 龙山区, 首尔\",\"destinationId\":\"3124\",\"latitude\":37.532284,\"longitude\":126.961728,\"distanceInMeters\":4175,\"starRating\":5.0,\"price\":{\"message\":\"查价成功。3晚总价：5,367CNY（约1,789CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1789.0},\"areaCode\":\"KR\",\"description\":\"<p><b>酒店位置</b><br/>首尔龙山大使宜必思尚品酒店 - 首尔龙城坐落于首尔中心地段，步行前往龙山电子市场只需 2 分钟、前往新罗爱宝客购物中心需 12 分钟。  此娱乐场酒店距离韩国战争纪念馆 1.4 英里（2.2 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>龙山电子市场 - 0.1 公里 / 0.1 英里 <br /> 新罗爱宝客购物中心 - 1 公里 / 0.6 英里 <br /> 韩国战争纪念馆 - 2.1 公里 / 1.3 英里 <br /> 韩国国立中央博物馆 - 2.7 公里 / 1.7 英里 <br /> 梨泰院街 - 2.9 公里 / 1.8 英里 <br /> 乐天折扣购物中心首尔站店 - 3.4 公里 / 2.1 英里 <br /> 七乐娱乐场千禧首尔希尔顿店 - 3.6 公里 / 2.2 英里 <br /> 南山公园 - 3.8 公里 / 2.3 英里 <br /> 南大门市场 - 3.8 公里 / 2.4 英里 <br /> 崇礼门 - 3.9 公里 / 2.4 英里 <br /> 汝矣岛汉江公园 - 4 公里 / 2.5 英里 <br /> 中央大学 - 4 公里 / 2.5 英里 <br /> 汝矣岛公园 - 4 公里 / 2.5 英里 <br /> 南山缆车 - 4.2 公里 / 2.6 英里 <br /> 梨花女子大学 - 4.4 公里 / 2.7 英里 <br /> </p><p>附近的机场有：<br />金浦国际机场 (GMP) - 23.1 公里 / 14.4 英里<br /> 仁川国际机场 (ICN) - 57.8 公里 / 35.9 英里<br /> </p><p>首尔龙山大使宜必思尚品酒店 - 首尔龙城的主要机场是仁川国际机场 (ICN)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可选择直奔娱乐场；或者先享受桑拿和健身中心等其他度假设施，等到觉得好运降临再去。此酒店还提供免费 WiFi、礼宾服务和舞厅。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、商务中心和干洗/洗衣服务。这家酒店的活动设施包括会议中心和会议室。酒店提供免费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/419840/hotel/default/6/image/0b7fd4ed_z.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"代客泊车\",\"24小时前台\",\"舞厅\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"会议厅\",\"自动取款机\",\"咖啡厅\",\"酒吧\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"健身设施\",\"节能开关\",\"综合回收政策\",\"所有窗户均为双层玻璃\",\"不提供一次性塑料吸管\",\"毛巾更换\",\"不提供一次性塑料搅拌棒\",\"仅提供可重复使用的餐具\",\"仅使用节水淋浴\",\"提供素食菜单\",\"仅提供可重复使用的杯子\",\"画廊\",\"客房清洁服务\",\"LED 灯泡\",\"资源回收\",\"客房WIFI（免费）\",\"赌场\",\"公共区域禁烟\",\"桑拿\",\"餐厅\",\"被单更换：1客1换\",\"盲文标牌\",\"楼梯扶手\",\"提供轮椅\",\"停车场\",\"充电车位\",\"可再生能源\",\"旅游服务\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"客房点餐\",\"提供双床房\",\"SPA服务\"]}]}",
+        "isError": false
+      }
+    }
+  ]
+}

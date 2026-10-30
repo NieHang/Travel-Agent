@@ -1,0 +1,215 @@
+{
+  "tools": [
+    {
+      "name": "mcp_rollingGo_getHotelDetail",
+      "description": "查询单个酒店实时房型与价格明细（房型、价税、可售状态、退改规则等）。用于用户已选定具体酒店后的二次查价",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dateParam": {
+            "type": "object",
+            "properties": {
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式 YYYY-MM-DD。建议传合法未来日期"
+              },
+              "checkOutDate": {
+                "type": "string",
+                "description": "离店日期，格式 YYYY-MM-DD，必须晚于 checkInDate"
+              }
+            },
+            "description": "入离店日期对象"
+          },
+          "filter": {
+            "type": "object",
+            "properties": {
+              "cancelPolicy": {
+                "type": "string",
+                "enum": [
+                  "CANCELABLE",
+                  "NON_CANCELABLE"
+                ],
+                "description": "取消政策筛选。CANCELABLE：仅可免费取消房型；NON_CANCELABLE：仅不可取消房型。非法值忽略。"
+              },
+              "mealType": {
+                "type": "string",
+                "enum": [
+                  "WITH_BREAKFAST",
+                  "SINGLE_BREAKFAST",
+                  "DOUBLE_BREAKFAST",
+                  "NO_MEAL"
+                ],
+                "description": "餐食类别枚举。WITH_BREAKFAST（含早餐，mealAmount>0）/ SINGLE_BREAKFAST（单份早餐，mealAmount=1）/ DOUBLE_BREAKFAST（双份早餐，mealAmount=2）/ NO_MEAL（不含餐食，mealAmount=0）。非法值忽略。"
+              }
+            },
+            "description": "房型筛选条件对象。未传或为空时返回全部房型；多条件 AND 组合。"
+          },
+          "hotelId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "酒店唯一ID。与 name 二选一；若同时传入，优先使用 hotelId（从searchHotels工具获取）"
+          },
+          "name": {
+            "type": "string",
+            "description": "酒店名称（模糊匹配）。仅在没有 hotelId 时使用"
+          },
+          "occupancyParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房成人数，整数，>=1，默认2"
+              },
+              "childAgeDetails": {
+                "description": "儿童年龄数组，如 [3,5]；长度应与 childCount 一致",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "childCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房儿童数，整数，>=0，默认0"
+              },
+              "roomCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "房间数，整数，>=1，默认1"
+              }
+            },
+            "description": "入住人数与房间数量对象"
+          }
+        }
+      }
+    },
+    {
+      "name": "mcp_rollingGo_getHotelSearchTags",
+      "description": "获取酒店搜索元数据（AI Cache），包含可用的标签列表（以当前启用数据为准）。",
+      "schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "mcp_rollingGo_searchHotels",
+      "description": "该工具用于查询全球酒店。根据地点及结构化筛选条件（日期、入住晚数、人数、星级、距离、标签、品牌、预算）返回符合条件的酒店候选列表与最低价格，用于酒店初筛与比选。",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "checkInParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房入住的成人数量，默认两成人"
+              },
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式：YYYY-MM-DD，例如：2026-02-01。可不传；未传或早于今天时，自动使用明天；格式错误会返回参数错误"
+              },
+              "stayNights": {
+                "type": "integer",
+                "format": "int32",
+                "description": "入住天数（晚数），可不传，默认 1 晚。最多 28 晚，超出限制将返回参数错误。"
+              }
+            },
+            "description": "入住信息参数，包括入住日期、入住天数和每间房成人数量"
+          },
+          "filterOptions": {
+            "type": "object",
+            "properties": {
+              "distanceInMeter": {
+                "type": "integer",
+                "format": "int32",
+                "description": "直线距离，单位（米），当地点是一个POI位置时生效，生效时默认设定值为2000"
+              },
+              "starRatings": {
+                "description": "酒店星级(0.0-5.0, 梯度为0.5)，默认[0.0, 5.0]以上，例如 [4.5, 5.0]，[0.0, 2.0]",
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                }
+              }
+            },
+            "description": "酒店筛选选项，例如酒店星级、每间房成人数、距离等"
+          },
+          "hotelTags": {
+            "type": "object",
+            "properties": {
+              "maxPricePerNight": {
+                "type": "number",
+                "format": "double",
+                "description": "每晚价格上限（人民币，数值）"
+              },
+              "preferredBrands": {
+                "description": "偏好品牌",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requiredTags": {
+                "description": "必须命中标签（硬约束，未命中应被过滤）",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "酒店筛选标签参数（可选）。当传入此参数时，将直接使用这些标签进行筛选和排序，无需服务端额外解析。包含字段：requiredTags（必须标签）、preferredBrands（偏好品牌）、maxPricePerNight（每晚最高预算）"
+          },
+          "nextPageToken": {
+            "type": "string",
+            "description": "分页游标。仅当获取下一页(换一批)时,原样回传上一页返回的 nextPageToken;首页查询不传。传入有效 Token 时,核心检索条件以 Token 内快照为准。"
+          },
+          "originQuery": {
+            "type": "string",
+            "description": "综合多轮对话，归纳用户的完整住宿/预订意图。"
+          },
+          "place": {
+            "type": "string",
+            "description": "搜索地点关键词/酒店名称。具体酒店直接填入酒店名称；位置或区县需用空格补齐城市，填入 位置 城市；仅查询城市需补齐国家，填入 城市 国家。"
+          },
+          "placeType": {
+            "type": "string",
+            "description": "place 的类型，必须与 place 的实际内容一致。可选值：城市、机场、景点、火车站、地铁站、酒店、区/县、详细地址。"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "返回酒店结果数量，默认5个酒店，最大不超过10个"
+          }
+        },
+        "required": [
+          "originQuery",
+          "place",
+          "placeType"
+        ]
+      }
+    }
+  ],
+  "calls": [
+    {
+      "tool": "mcp_rollingGo_searchHotels",
+      "args": {
+        "originQuery": "北海道亲子游，札幌住宿，2027-01-15 入住 4 晚，4 人（2 大 2 小），家庭友好",
+        "place": "札幌 日本",
+        "placeType": "城市",
+        "checkInParam": {
+          "checkInDate": "2027-01-15",
+          "stayNights": 4,
+          "adultCount": 2
+        },
+        "size": 8
+      },
+      "result": {
+        "content": "{\"success\":true,\"code\":2000,\"message\":\"酒店搜索成功\",\"nextPageToken\":\"JsX9XtUspjuXGUyWuJzJJbZAxELXT_EFmvFbAYOwiHWlgEhc_8shxAcy7I7FBBSO34u-YsiRt9I9TpaSTLQS-2dgPOC8BfSh4hxmXfWbEErGgmk1lju9Pj-KXOINveIzQ6a7N3QxBpAWy5WvbeQ5G48S_0j88IT4kIZ6e6e7NkNPocM6Kk2C3kujP6Xcm4euaTFlIOchkuKZaaV7x1xnTMc7fNGVSo0\",\"hotelInformationList\":[{\"hotelId\":1583501,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=1583501&checkInDate=2027-01-15&checkOutDate=2027-01-19&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"相铁 FRESA INN 札幌薄野\",\"nameEn\":\"Sotetsu Fresa Inn Sapporo-Susukino\",\"brand\":\"Sotetsu\",\"address\":\"2-chome-6 Minami 5 Jonishi Chuo Ward\",\"destinationId\":\"3250\",\"latitude\":43.055248,\"longitude\":141.356321,\"distanceInMeters\":741,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。4晚总价：18,616CNY（约4,654CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":4654.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>相铁 FRESA INN 札幌薄野位于札幌札幌市中心，步行前往狸小路商店街只需 3 分钟、前往二条市场需 6 分钟。  此酒店距离札幌电视塔 0.6 英里（0.9 公里），距离大通公园 0.6 英里（1 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>薄野街 - 0.2 公里 / 0.1 英里 <br /> 拉面横町 - 0.2 公里 / 0.1 英里 <br /> 创成川公园 - 0.3 公里 / 0.2 英里 <br /> 狸小路商店街 - 0.3 公里 / 0.2 英里 <br /> 丰川稻荷札幌别院 - 0.3 公里 / 0.2 英里 <br /> 二条市场 - 0.5 公里 / 0.3 英里 <br /> 大通公园 - 0.6 公里 / 0.4 英里 <br /> 札幌电视塔 - 0.8 公里 / 0.5 英里 <br /> 中岛公园 - 0.9 公里 / 0.6 英里 <br /> 札幌钟楼 - 0.9 公里 / 0.6 英里 <br /> 北海道四季剧场 - 1 公里 / 0.6 英里 <br /> 札幌文化艺术剧场hitaru - 1 公里 / 0.6 英里 <br /> JR 札幌医院 - 1.3 公里 / 0.8 英里 <br /> 丰平馆 - 1.4 公里 / 0.9 英里 <br /> 札幌音乐厅 - 1.5 公里 / 0.9 英里 <br /> </p><p>附近的机场有：<br />丘珠机场 (OKD) - 11.1 公里 / 6.9 英里<br /> 新千岁机场 (CTS) - 49 公里 / 30.5 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi和自动售货机等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括快速入住、干洗/洗衣服务和24 小时前台服务。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/2/Image/1583501/413154292_F671A5C6F059FE72.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"行李寄存\",\"快速入住退房\",\"24小时前台\",\"电梯\",\"洗衣设施\",\"毛巾更换\",\"仅使用节水厕所\",\"客房清洁服务\",\"LED 灯泡\",\"实木地板\",\"客房WIFI（免费）\",\"公共区域禁烟\",\"微波炉\",\"餐厅\",\"被单更换：1客1换\",\"自动售货机\",\"洗衣房\",\"无障碍通道\",\"地毯\",\"提供早餐\"],\"tags\":[\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供双床房\",\"提供三人间\",\"性价比酒店\",\"提供家庭房\"]},{\"hotelId\":29015,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=29015&checkInDate=2027-01-15&checkOutDate=2027-01-19&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"札幌プレミア酒店-TSUBAKI-\",\"nameEn\":\"Premier Hotel -TSUBAKI- Sapporo (ex.Renaissance Sapporo Hotel)\",\"address\":\"1-1 Toyohira 4-Jo 1-Chome, Toyohira-ku\",\"destinationId\":\"3250\",\"latitude\":43.054454,\"longitude\":141.36562,\"distanceInMeters\":1219,\"starRating\":4.5,\"price\":{\"message\":\"查价成功。4晚总价：3,618CNY（约904.5CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":904.5},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>札幌プレミア酒店-TSUBAKI-位于札幌丰平，步行到二条市场和狸小路商店街不超过 15 分钟。 此豪华酒店距离大通公园 0.8 英里（1.3 公里），距离札幌电视塔 0.8 英里（1.3 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>二条市场 - 0.9 公里 / 0.5 英里 <br /> 创成川公园 - 0.9 公里 / 0.6 英里 <br /> 狸小路商店街 - 1 公里 / 0.6 英里 <br /> 薄野街 - 1 公里 / 0.6 英里 <br /> 拉面横町 - 1.1 公里 / 0.7 英里 <br /> 丰川稻荷札幌别院 - 1.1 公里 / 0.7 英里 <br /> 大通公园 - 1.3 公里 / 0.8 英里 <br /> 札幌电视塔 - 1.3 公里 / 0.8 英里 <br /> 北海道四季剧场 - 1.4 公里 / 0.8 英里 <br /> 札幌工厂 - 1.4 公里 / 0.9 英里 <br /> 中岛公园 - 1.5 公里 / 0.9 英里 <br /> 北海道立综合体育中心 - 1.6 公里 / 1 英里 <br /> 札幌文化艺术剧场hitaru - 1.6 公里 / 1 英里 <br /> 拉索拉札幌 - 1.7 公里 / 1 英里 <br /> 札幌钟楼 - 1.7 公里 / 1.1 英里 <br /> </p><p>附近的机场有：<br />丘珠机场 (OKD) - 10.7 公里 / 6.6 英里<br /> 新千岁机场 (CTS) - 48 公里 / 29.9 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可充分利用桑拿和健身中心等度假设施。此酒店的其他特色包括免费 WiFi、婚庆服务和大堂壁炉。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、干洗/洗衣服务和24 小时前台服务。计划在札幌举办活动？这家酒店拥有 393 平方米（4230 平方英尺）的空间，包括会议场地和6 间会议室。酒店免费提供火车站接车服务，此外还提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/29015/hotel/default/6/image/2418bf4c_z.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"行李寄存\",\"24小时前台\",\"舞厅\",\"电梯\",\"前台贵重物品保险柜\",\"会议厅\",\"咖啡厅\",\"酒吧\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"自行车租赁服务\",\"婚宴服务\",\"健身设施\",\"客房WIFI（免费）\",\"接站服务\",\"吸烟区\",\"壁炉\",\"微波炉\",\"桑拿\",\"餐厅\",\"自动售货机\",\"无障碍通道\",\"停车场\",\"充电车位\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"无障碍停车位\",\"自行车租赁\",\"客房点餐\",\"提供双床房\",\"提供家庭房\"]},{\"hotelId\":2310916,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=2310916&checkInDate=2027-01-15&checkOutDate=2027-01-19&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"札幌酒店 by 格兰贝尔\",\"nameEn\":\"SAPPORO HOTEL by GRANBELL\",\"address\":\"2-chome-2-2 Kita 6 Johigashi, Higashi Ward\",\"destinationId\":\"3250\",\"latitude\":43.069787,\"longitude\":141.357935,\"distanceInMeters\":935,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。4晚总价：4,244CNY（约1,061CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1061.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>札幌酒店 by 格兰贝尔坐落于札幌东区，距离大通公园和札幌 JR 塔不到 15 分钟步行路程。 此SPA酒店距离北海道大学 0.6 英里（1 公里），距离札幌电视塔 0.8 英里（1.2 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>创成川公园 - 0.3 公里 / 0.2 英里 <br /> 北燃气竞技场札幌46 - 0.7 公里 / 0.4 英里 <br /> JR 札幌医院 - 0.7 公里 / 0.4 英里 <br /> 札幌工厂 - 0.7 公里 / 0.4 英里 <br /> 札幌 JR 塔 - 0.7 公里 / 0.5 英里 <br /> 札幌文化艺术剧场hitaru - 1 公里 / 0.6 英里 <br /> 北海道四季剧场 - 1 公里 / 0.6 英里 <br /> 北海道大学 - 1 公里 / 0.6 英里 <br /> 大丸札幌店 - 1.1 公里 / 0.7 英里 <br /> 札幌啤酒博物馆 - 1.1 公里 / 0.7 英里 <br /> 大通公园 - 1.2 公里 / 0.7 英里 <br /> 札幌电视塔 - 1.2 公里 / 0.8 英里 <br /> 札幌钟楼 - 1.2 公里 / 0.8 英里 <br /> 札幌啤酒园 - 1.3 公里 / 0.8 英里 <br /> 二条市场 - 1.4 公里 / 0.9 英里 <br /> </p><p>附近的机场有：<br />丘珠机场 (OKD) - 7 公里 / 4.3 英里<br /> 新千岁机场 (CTS) - 48.7 公里 / 30.3 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可抽空慰劳一下自己，享受一下全方位服务的 SPA。您可以充分利用温泉和健身中心等度假设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括24 小时前台服务、多语言服务和行李寄存。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/2310916/hotel/default/6/image/7314c3c3_z.jpg\",\"hotelAmenities\":[\"行李寄存\",\"24小时前台\",\"温泉\",\"电梯\",\"商场\",\"酒吧\",\"无障碍通道\",\"前台服务语言\",\"健身设施\",\"洗衣设施\",\"公共区域禁烟\",\"微波炉\",\"餐厅\",\"自动售货机\",\"洗衣房\",\"无障碍通道\",\"全方位服务水疗中心\",\"停车场\",\"提供早餐\"],\"tags\":[\"公共温泉\",\"健身房\",\"备有拖鞋\",\"客房备有吹风机\",\"无障碍停车位\",\"提供双床房\",\"SPA服务\",\"性价比酒店\"]},{\"hotelId\":1085833,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=1085833&checkInDate=2027-01-15&checkOutDate=2027-01-19&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"贝塞尔酒店坎帕纳薄野\",\"nameEn\":\"Vessel Hotel Campana Susukino\",\"brand\":\"维斯阿尔酒店\",\"address\":\"北海道札幌中央区Ward, Minami 5 Jonishi, 6 Chome−１６−1, 064-0805\",\"destinationId\":\"3250\",\"latitude\":43.054291,\"longitude\":141.349234,\"distanceInMeters\":934,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。4晚总价：4,501CNY（约1,125.25CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1125.25},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>贝塞尔酒店坎帕纳薄野位于札幌札幌市中心，步行前往狸小路商店街只需 4 分钟、前往大通公园需 8 分钟。  此酒店距离中岛公园 0.7 英里（1.1 公里），距离札幌钟楼 0.8 英里（1.3 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>薄野街 - 0.2 公里 / 0.1 英里 <br /> 狸小路商店街 - 0.4 公里 / 0.2 英里 <br /> 拉面横町 - 0.5 公里 / 0.3 英里 <br /> 大通公园 - 0.7 公里 / 0.4 英里 <br /> 创成川公园 - 0.8 公里 / 0.5 英里 <br /> 丰川稻荷札幌别院 - 0.9 公里 / 0.5 英里 <br /> 中岛公园 - 1 公里 / 0.6 英里 <br /> 二条市场 - 1 公里 / 0.6 英里 <br /> 大通比什谢 - 1.1 公里 / 0.7 英里 <br /> 北海道立阿努族综合中心 - 1.2 公里 / 0.8 英里 <br /> 丰平馆 - 1.2 公里 / 0.8 英里 <br /> 北海道厅旧本厅舍 - 1.2 公里 / 0.8 英里 <br /> 北海道政府旧址 - 1.3 公里 / 0.8 英里 <br /> 札幌钟楼 - 1.3 公里 / 0.8 英里 <br /> 札幌电视塔 - 1.3 公里 / 0.8 英里 <br /> </p><p>附近的机场有：<br />丘珠机场 (OKD) - 11.7 公里 / 7.3 英里<br /> 新千岁机场 (CTS) - 49.8 公里 / 31 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可充分利用桑拿等度假设施，此外还有免费 WiFi和自动售货机等。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、24 小时前台服务和行李寄存。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/1085833/hotel/default/3/image/200115000000xp3mmF252.jpg\",\"hotelAmenities\":[\"行李寄存\",\"24小时前台\",\"SPA\",\"前台贵重物品保险柜\",\"无障碍通道\",\"洗衣设施\",\"入口坡道\",\"客房WIFI（免费）\",\"公共区域禁烟\",\"微波炉\",\"桑拿\",\"餐厅\",\"被单更换：1客1换\",\"自动售货机\",\"洗衣房\",\"无障碍通道\",\"饮水机\",\"盲文标牌\",\"停车场\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"无障碍停车位\",\"提供大床房\",\"提供双床房\",\"SPA服务\",\"提供三人间\",\"提供四人间\"]},{\"hotelId\":28985,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=28985&checkInDate=2027-01-15&checkOutDate=2027-01-19&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"格拉斯丽札幌酒店\",\"nameEn\":\"Hotel Gracery Sapporo\",\"brand\":\"Gracery\",\"address\":\"4 Kita 4 Jonishi Chuo-ku\",\"destinationId\":\"3250\",\"latitude\":43.066614,\"longitude\":141.349269,\"distanceInMeters\":683,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。4晚总价：2,988CNY（约747CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":747.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/><p><span style=\\\"background-color:rgb(255,255,255);color:rgb(17,17,17);\\\">格拉斯丽札幌酒店地处札幌中心，距离大通公园和狸小路商店街不到 15 分钟步行路程。 此酒店距离札幌巨蛋 5.2 英里（8.4 公里），距离中岛公园 1.4 英里（2.2 公里）。</span></p></p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>札幌 JR 塔 - 0.4 公里 / 0.3 英里 <br /> 北海道大学 - 0.5 公里 / 0.3 英里 <br /> 北海道政府旧址 - 0.6 公里 / 0.4 英里 <br /> 创成川公园 - 0.7 公里 / 0.4 英里 <br /> 北海道立阿努族综合中心 - 0.7 公里 / 0.4 英里 <br /> 大通公园 - 0.7 公里 / 0.4 英里 <br /> 札幌钟楼 - 0.8 公里 / 0.5 英里 <br /> JR 札幌医院 - 0.8 公里 / 0.5 英里 <br /> 札幌文化艺术剧场hitaru - 0.9 公里 / 0.6 英里 <br /> 北海道大学植物园 - 1 公里 / 0.6 英里 <br /> 札幌电视塔 - 1.2 公里 / 0.7 英里 <br /> 狸小路商店街 - 1.2 公里 / 0.7 英里 <br /> 札幌工厂 - 1.3 公里 / 0.8 英里 <br /> 大丸札幌店 - 1.3 公里 / 0.8 英里 <br /> 北燃气竞技场札幌46 - 1.3 公里 / 0.8 英里 <br /> </p><p>附近的机场有：<br />丘珠机场 (OKD) - 8.1 公里 / 5 英里<br /> 新千岁机场 (CTS) - 49.6 公里 / 30.8 英里<br /> </p><p>札幌华盛顿酒店的主要机场是新千岁机场 (CTS)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、礼宾服务和礼品店/报摊等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、干洗/洗衣服务和24 小时前台服务。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/28985/Featured%20Image/fb21db1e_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"无障碍通道\",\"非经营性客人休息区\",\"前台服务语言\",\"入口坡道\",\"客房WIFI（免费）\",\"礼品廊\",\"吸烟区\",\"餐厅\",\"自动售货机\",\"无障碍通道\",\"提供轮椅\",\"停车场\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"商务中心\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供大床房\",\"提供双床房\",\"提供三人间\",\"提供可吸烟房\",\"性价比酒店\"]},{\"hotelId\":28978,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=28978&checkInDate=2027-01-15&checkOutDate=2027-01-19&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"京王广场酒店札幌\",\"nameEn\":\"Keio Plaza Hotel Sapporo\",\"brand\":\"Keio广场\",\"address\":\"2-1 North 5 West 7,Chuou-ku\",\"destinationId\":\"3250\",\"latitude\":43.066579,\"longitude\":141.34507,\"distanceInMeters\":930,\"starRating\":4.5,\"price\":{\"message\":\"查价成功。4晚总价：3,419CNY（约854.75CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":854.75},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>京王广场酒店札幌坐落于札幌中心地段，步行前往北海道大学只需 5 分钟、前往大通公园需 10 分钟。  此豪华酒店距离札幌钟楼 0.9 英里（1.4 公里），距离札幌电视塔 1.2 英里（2 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>大丸札幌店 - 0.4 公里 / 0.2 英里 <br /> 北海道大学 - 0.4 公里 / 0.3 英里 <br /> 北海道政府旧址 - 0.4 公里 / 0.3 英里 <br /> 北海道立阿努族综合中心 - 0.5 公里 / 0.3 英里 <br /> 札幌 JR 塔 - 0.7 公里 / 0.4 英里 <br /> 北海道大学植物园 - 0.7 公里 / 0.4 英里 <br /> 大通公园 - 0.8 公里 / 0.5 英里 <br /> 创成川公园 - 1 公里 / 0.6 英里 <br /> 札幌钟楼 - 1.1 公里 / 0.7 英里 <br /> JR 札幌医院 - 1.1 公里 / 0.7 英里 <br /> 大通比什谢 - 1.2 公里 / 0.7 英里 <br /> 狸小路商店街 - 1.2 公里 / 0.8 英里 <br /> 札幌文化艺术剧场hitaru - 1.3 公里 / 0.8 英里 <br /> 札幌市教育文化会馆 - 1.4 公里 / 0.9 英里 <br /> 北海道四季剧场 - 1.5 公里 / 0.9 英里 <br /> </p><p>附近的机场有：<br />丘珠机场 (OKD) - 8.4 公里 / 5.2 英里<br /> 新千岁机场 (CTS) - 50 公里 / 31.1 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、礼宾服务和礼品店/报摊等便利服务和设施。此酒店的其他特色包括美发沙龙、婚庆服务和大堂壁炉。收费滑雪班车带您片刻到达滑雪场。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括商务中心、快速入住和干洗/洗衣服务。这家酒店的活动设施包括会议场地和19 间会议室。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/28978/Featured%20Image/3d469eff_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"快速入住退房\",\"班车服务\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"会议厅\",\"酒吧\",\"无障碍通道\",\"非经营性客人休息区\",\"宴会厅\",\"前台服务语言\",\"婚宴服务\",\"洗衣设施\",\"美发廊\",\"酒店内购物\",\"客房WIFI（免费）\",\"专职门童\",\"旅游票务专柜\",\"礼品廊\",\"吸烟区\",\"壁炉\",\"餐厅\",\"自动售货机\",\"无障碍通道\",\"提供轮椅\",\"小吃吧\",\"停车场\",\"远足步道\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"室内恒温泳池\",\"户外泳池\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"无障碍停车位\",\"客房点餐\",\"提供无障碍客房\",\"提供家庭房\",\"提供大床房\",\"提供双床房\",\"提供三人间\",\"提供四人间\",\"SPA服务\",\"运动友好酒店\",\"性价比酒店\"]},{\"hotelId\":28979,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=28979&checkInDate=2027-01-15&checkOutDate=2027-01-19&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"札幌格兰大酒店\",\"nameEn\":\"Sapporo Grand Hotel\",\"address\":\"Nishi 4-chome 1-jo Kita Chuo-ku\",\"destinationId\":\"3250\",\"latitude\":43.062573,\"longitude\":141.350468,\"distanceInMeters\":336,\"starRating\":4.5,\"price\":{\"message\":\"查价成功。4晚总价：3,467CNY（约866.75CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":866.75},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>札幌格兰大酒店地处札幌中心，步行到大通公园和札幌钟楼不超过 5 分钟。 此豪华酒店距离狸小路商店街 0.4 英里（0.6 公里），距离札幌电视塔 0.6 英里（0.9 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>大通公园 - 0.2 公里 / 0.1 英里 <br /> 札幌钟楼 - 0.4 公里 / 0.2 英里 <br /> 创成川公园 - 0.5 公里 / 0.3 英里 <br /> 北海道立阿努族综合中心 - 0.5 公里 / 0.3 英里 <br /> 北海道政府旧址 - 0.5 公里 / 0.3 英里 <br /> 大丸札幌店 - 0.6 公里 / 0.3 英里 <br /> 札幌文化艺术剧场hitaru - 0.6 公里 / 0.4 英里 <br /> 狸小路商店街 - 0.6 公里 / 0.4 英里 <br /> 札幌电视塔 - 0.7 公里 / 0.5 英里 <br /> 北海道四季剧场 - 0.8 公里 / 0.5 英里 <br /> JR 札幌医院 - 0.8 公里 / 0.5 英里 <br /> 札幌 JR 塔 - 0.8 公里 / 0.5 英里 <br /> 大通比什谢 - 0.9 公里 / 0.6 英里 <br /> 北海道大学 - 0.9 公里 / 0.6 英里 <br /> 札幌工厂 - 1.1 公里 / 0.7 英里 <br /> </p><p>附近的机场有：<br />丘珠机场 (OKD) - 11 公里 / 6.9 英里<br /> 新千岁机场 (CTS) - 49 公里 / 30.4 英里<br /> </p><p>札幌格兰大酒店的主要机场是新千岁机场 (CTS)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、礼宾服务和礼品店/报摊等便利服务和设施。此酒店还提供美发沙龙、婚庆服务和舞厅。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、干洗/洗衣服务和24 小时前台服务。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/28979/7c7c93d7_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"舞厅\",\"电梯\",\"前台贵重物品保险柜\",\"酒吧\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"婚宴服务\",\"接待大厅\",\"所有窗户均为双层玻璃\",\"洗衣设施\",\"车库\",\"美发廊\",\"酒店内购物\",\"画廊\",\"客房WIFI（免费）\",\"专职门童\",\"旅游票务专柜\",\"礼品廊\",\"吸烟区\",\"餐厅\",\"滑雪\",\"自动售货机\",\"无障碍通道\",\"儿童桌面游戏/拼图\",\"婴儿推车\",\"提供轮椅\",\"停车场\",\"旅游服务\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"客房点餐\",\"提供大床房\",\"提供双床房\",\"提供三人间\",\"提供四人间\",\"SPA服务\",\"提供可吸烟房\",\"提供家庭房\",\"性价比酒店\"]},{\"hotelId\":2776474,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=2776474&checkInDate=2027-01-15&checkOutDate=2027-01-19&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"REGIONIA札幌站前酒店 by 昆特萨\",\"nameEn\":\"REGIONIA by Quintessa Sapporo Sta. Front\",\"brand\":\"科尔全球管理\",\"address\":\"9, Kita 2-jo Nishi 2-chome, Chuo Ward\",\"destinationId\":\"3250\",\"latitude\":43.062015,\"longitude\":141.342039,\"distanceInMeters\":1009,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。4晚总价：2,321CNY（约580.25CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":580.25},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/><p><span style=\\\"background-color:rgb(255,255,255);color:rgb(17,17,17);\\\">REGIONIA札幌站前酒店 by 昆特萨位于札幌中央区，步行前往大通公园只需 3 分钟、前往狸小路商店街需 11 分钟。 此酒店距离北海道大学 0.6 英里（1 公里），距离札幌巨蛋 5.4 英里（8.7 公里）。</span></p></p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>大通公园 - 0.3 公里 / 0.2 英里 <br /> 北海道立阿努族综合中心 - 0.3 公里 / 0.2 英里 <br /> 大通比什谢 - 0.3 公里 / 0.2 英里 <br /> 札幌市教育文化会馆 - 0.6 公里 / 0.4 英里 <br /> 北海道政府旧址 - 0.7 公里 / 0.4 英里 <br /> 札幌市博物馆 - 0.7 公里 / 0.4 英里 <br /> 狸小路商店街 - 0.9 公里 / 0.6 英里 <br /> 北海道知事公馆 - 1 公里 / 0.6 英里 <br /> 北海道大学 - 1 公里 / 0.6 英里 <br /> 札幌钟楼 - 1.1 公里 / 0.7 英里 <br /> 大丸札幌店 - 1.1 公里 / 0.7 英里 <br /> 北海道大学植物园 - 1.1 公里 / 0.7 英里 <br /> 札幌文化艺术剧场hitaru - 1.2 公里 / 0.8 英里 <br /> 北海道立近代美术馆 - 1.3 公里 / 0.8 英里 <br /> 创成川公园 - 1.3 公里 / 0.8 英里 <br /> </p><p>附近的机场有：<br />丘珠机场 (OKD) - 9.1 公里 / 5.6 英里<br /> 新千岁机场 (CTS) - 49.9 公里 / 31 英里<br /> </p><p></p></p><p><b>商务及其他服务设施</b><br/>酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/2776474/hotel/default/5/image/0224912000tlesgbd5979.jpg\",\"hotelAmenities\":[\"电梯\",\"餐厅\",\"停车场\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"提供双床房\",\"提供三人间\"]}]}",
+        "isError": false
+      }
+    }
+  ]
+}

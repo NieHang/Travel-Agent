@@ -1,0 +1,265 @@
+{
+  "id": "ext-en-single-03",
+  "category": "non_japan",
+  "locale": "en",
+  "text": "Solo trip to Seoul, 2026-11-20 to 2026-11-23, 1 person",
+  "today": "2026-10-30",
+  "draft": "I'll search hotels for your Seoul stay and load the relevant city skills.# Seoul Solo Trip — Draft Itinerary (20–23 Nov 2026)\n\n**Overview**: Seoul 3 nights, one base, no hotel changes | light · standard · standard · light\nNote: this is a draft. Seoul is outside my usual Japan coverage, so the city skills I loaded don't apply — the day plans below are general suggestions, and you should check opening hours and transport before going.\n\n**Before you go**\n- Get a T-money card at the airport or a convenience store for subway and buses.\n- Book timed-entry or reservation-only places a few weeks ahead (please check current rules).\n- Late November is cold and dark early (sunset approx. 17:15) — pack layers and plan indoor backups.\n- Check your hotel's check-in time and whether early luggage drop is possible.\n\n**Day 1 | Arrival · Myeongdong (light)**\n- Arrive Incheon/Gimpo → AREX or airport bus to central Seoul, approx. 45–70 min depending on airport; allow extra time for immigration\n- 15:00 Check in near Myeongdong, rest\n- 17:00 Walk Myeongdong shopping street, approx. 10 min from the hotel: easy first-evening stroll\n- 19:00 Dinner at a Myeongdong street-food stall or a casual restaurant, early night\n- Tonight: Migliore Hotel Seoul Myeongdong (美利来酒店首尔明洞)\n\n**Day 2 | Gyeongbokgung · Bukchon · Insadong (standard)**\n- 09:00 Subway to Gyeongbokgung, approx. 15 min, no transfer (approx.)\n- 09:30 Gyeongbokgung Palace and the changing of the guard: go early, it is calmest then\n- 11:30 Walk approx. 15 min to Bukchon Hanok Village, slow loop through the alleys\n- 13:00 Lunch in Samcheong-dong, approx. 10 min walk\n- 15:00 Walk approx. 15 min to Insadong for tea and craft shops\n- 18:00 Dinner near Insadong; subway back, approx. 15 min (approx.)\n- Alternatives: if rain, the National Palace Museum and National Folk Museum instead of the palace grounds; if tired, drop Insadong\n- Tonight: Migliore Hotel Seoul Myeongdong (美利来酒店首尔明洞)\n\n**Day 3 | Namsan · Itaewon · Han River (standard)**\n- 09:30 Walk approx. 15 min to the Namsan cable car, up to N Seoul Tower: morning views, fewer people\n- 12:00 Walk down or bus to Itaewon, approx. 20 min (approx.); lunch there\n- 14:00 Leeum Museum of Art area, approx. 15 min walk (many museums close on Mondays — please check)\n- 17:00 Subway to a Han River park for sunset, approx. 20 min, 1 transfer (approx.)\n- 19:00 Dinner near the river or back in Myeongdong\n- Alternatives: if rain, the National Museum of Korea instead of the tower and river walk; if tired, drop the Han River stop\n- Tonight: Migliore Hotel Seoul Myeongdong (美利来酒店首尔明洞)\n\n**Day 4 | Departure (light)**\n- Morning: breakfast and last souvenirs near the hotel only\n- 11:00 Myeongdong → airport by AREX or airport bus, approx. 45–70 min (approx.); leave plenty of time for check-in\n\n**Hotel note**: I picked the Myeongdong hotel as your single base — central for all three days and the cheapest of the central options. If you'd rather be in Hongdae for nightlife, Local Stitch Creator Town Seogyo-dong is cheaper but further from the sights. Prices shown are the lowest found for 20–23 Nov; please confirm availability before booking.",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "107587",
+        "title": {
+          "original": "美利来酒店首尔明洞",
+          "translation": "Migliore Hotel Seoul Myeongdong"
+        },
+        "address": {
+          "original": "首尔中区115, Toegye-ro, Jung-gu",
+          "translation": "115 Toegye-ro, Jung-gu, Seoul"
+        },
+        "price": {
+          "amount": 1286,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=107587&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/KR/107587/Featured%20Image/9652850_41_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "3.5",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance",
+            "value": {
+              "original": "613",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "洗衣房",
+            "translation": "Laundry room"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "Closest to Myeongdong of the options, 3.5 stars, lowest price of the central picks; some rooms have no window."
+      },
+      {
+        "ref": "h2",
+        "id": "2300580",
+        "title": {
+          "original": "HOTEL BOTANIK 世运 明洞",
+          "translation": "HOTEL BOTANIK Seun Myeongdong"
+        },
+        "address": {
+          "original": "23-1 Eulji-ro 19-gil, Jung-gu",
+          "translation": "23-1 Eulji-ro 19-gil, Jung-gu, Seoul"
+        },
+        "price": {
+          "amount": 1580.33,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=2300580&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/2300580/hotel/default/6/image/0e065979_z.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance",
+            "value": {
+              "original": "1118",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "健身设施",
+            "translation": "Fitness facilities"
+          },
+          {
+            "original": "共享办公空间",
+            "translation": "Co-working space"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "4-star in the Euljiro/Myeongdong area, walkable to both; higher price."
+      },
+      {
+        "ref": "h3",
+        "id": "2297929",
+        "title": {
+          "original": "新布兰克中央明洞",
+          "translation": "New Blanc Central Myeongdong"
+        },
+        "address": {
+          "original": "20 Changgyeonggung-ro, Jung-gu",
+          "translation": "20 Changgyeonggung-ro, Jung-gu, Seoul"
+        },
+        "price": {
+          "amount": 1145,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=2297929&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/2/Image/2297929/29694b50c3b14a033f92632ffafa131a_15dc546c20c6583974090f256d6713dc.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "3",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance",
+            "value": {
+              "original": "1423",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "健身设施",
+            "translation": "Fitness facilities"
+          },
+          {
+            "original": "洗衣房",
+            "translation": "Laundry room"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "Cheapest of the central Myeongdong-area picks, 3 stars, 24-hour front desk."
+      },
+      {
+        "ref": "h4",
+        "id": "1631730",
+        "title": {
+          "original": "Local Stitch Creator Town 西桥洞",
+          "translation": "Local Stitch Creator Town Seogyo-dong"
+        },
+        "address": {
+          "original": "460-25 Seogyo-dong Mapo-gu",
+          "translation": "460-25 Seogyo-dong, Mapo-gu, Seoul"
+        },
+        "price": {
+          "amount": 959.33,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=1631730&checkInDate=2026-11-20&checkOutDate=2026-11-23&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/6/Image/1631730/03043d75.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "3",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance",
+            "value": {
+              "original": "5901",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "快速入住退房",
+            "translation": "Express check-in/out"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "健身中心",
+            "translation": "Fitness centre"
+          },
+          {
+            "original": "共享办公空间",
+            "translation": "Co-working space"
+          },
+          {
+            "original": "洗衣房",
+            "translation": "Laundry room"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "Cheapest overall, in Hongdae (Seogyo-dong) — good for a solo traveller who wants nightlife and cafés, but further from the old-town sights."
+      }
+    ]
+  }
+}

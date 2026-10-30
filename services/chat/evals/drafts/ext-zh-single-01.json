@@ -1,0 +1,293 @@
+{
+  "id": "ext-zh-single-01",
+  "category": "single_city",
+  "locale": "zh",
+  "text": "帮我规划大阪亲子游，2026-12-01 到 2026-12-03，4 个人",
+  "today": "2026-10-30",
+  "draft": "# 大阪亲子游行程草稿（2026-12-01 – 12-03，4 人，2 晚）\n\n## 总览\n- 大阪 2 晚（不换酒店，全程住同一家）｜0 次换酒店\n- 节奏：轻松 · 标准 · 轻松\n- 说明：只有 2 晚，按规则只设 1 个住宿点，不安排京都、奈良等一日游，避免带着孩子来回奔波。\n\n## 出发前要办\n- 提前几周确认海游馆的开放时间与门票（部分时段需指定日期入场，请以官网为准）。\n- 抵达后在关西机场买 ICOCA 等交通卡（Suica/PASMO 也可用），地铁、JR、私铁都能刷。\n- 12 月初大阪夜间偏冷，给孩子备好外套、围巾；室内暖气足，建议穿方便穿脱的衣物。\n- 若想加环球影城，需另留一整天并提前买门票/快速通行券（本次 2 晚行程未安排，请自行确认）。\n- 出发前再核对一次航班时间与酒店入住时间。\n\n## Day 1 | 抵达 · 难波 / 道顿堀（轻松）\n- 上午/中午 关西机场 → 南海电铁 rapi:t 至难波，约 40 分钟，无需换乘（也可 JR Haruka 至天王寺，约 35–50 分钟）\n- 14:00 酒店办理入住、放行李、休息\n- 15:30 黑门市场（步行约 10 分钟）：边走边吃，孩子也能挑到喜欢的串烧和水果\n- 17:00 道顿堀、心斋桥一带散步（步行约 10 分钟）：傍晚霓虹亮起，比白天更好看\n- 18:30 附近晚餐，早点回酒店休息\n- 今晚：阪急大阪龙仕柏酒店（Hotel Hankyu RESPIRE OSAKA）\n\n## Day 2 | 大阪城 · 海游馆（标准）\n- 09:00 酒店早餐后出发，梅田 → 大阪城公园（地铁谷町线等，约 20 分钟，约 1 次换乘）\n- 09:40 大阪城公园与天守阁外观（上午人少、光线好；登阁需另购票，请现场确认）\n- 11:30 公园内休息、午餐\n- 13:00 大阪城 → 海游馆（地铁中央线至大阪港，约 30 分钟，约 1 次换乘）\n- 14:00 海游馆（室内为主，鲸鲨大水槽是孩子最爱；建议提前确认入场时段）\n- 16:30 天保山一带休息、吃点东西\n- 18:00 返回梅田（约 30 分钟，约 1 次换乘），晚餐后回酒店\n- 备选：雨天把大阪城公园换成海游馆慢慢逛＋天保山商场室内；太累可砍掉大阪城天守阁，只在公园走走\n- 今晚：阪急大阪龙仕柏酒店（Hotel Hankyu RESPIRE OSAKA）\n\n## Day 3 | 梅田 · 返程（轻松）\n- 09:00 酒店早餐、收拾行李，行李可寄存前台\n- 10:00 梅田一带逛街买伴手礼（步行约 10 分钟，百货地下食品层适合带孩子挑零食）\n- 11:30 午餐后取行李\n- 12:30 梅田 → 关西机场（JR 大阪环状线转关空快速，或机场巴士，约 60–70 分钟，约 1 次换乘），预留充足时间办理登机\n- 提示：以上车程与时间为估算（约），出发前请再核对班次与机场值机截止时间。\n\n**住宿建议**：一家四口优先选有四人间的阪急大阪龙仕柏酒店（梅田，交通最方便）；想更省预算可看 ART 大阪湾酒店（有家庭房/四人间，但离市中心稍远）。房价为搜索到的最低起价，实际房型与可住人数请下单前确认。",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "1086204",
+        "title": {
+          "original": "阪急大阪龙仕柏酒店",
+          "translation": null
+        },
+        "address": {
+          "original": "1-1 Ofukacho, Kita",
+          "translation": "大阪市北区大深町1-1（梅田）"
+        },
+        "price": {
+          "amount": 965.5,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=1086204&checkInDate=2026-12-01&checkOutDate=2026-12-03&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/1086204/hotel/default/6/image/3d3c1221_z.jpg-t",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低价（每晚起）",
+            "value": {
+              "original": "965.5 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "提供四人间",
+            "translation": null
+          },
+          {
+            "original": "提供三人间",
+            "translation": null
+          },
+          {
+            "original": "提供早餐",
+            "translation": null
+          },
+          {
+            "original": "行李寄存",
+            "translation": null
+          },
+          {
+            "original": "洗衣房",
+            "translation": null
+          },
+          {
+            "original": "微波炉",
+            "translation": null
+          },
+          {
+            "original": "健身中心",
+            "translation": null
+          },
+          {
+            "original": "停车场",
+            "translation": null
+          }
+        ],
+        "summary": "梅田站旁，四人间可选，适合一家四口；交通枢纽，去环球影城和机场都方便。"
+      },
+      {
+        "ref": "h2",
+        "id": "610930",
+        "title": {
+          "original": "大阪比偲奇酒店",
+          "translation": null
+        },
+        "address": {
+          "original": "2 Chome-4-10 Shibata, 北区, 530-0012 大阪市, 大阪府, 日本",
+          "translation": "大阪市北区芝田2-4-10（梅田）"
+        },
+        "price": {
+          "amount": 670,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=610930&checkInDate=2026-12-01&checkOutDate=2026-12-03&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/0/Image/610930/154725361.jpg-t",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "3.5",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低价（每晚起）",
+            "value": {
+              "original": "670 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "儿童玩乐设施",
+            "translation": null
+          },
+          {
+            "original": "可提供婴儿床或围栏",
+            "translation": null
+          },
+          {
+            "original": "提供三人间",
+            "translation": null
+          },
+          {
+            "original": "提供早餐",
+            "translation": null
+          },
+          {
+            "original": "行李寄存",
+            "translation": null
+          },
+          {
+            "original": "洗衣房",
+            "translation": null
+          },
+          {
+            "original": "微波炉",
+            "translation": null
+          },
+          {
+            "original": "停车场",
+            "translation": null
+          }
+        ],
+        "summary": "梅田一带，有儿童玩乐设施和婴儿床/围栏，价格更友好；房型以双床/三人间为主，四人需确认加床或订两间。"
+      },
+      {
+        "ref": "h3",
+        "id": "4009",
+        "title": {
+          "original": "相铁Grand Fresa 大阪难波酒店",
+          "translation": null
+        },
+        "address": {
+          "original": "大阪府大阪中央区1 Chome-1-13 Nipponbashi, 542-0073",
+          "translation": "大阪市中央区日本桥1-1-13（难波）"
+        },
+        "price": {
+          "amount": 403,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=4009&checkInDate=2026-12-01&checkOutDate=2026-12-03&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/JP/4009/Featured%20Image/4349657_10_b.jpg-t",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "3.5",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低价（每晚起）",
+            "value": {
+              "original": "403 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "提供三人间",
+            "translation": null
+          },
+          {
+            "original": "提供早餐",
+            "translation": null
+          },
+          {
+            "original": "行李寄存",
+            "translation": null
+          },
+          {
+            "original": "洗衣设施",
+            "translation": null
+          },
+          {
+            "original": "微波炉",
+            "translation": null
+          },
+          {
+            "original": "24小时前台",
+            "translation": null
+          },
+          {
+            "original": "无障碍通道",
+            "translation": null
+          },
+          {
+            "original": "餐厅",
+            "translation": null
+          }
+        ],
+        "summary": "难波/日本桥，步行可到道顿堀，南海线直达关西机场；预算友好，四人建议订两间或三人间加床。"
+      },
+      {
+        "ref": "h4",
+        "id": "4007",
+        "title": {
+          "original": "ART 大阪湾酒店",
+          "translation": null
+        },
+        "address": {
+          "original": "1-2-1 Benten, Minato-ku",
+          "translation": "大阪市港区弁天1-2-1（大阪湾）"
+        },
+        "price": {
+          "amount": 612,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=4007&checkInDate=2026-12-01&checkOutDate=2026-12-03&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/JP/4007/Featured%20Image/4596074_96_b.jpg",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低价（每晚起）",
+            "value": {
+              "original": "612 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "儿童玩乐设施",
+            "translation": null
+          },
+          {
+            "original": "可提供婴儿床或围栏",
+            "translation": null
+          },
+          {
+            "original": "提供家庭房",
+            "translation": null
+          },
+          {
+            "original": "提供四人间",
+            "translation": null
+          },
+          {
+            "original": "温泉",
+            "translation": null
+          },
+          {
+            "original": "SPA",
+            "translation": null
+          },
+          {
+            "original": "提供早餐",
+            "translation": null
+          },
+          {
+            "original": "停车场",
+            "translation": null
+          }
+        ],
+        "summary": "海游馆旁，有家庭房/四人间和儿童设施，适合亲子；离市中心稍远，去梅田/难波需换乘。"
+      }
+    ]
+  }
+}

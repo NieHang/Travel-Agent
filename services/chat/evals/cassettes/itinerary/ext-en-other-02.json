@@ -1,0 +1,215 @@
+{
+  "tools": [
+    {
+      "name": "mcp_rollingGo_getHotelDetail",
+      "description": "查询单个酒店实时房型与价格明细（房型、价税、可售状态、退改规则等）。用于用户已选定具体酒店后的二次查价",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dateParam": {
+            "type": "object",
+            "properties": {
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式 YYYY-MM-DD。建议传合法未来日期"
+              },
+              "checkOutDate": {
+                "type": "string",
+                "description": "离店日期，格式 YYYY-MM-DD，必须晚于 checkInDate"
+              }
+            },
+            "description": "入离店日期对象"
+          },
+          "filter": {
+            "type": "object",
+            "properties": {
+              "cancelPolicy": {
+                "type": "string",
+                "enum": [
+                  "CANCELABLE",
+                  "NON_CANCELABLE"
+                ],
+                "description": "取消政策筛选。CANCELABLE：仅可免费取消房型；NON_CANCELABLE：仅不可取消房型。非法值忽略。"
+              },
+              "mealType": {
+                "type": "string",
+                "enum": [
+                  "WITH_BREAKFAST",
+                  "SINGLE_BREAKFAST",
+                  "DOUBLE_BREAKFAST",
+                  "NO_MEAL"
+                ],
+                "description": "餐食类别枚举。WITH_BREAKFAST（含早餐，mealAmount>0）/ SINGLE_BREAKFAST（单份早餐，mealAmount=1）/ DOUBLE_BREAKFAST（双份早餐，mealAmount=2）/ NO_MEAL（不含餐食，mealAmount=0）。非法值忽略。"
+              }
+            },
+            "description": "房型筛选条件对象。未传或为空时返回全部房型；多条件 AND 组合。"
+          },
+          "hotelId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "酒店唯一ID。与 name 二选一；若同时传入，优先使用 hotelId（从searchHotels工具获取）"
+          },
+          "name": {
+            "type": "string",
+            "description": "酒店名称（模糊匹配）。仅在没有 hotelId 时使用"
+          },
+          "occupancyParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房成人数，整数，>=1，默认2"
+              },
+              "childAgeDetails": {
+                "description": "儿童年龄数组，如 [3,5]；长度应与 childCount 一致",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "childCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房儿童数，整数，>=0，默认0"
+              },
+              "roomCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "房间数，整数，>=1，默认1"
+              }
+            },
+            "description": "入住人数与房间数量对象"
+          }
+        }
+      }
+    },
+    {
+      "name": "mcp_rollingGo_getHotelSearchTags",
+      "description": "获取酒店搜索元数据（AI Cache），包含可用的标签列表（以当前启用数据为准）。",
+      "schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "mcp_rollingGo_searchHotels",
+      "description": "该工具用于查询全球酒店。根据地点及结构化筛选条件（日期、入住晚数、人数、星级、距离、标签、品牌、预算）返回符合条件的酒店候选列表与最低价格，用于酒店初筛与比选。",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "checkInParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房入住的成人数量，默认两成人"
+              },
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式：YYYY-MM-DD，例如：2026-02-01。可不传；未传或早于今天时，自动使用明天；格式错误会返回参数错误"
+              },
+              "stayNights": {
+                "type": "integer",
+                "format": "int32",
+                "description": "入住天数（晚数），可不传，默认 1 晚。最多 28 晚，超出限制将返回参数错误。"
+              }
+            },
+            "description": "入住信息参数，包括入住日期、入住天数和每间房成人数量"
+          },
+          "filterOptions": {
+            "type": "object",
+            "properties": {
+              "distanceInMeter": {
+                "type": "integer",
+                "format": "int32",
+                "description": "直线距离，单位（米），当地点是一个POI位置时生效，生效时默认设定值为2000"
+              },
+              "starRatings": {
+                "description": "酒店星级(0.0-5.0, 梯度为0.5)，默认[0.0, 5.0]以上，例如 [4.5, 5.0]，[0.0, 2.0]",
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                }
+              }
+            },
+            "description": "酒店筛选选项，例如酒店星级、每间房成人数、距离等"
+          },
+          "hotelTags": {
+            "type": "object",
+            "properties": {
+              "maxPricePerNight": {
+                "type": "number",
+                "format": "double",
+                "description": "每晚价格上限（人民币，数值）"
+              },
+              "preferredBrands": {
+                "description": "偏好品牌",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requiredTags": {
+                "description": "必须命中标签（硬约束，未命中应被过滤）",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "酒店筛选标签参数（可选）。当传入此参数时，将直接使用这些标签进行筛选和排序，无需服务端额外解析。包含字段：requiredTags（必须标签）、preferredBrands（偏好品牌）、maxPricePerNight（每晚最高预算）"
+          },
+          "nextPageToken": {
+            "type": "string",
+            "description": "分页游标。仅当获取下一页(换一批)时,原样回传上一页返回的 nextPageToken;首页查询不传。传入有效 Token 时,核心检索条件以 Token 内快照为准。"
+          },
+          "originQuery": {
+            "type": "string",
+            "description": "综合多轮对话，归纳用户的完整住宿/预订意图。"
+          },
+          "place": {
+            "type": "string",
+            "description": "搜索地点关键词/酒店名称。具体酒店直接填入酒店名称；位置或区县需用空格补齐城市，填入 位置 城市；仅查询城市需补齐国家，填入 城市 国家。"
+          },
+          "placeType": {
+            "type": "string",
+            "description": "place 的类型，必须与 place 的实际内容一致。可选值：城市、机场、景点、火车站、地铁站、酒店、区/县、详细地址。"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "返回酒店结果数量，默认5个酒店，最大不超过10个"
+          }
+        },
+        "required": [
+          "originQuery",
+          "place",
+          "placeType"
+        ]
+      }
+    }
+  ],
+  "calls": [
+    {
+      "tool": "mcp_rollingGo_searchHotels",
+      "args": {
+        "originQuery": "Paris hotel for a couple, 2026-12-10 to 2026-12-14, 2 adults, 4 nights",
+        "place": "Paris France",
+        "placeType": "城市",
+        "checkInParam": {
+          "checkInDate": "2026-12-10",
+          "stayNights": 4,
+          "adultCount": 2
+        },
+        "size": 8
+      },
+      "result": {
+        "content": "{\"success\":true,\"code\":2000,\"message\":\"酒店搜索成功\",\"nextPageToken\":\"l2cMzQUqW0MQa_hNAL8f5EyLWtZ3YEvI0EHq49A4KFZaZPoYqAsDHb_7bebFpW2bhqLs390dsirIFIC_6O5YFhRAxfnYNwO-lk1GGuJ0ceDek8X5IiRFj90Kl7dygZab5DSSwivHN_P2EtnSi9t48Na4jfeHIEgVAWlmvyD63DGIDkFU9yeVLIhYTvxT1DUScN3nTlziFoJ_ZHEC62zWow\",\"hotelInformationList\":[{\"hotelId\":8430,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=8430&checkInDate=2026-12-10&checkOutDate=2026-12-14&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"格兰德哈弗尔酒店\",\"nameEn\":\"Grand Hôtel du Havre\",\"address\":\"18 Rue d'Amsterdam\",\"destinationId\":\"2734\",\"latitude\":48.876565,\"longitude\":2.326891,\"distanceInMeters\":1972,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。4晚总价：2,905CNY（约726.25CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":726.25},\"areaCode\":\"FR\",\"description\":\"<p><b>酒店位置</b><br/>格兰德哈弗尔酒店地处巴黎中心，距离歌剧院和老佛爷百货公司不到 10 分钟步行路程。 此酒店距离圣奥诺雷郊区街 0.6 英里（0.9 公里），距离里沃利路 0.7 英里（1.1 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>奥斯曼大道 - 0.3 公里 / 0.2 英里 <br /> 摩加多尔剧院r - 0.5 公里 / 0.3 英里 <br /> 老佛爷百货公司 - 0.6 公里 / 0.4 英里 <br /> 格兰德大道 - 0.7 公里 / 0.4 英里 <br /> 歌剧院 - 0.7 公里 / 0.4 英里 <br /> 克利希广场 - 0.8 公里 / 0.5 英里 <br /> 巴黎奥林匹亚 - 0.8 公里 / 0.5 英里 <br /> 圣奥诺雷郊区街 - 0.9 公里 / 0.6 英里 <br /> 玛德莲广场 - 0.9 公里 / 0.6 英里 <br /> 里沃利路 - 1.1 公里 / 0.7 英里 <br /> 红磨坊机器之家 - 1.1 公里 / 0.7 英里 <br /> 旺多姆广场 - 1.1 公里 / 0.7 英里 <br /> 红磨坊 - 1.2 公里 / 0.7 英里 <br /> 协和广场 - 1.3 公里 / 0.8 英里 <br /> 杜乐丽花园 - 1.4 公里 / 0.8 英里 <br /> </p><p>附近的机场有：<br />奥利机场 (ORY) - 21.2 公里 / 13.2 英里<br /> 戴高乐机场 (CDG) - 30.9 公里 / 19.2 英里<br /> </p><p>格兰德哈弗尔酒店的主要机场是戴高乐机场 (CDG)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、礼宾服务和公共区电视等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括大堂免费报纸、干洗/洗衣服务和24 小时前台服务。计划在巴黎举办活动？这家酒店拥有 25 平方米（269 平方英尺）的空间，包括会议场地和会议室。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/FR/8430/Featured%20Image/32210450_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"会议厅\",\"酒吧\",\"大堂报纸\",\"前台服务语言\",\"接待大厅\",\"洗衣设施\",\"客房WIFI（免费）\",\"旅游票务专柜\",\"公共区域禁烟\",\"大堂电视\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"客房备有吹风机\",\"客房点餐\",\"提供双床房\",\"提供三人间\",\"提供四人间\"]},{\"hotelId\":8198,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=8198&checkInDate=2026-12-10&checkOutDate=2026-12-14&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"巴黎蒙帕纳斯铂尔曼酒店\",\"nameEn\":\"Pullman Paris Montparnasse Hotel\",\"address\":\"19 Rue Commandant Rene Mouchotte\",\"destinationId\":\"2734\",\"latitude\":48.838547,\"longitude\":2.320186,\"distanceInMeters\":3193,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。4晚总价：4,868CNY（约1,217CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1217.0},\"areaCode\":\"FR\",\"description\":\"<p><strong>酒店位置</strong><br>巴黎蒙帕纳斯铂尔曼酒店位于巴黎第十四区，距离卢森堡花园和巴黎博览会不到 10 分钟车程。 此高档型酒店距离罗浮宫博物馆 1.9 英里（3.1 公里），距离埃菲尔铁塔 2.2 英里（3.6 公里）。</p><p><strong>客房</strong><br>有 957 间空调客房提供迷你吧和平板电视；您定能在旅途中找到家的舒适。提供免费无线网络，方便您与朋友保持联系；卫星频道可满足您的娱乐需求。私人浴室提供吹风机和浴袍。便利设施包括电话，以及保险箱和书桌。</p><p><strong>餐饮</strong><br>酒店设有 2 间餐厅 ，您不妨选择到FI LIA享用意大利菜；也可以待在房间里，享受 24 小时送餐服务。想放松一下？这里有 2 间酒吧/酒廊供您选择，可以小酌几杯，轻松一下。自助式早餐（收费）供应时间为：周一至周五 6:30 至 10:30，周末 7:00 至 11:00。</p><p><strong>休闲、SPA、高端服务设施</strong><br>一定要享受一下24 小时健身中心和自行车租赁等度假设施。此酒店还提供免费 WiFi、礼宾服务和保姆服务（收费）。</p><p><strong>商务及其他服务设施</strong><br>特色服务/设施包括免费高速有线上网、商务中心和快速入住。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/8198/hotel/default/14/image/0221z12000a12ibe3AA45_R_960_660_R5_D.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"快速入住退房\",\"24小时前台\",\"舞厅\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"会议厅\",\"商场\",\"酒吧\",\"宴会厅\",\"前台服务语言\",\"自行车租赁服务\",\"接待大厅\",\"健身中心\",\"所有窗户均为双层玻璃\",\"洗衣设施\",\"不提供一次性塑料吸管\",\"毛巾更换\",\"入口坡道\",\"不提供一次性塑料搅拌棒\",\"仅提供可重复使用的餐具\",\"仅使用节水淋浴\",\"提供素食菜单\",\"仅提供可重复使用的杯子\",\"画廊\",\"客房清洁服务\",\"LED 灯泡\",\"资源回收\",\"儿童看护（收费）\",\"客房WIFI（免费）\",\"专职门童\",\"旅游票务专柜\",\"公共区域禁烟\",\"露台\",\"餐厅\",\"被单更换：1客1换\",\"小吃吧\",\"停车场\",\"充电车位\",\"有机食品\",\"食品碗和水碗\",\"旅游服务\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"临近商场\",\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"宠物友好\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"自行车租赁\",\"客房点餐\",\"提供家庭房\",\"提供大床房\",\"提供双床房\",\"提供三人间\"]},{\"hotelId\":214464,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=214464&checkInDate=2026-12-10&checkOutDate=2026-12-14&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"巴黎维多利亚酒店\",\"nameEn\":\"Hôtel Victoria Paris\",\"address\":\"巴黎2 bis Cité Bergère\",\"destinationId\":\"2734\",\"latitude\":48.87196,\"longitude\":2.343616,\"distanceInMeters\":1027,\"starRating\":2.0,\"price\":{\"message\":\"查价成功。4晚总价：3,428CNY（约857CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":857.0},\"areaCode\":\"FR\",\"description\":\"<p><b>酒店位置</b><br/>巴黎维多利亚酒店地处巴黎中心，距离歌剧院和老佛爷百货公司不到 15 分钟步行路程。 此酒店距离里沃利路 0.8 英里（1.2 公里），距离罗浮宫博物馆 1 英里（1.6 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>格兰德大道 - 0.1 公里 / 0.1 英里 <br /> 奥斯曼大道 - 0.3 公里 / 0.2 英里 <br /> Folies Bergere (女神游乐厅) - 0.3 公里 / 0.2 英里 <br /> 蒙特吉尔街 - 0.8 公里 / 0.5 英里 <br /> 老佛爷百货公司 - 0.8 公里 / 0.5 英里 <br /> 莱斯哈里斯 - 0.9 公里 / 0.5 英里 <br /> 歌剧院 - 1 公里 / 0.6 英里 <br /> 皇宫 - 1.1 公里 / 0.7 英里 <br /> 摩加多尔剧院r - 1.2 公里 / 0.7 英里 <br /> 巴黎奥林匹亚 - 1.2 公里 / 0.7 英里 <br /> 里沃利路 - 1.2 公里 / 0.8 英里 <br /> 旺多姆广场 - 1.4 公里 / 0.8 英里 <br /> 罗浮宫博物馆 - 1.4 公里 / 0.9 英里 <br /> 卢浮宫卡鲁塞尔 - 1.4 公里 / 0.9 英里 <br /> 圣奥诺雷郊区街 - 1.5 公里 / 0.9 英里 <br /> </p><p>附近的机场有：<br />奥利机场 (ORY) - 20.8 公里 / 12.9 英里<br /> 戴高乐机场 (CDG) - 29.5 公里 / 18.3 英里<br /> 博韦机场 (BVA) - 87.1 公里 / 54.1 英里<br /> 沙隆-瓦特里机场 (XCR) - 215 公里 / 133.6 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、旅游/票务服务和自动售货机等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括大堂免费报纸、24 小时前台服务和行李寄存。酒店提供停车设施（车位有限）。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/FR/214464/Featured%20Image/14777624_16_b.jpg\",\"hotelAmenities\":[\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"大堂报纸\",\"客房WIFI（免费）\",\"旅游票务专柜\",\"公共区域禁烟\",\"自动售货机\",\"停车场\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"宠物友好\",\"客房备有吹风机\",\"提供双床房\",\"提供三人间\"]},{\"hotelId\":8231,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=8231&checkInDate=2026-12-10&checkOutDate=2026-12-14&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"巴黎北站贝斯特韦斯特修尔酒店\",\"nameEn\":\"Sure Hotel by Best Western Paris Gare du Nord\",\"brand\":\"SureStay\",\"address\":\"巴黎224 Rue Du Faubourg\",\"destinationId\":\"2734\",\"latitude\":48.883766,\"longitude\":2.359272,\"distanceInMeters\":2601,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。4晚总价：2,560CNY（约640CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":640.0},\"areaCode\":\"FR\",\"description\":\"<p><b>酒店位置</b><br/>巴黎北站贝斯特韦斯特修尔酒店位于巴黎第十区，距离圣马丁运河只有 4 分钟车程，且距离歌剧院也只有 8 分钟车程。  此酒店距离罗浮宫博物馆 2.3 英里（3.7 公里），距离巴士底广场 2.7 英里（4.3 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>圣马丁运河 - 1 公里 / 0.6 英里 <br /> 圣心圣殿 - 1.5 公里 / 0.9 英里 <br /> 格兰德大道 - 1.7 公里 / 1 英里 <br /> Folies Bergere (女神游乐厅) - 1.7 公里 / 1.1 英里 <br /> 特休肖蒙 - 1.9 公里 / 1.2 英里 <br /> 共和国广场 - 1.9 公里 / 1.2 英里 <br /> 红磨坊机器之家 - 2.2 公里 / 1.3 英里 <br /> 奥斯曼大道 - 2.3 公里 / 1.4 英里 <br /> 红磨坊 - 2.3 公里 / 1.4 英里 <br /> 蒙特吉尔街 - 2.3 公里 / 1.5 英里 <br /> 莱斯哈里斯 - 2.5 公里 / 1.6 英里 <br /> 老佛爷百货公司 - 2.6 公里 / 1.6 英里 <br /> 迪瓦维莱特公园 - 2.6 公里 / 1.6 英里 <br /> 歌剧院 - 2.6 公里 / 1.6 英里 <br /> 克利希广场 - 2.6 公里 / 1.6 英里 <br /> </p><p>附近的机场有：<br />奥利机场 (ORY) - 24.7 公里 / 15.4 英里<br /> 戴高乐机场 (CDG) - 27.4 公里 / 17 英里<br /> </p><p>巴黎北站贝斯特韦斯特修尔酒店的主要机场是戴高乐机场 (CDG)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、公共区电视和旅游/票务服务等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括商务中心、快速入住和快速退房。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/FR/8231/Featured%20Image/f5f32471_b.jpg\",\"hotelAmenities\":[\"行李寄存\",\"快速入住退房\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"前台服务语言\",\"节能开关\",\"综合回收政策\",\"所有窗户均为双层玻璃\",\"仅使用节水淋浴\",\"仅使用节水厕所\",\"LED 灯泡\",\"客房WIFI（免费）\",\"瓷砖/大理石地板\",\"旅游票务专柜\",\"公共区域禁烟\",\"电脑\",\"自动售货机\",\"大堂电视\",\"提供早餐\"],\"tags\":[\"国际连锁\",\"单体酒店\",\"商务中心\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"宠物友好\",\"备有热水壶\",\"客房备有吹风机\",\"提供家庭房\",\"提供双床房\",\"提供三人间\"]},{\"hotelId\":6531,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=6531&checkInDate=2026-12-10&checkOutDate=2026-12-14&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"巴黎中心埃菲尔铁塔阿达吉欧公寓\",\"nameEn\":\"Aparthotel Adagio Paris Centre Tour Eiffel\",\"brand\":\"阿德吉奥公寓酒店（阿克奥尔旗下）\",\"address\":\"14 Rue Du Theatre\",\"destinationId\":\"2734\",\"latitude\":48.849921,\"longitude\":2.285311,\"distanceInMeters\":4506,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。4晚总价：3,952CNY（约988CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":988.0},\"areaCode\":\"FR\",\"description\":\"<p><b>酒店位置</b><br/>巴黎中心埃菲尔铁塔阿达吉欧公寓坐落于巴黎中心地段，距离埃菲尔铁塔和战神不到 5 分钟车程。 此公寓酒店距离巴黎博览会 1.9 英里（3 公里），距离凯旋门 2 英里（3.2 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>塞纳河 - 0.4 公里 / 0.2 英里 <br /> 购物街 - 1.1 公里 / 0.7 英里 <br /> 战神 - 1.2 公里 / 0.7 英里 <br /> 埃菲尔铁塔 - 1.4 公里 / 0.9 英里 <br /> 特罗卡德罗广场 - 1.7 公里 / 1 英里 <br /> 乔治蓬皮杜欧洲医院 - 1.7 公里 / 1.1 英里 <br /> 教科文组织总部 - 1.8 公里 / 1.1 英里 <br /> 克雷尔街 - 2 公里 / 1.2 英里 <br /> 荣军院 - 2.3 公里 / 1.4 英里 <br /> 乔治五世大道 - 2.3 公里 / 1.4 英里 <br /> 巴黎博览会 - 2.3 公里 / 1.4 英里 <br /> 蒙田大道 - 2.4 公里 / 1.5 英里 <br /> 布洛涅森林 - 2.6 公里 / 1.6 英里 <br /> 罗兰·加洛斯体育场 - 2.6 公里 / 1.6 英里 <br /> 王子公园体育场 - 2.9 公里 / 1.8 英里 <br /> </p><p>附近的机场有：<br />奥利机场 (ORY) - 18.6 公里 / 11.6 英里<br /> 戴高乐机场 (CDG) - 38.2 公里 / 23.7 英里<br /> 博韦机场 (BVA) - 90.2 公里 / 56 英里<br /> 沙隆-瓦特里机场 (XCR) - 220 公里 / 136.7 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可充分利用室内游泳池等度假设施，此外还有免费 WiFi和礼宾服务等。此公寓酒店还提供酒店内购物、宴会厅和自动售货机。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括商务中心、干洗/洗衣服务和24 小时前台服务。这家公寓酒店的活动设施包括会议场地和2 间会议室。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/FR/6531/Hotel%20Front/1e4331db_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"室内泳池\",\"儿童乐园\",\"电梯\",\"商务中心\",\"会议厅\",\"商场\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"所有窗户均为双层玻璃\",\"洗衣设施\",\"不提供一次性塑料吸管\",\"毛巾更换\",\"不提供一次性塑料搅拌棒\",\"仅提供可重复使用的餐具\",\"仅使用节水淋浴\",\"提供素食菜单\",\"仅使用节水厕所\",\"仅提供可重复使用的杯子\",\"酒店内购物\",\"画廊\",\"图书室\",\"客房清洁服务\",\"LED 灯泡\",\"资源回收\",\"客房WIFI（免费）\",\"旅游票务专柜\",\"公共区域禁烟\",\"餐厅\",\"被单更换：1客1换\",\"自动售货机\",\"无障碍通道\",\"饮水机\",\"停车场\",\"旅游服务\",\"提供早餐\"],\"tags\":[\"当地连锁\",\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"宠物友好\",\"室内恒温泳池\",\"健身房\",\"备有热水壶\",\"客房备有吹风机\",\"无障碍停车位\",\"自行车租赁\",\"运动友好酒店\",\"提供双床房\"]},{\"hotelId\":8243,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=8243&checkInDate=2026-12-10&checkOutDate=2026-12-14&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"美居巴黎中心埃菲尔铁塔酒店\",\"nameEn\":\"Mercure Paris Centre Tour Eiffel\",\"brand\":\"美居酒店\",\"address\":\"20 Rue Jean Rey\",\"destinationId\":\"2734\",\"latitude\":48.855356,\"longitude\":2.292256,\"distanceInMeters\":3855,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。4晚总价：4,584CNY（约1,146CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1146.0},\"areaCode\":\"FR\",\"description\":\"<p><b>酒店位置</b><br/>美居巴黎中心埃菲尔铁塔酒店地处巴黎中心，距离埃菲尔铁塔只有 1 分钟车程，且距离香榭丽舍大道有 6 分钟车程。  此家居型酒店距离凯旋门 1.9 英里（3.1 公里），距离巴黎博览会 2.1 英里（3.4 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>战神 - 0.2 公里 / 0.1 英里 <br /> 埃菲尔铁塔 - 0.5 公里 / 0.3 英里 <br /> 塞纳河 - 0.7 公里 / 0.4 英里 <br /> 购物街 - 1.2 公里 / 0.7 英里 <br /> 克雷尔街 - 1.3 公里 / 0.8 英里 <br /> 特罗卡德罗广场 - 1.3 公里 / 0.8 英里 <br /> 乔治五世大道 - 1.4 公里 / 0.9 英里 <br /> 教科文组织总部 - 1.4 公里 / 0.9 英里 <br /> 蒙田大道 - 1.5 公里 / 0.9 英里 <br /> 荣军院 - 1.7 公里 / 1.1 英里 <br /> 大皇宫 - 2.2 公里 / 1.3 英里 <br /> 香榭丽舍大道 - 2.3 公里 / 1.4 英里 <br /> 香榭大道拉法叶百货公司 - 2.3 公里 / 1.4 英里 <br /> Petit Palais (小皇宫) - 2.3 公里 / 1.5 英里 <br /> 戴乐高星形广场 - 2.4 公里 / 1.5 英里 <br /> </p><p>附近的机场有：<br />奥利机场 (ORY) - 17.3 公里 / 10.7 英里<br /> 戴高乐机场 (CDG) - 42 公里 / 26.1 英里<br /> </p><p>美居巴黎中心埃菲尔铁塔酒店的主要机场是奥利机场 (ORY)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可充分利用健身中心等度假设施，或者到露台和花园欣赏美景。此酒店的其他特色包括免费 WiFi、礼宾服务和礼品店/报摊。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括商务中心、大堂免费报纸和干洗/洗衣服务。计划在巴黎举办活动？这家酒店拥有 450 平方米（4844 平方英尺）的空间，包括会议场地和会议室。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/FR/8243/Featured%20Image/564660_287_b.jpg-t\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"会议厅\",\"酒吧\",\"大堂报纸\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"健身设施\",\"节能开关\",\"综合回收政策\",\"所有窗户均为双层玻璃\",\"毛巾更换\",\"入口坡道\",\"不提供一次性塑料搅拌棒\",\"仅提供可重复使用的餐具\",\"仅使用节水淋浴\",\"提供素食菜单\",\"仅提供可重复使用的杯子\",\"画廊\",\"自行车存放区\",\"客房清洁服务\",\"LED 灯泡\",\"资源回收\",\"客房WIFI（免费）\",\"桌面游戏/拼图\",\"专职门童\",\"旅游票务专柜\",\"礼品廊\",\"公共区域禁烟\",\"露台\",\"被单更换：1客1换\",\"桌面足球\",\"无障碍通道\",\"花园\",\"大堂电视\",\"饮水机\",\"无障碍卫生间\",\"小吃吧\",\"停车场\",\"充电车位\",\"有机食品\",\"提供早餐\"],\"tags\":[\"商务中心\",\"宴会厅\",\"宠物友好\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"自行车租赁\",\"客房点餐\",\"提供无障碍客房\",\"提供大床房\",\"提供双床房\"]},{\"hotelId\":8224,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=8224&checkInDate=2026-12-10&checkOutDate=2026-12-14&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"巴黎中心埃菲尔铁塔诺富特酒店\",\"nameEn\":\"Novotel Paris Centre Tour Eiffel\",\"brand\":\"诺富特酒店\",\"address\":\"61 Quai De Grenelle\",\"destinationId\":\"2734\",\"latitude\":48.85004,\"longitude\":2.283356,\"distanceInMeters\":4638,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。4晚总价：3,836CNY（约959CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":959.0},\"areaCode\":\"FR\",\"description\":\"<p><b>酒店位置</b><br/>巴黎中心艾菲尔铁塔诺富特酒店地处巴黎中心，距离埃菲尔铁塔只有 3 分钟车程，且距离香榭丽舍大道有 7 分钟车程。  此家居型酒店距离凯旋门 2 英里（3.2 公里），距离巴黎博览会 2.3 英里（3.7 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>塞纳河 - 0.3 公里 / 0.2 英里 <br /> 战神 - 1.2 公里 / 0.7 英里 <br /> 购物街 - 1.2 公里 / 0.7 英里 <br /> 埃菲尔铁塔 - 1.4 公里 / 0.9 英里 <br /> 特罗卡德罗广场 - 1.8 公里 / 1.1 英里 <br /> 乔治蓬皮杜欧洲医院 - 1.8 公里 / 1.1 英里 <br /> 教科文组织总部 - 2 公里 / 1.3 英里 <br /> 克雷尔街 - 2.1 公里 / 1.3 英里 <br /> 乔治五世大道 - 2.3 公里 / 1.4 英里 <br /> 蒙田大道 - 2.4 公里 / 1.5 英里 <br /> 巴黎博览会 - 2.4 公里 / 1.5 英里 <br /> 荣军院 - 2.4 公里 / 1.5 英里 <br /> 罗兰·加洛斯体育场 - 2.5 公里 / 1.5 英里 <br /> 布洛涅森林 - 2.5 公里 / 1.6 英里 <br /> 王子公园体育场 - 2.7 公里 / 1.7 英里 <br /> </p><p>附近的机场有：<br />奥利机场 (ORY) - 18.5 公里 / 11.5 英里<br /> 戴高乐机场 (CDG) - 39 公里 / 24.2 英里<br /> </p><p>巴黎中心艾菲尔铁塔诺富特酒店的主要机场是奥利机场 (ORY)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>一定要享受一下室内游泳池、桑拿和健身中心等度假设施。此酒店还提供免费 WiFi、礼宾服务和公共区电视。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括商务中心、大堂免费报纸和干洗/洗衣服务。计划在巴黎举办活动？这家酒店拥有 3000 平方米（32292 平方英尺）的空间，包括会议中心和会议室。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/FR/8224/6813f95f_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"室内泳池\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"会议厅\",\"酒吧\",\"大堂报纸\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"健身设施\",\"节能开关\",\"综合回收政策\",\"所有窗户均为双层玻璃\",\"洗衣设施\",\"不提供一次性塑料吸管\",\"毛巾更换\",\"不提供一次性塑料搅拌棒\",\"仅提供可重复使用的餐具\",\"仅使用节水淋浴\",\"提供素食菜单\",\"仅提供可重复使用的杯子\",\"画廊\",\"客房清洁服务\",\"LED 灯泡\",\"客房WIFI（免费）\",\"专职门童\",\"旅游票务专柜\",\"吸烟区\",\"桑拿\",\"餐厅\",\"儿童玩具\",\"被单更换：1客1换\",\"无障碍通道\",\"儿童桌面游戏/拼图\",\"健身课程\",\"大堂电视\",\"饮水机\",\"停车场\",\"有机食品\",\"提供求婚/浪漫套餐\",\"食品碗和水碗\",\"旅游服务\",\"普拉提课程\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"宠物友好\",\"室内恒温泳池\",\"户外泳池\",\"健身房\",\"备有拖鞋\",\"客房备有吹风机\",\"自行车租赁\",\"客房点餐\",\"提供无障碍客房\",\"提供家庭房\",\"提供大床房\",\"提供双床房\",\"提供三人间\",\"SPA服务\",\"运动友好酒店\"]},{\"hotelId\":1425703,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=1425703&checkInDate=2026-12-10&checkOutDate=2026-12-14&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"诺富特巴黎凡尔赛门酒店\",\"nameEn\":\"Novotel Paris Porte De Versailles\",\"brand\":\"诺富特酒店\",\"address\":\"巴黎4 Av De La Porte De La Plaine\",\"destinationId\":\"2734\",\"latitude\":48.830016,\"longitude\":2.29176,\"distanceInMeters\":5263,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。4晚总价：5,144CNY（约1,286CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1286.0},\"areaCode\":\"FR\",\"description\":\"<p><b>酒店位置</b><br/>巴黎凡尔赛门诺富特酒店位于巴黎第十五区，距离巴黎博览会只有 1 分钟车程，且距离卢森堡花园也只有 8 分钟车程。  此酒店距离埃菲尔铁塔 2.7 英里（4.4 公里），距离香榭丽舍大道 3.4 英里（5.5 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>巴黎博览会 - 0.1 公里 / 0.1 英里 <br /> 购物街 - 1.8 公里 / 1.1 英里 <br /> 乔治蓬皮杜欧洲医院 - 2.1 公里 / 1.3 英里 <br /> 教科文组织总部 - 2.9 公里 / 1.8 英里 <br /> 战神 - 3 公里 / 1.9 英里 <br /> 塞纳河 - 3.1 公里 / 1.9 英里 <br /> 法国巴黎蒙帕纳斯大厦 - 3.2 公里 / 2 英里 <br /> 巴黎国际大学城 - 3.4 公里 / 2.1 英里 <br /> 荣军院 - 3.5 公里 / 2.2 英里 <br /> 克雷尔街 - 3.5 公里 / 2.2 英里 <br /> 罗兰·加洛斯体育场 - 3.5 公里 / 2.2 英里 <br /> 乐蓬马歇百货 - 3.6 公里 / 2.2 英里 <br /> 王子公园体育场 - 3.6 公里 / 2.3 英里 <br /> 巴黎地下墓穴 - 3.7 公里 / 2.3 英里 <br /> 布洛涅森林 - 3.7 公里 / 2.3 英里 <br /> </p><p>附近的机场有：<br />奥利机场 (ORY) - 14.3 公里 / 8.9 英里<br /> 戴高乐机场 (CDG) - 41.4 公里 / 25.7 英里<br /> </p><p>巴黎凡尔赛门诺富特酒店的主要机场是奥利机场 (ORY)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>享受健身俱乐部等度假设施，或者到屋顶露台欣赏美景。此酒店的其他特色包括免费 WiFi、礼宾服务和保姆服务（收费）。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括快速退房、干洗/洗衣服务和24 小时前台服务。计划在巴黎举办活动？这家酒店拥有 147 平方米（1582 平方英尺）的空间，包括会议场地和3 间会议室。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/1425703/hotel/default/14/image/0221612000f44etv1F7BE_R_960_660_R5_D.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"快速入住退房\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"会议厅\",\"咖啡厅\",\"酒吧\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"健身中心\",\"健身设施\",\"节能开关\",\"综合回收政策\",\"所有窗户均为双层玻璃\",\"不提供一次性塑料吸管\",\"毛巾更换\",\"入口坡道\",\"不提供一次性塑料搅拌棒\",\"仅提供可重复使用的餐具\",\"仅使用节水淋浴\",\"提供素食菜单\",\"仅提供可重复使用的杯子\",\"画廊\",\"客房清洁服务\",\"LED 灯泡\",\"资源回收\",\"儿童看护（收费）\",\"客房WIFI（免费）\",\"旅游票务专柜\",\"公共区域禁烟\",\"露台\",\"餐厅\",\"被单更换：1客1换\",\"无障碍通道\",\"无障碍卫生间\",\"走廊的视觉警报\",\"小吃吧\",\"停车场\",\"有机食品\",\"会议室辅助听力设备\",\"旅游服务\",\"提供早餐\"],\"tags\":[\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"宠物友好\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"自行车租赁\",\"客房点餐\",\"提供家庭房\",\"提供大床房\",\"提供双床房\",\"提供三人间\"]}]}",
+        "isError": false
+      }
+    }
+  ]
+}

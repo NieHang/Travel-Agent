@@ -1,6 +1,7 @@
 // Live check of the trip prompts against the configured model and MCP servers.
 // Usage: bun run scripts/test-trip-live.ts (PRINT_DRAFT=1 also prints the Tokyo→Osaka drafts)
 import 'dotenv/config';
+import { TRAVEL_LEG } from '../evals/travel-leg.js';
 import { McpService } from '../src/llm/mcp/mcp.service.js';
 import { ModelTripLlm } from '../src/trip/llm.js';
 import { loadSkills } from '../src/skills/registry.js';
@@ -76,8 +77,7 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   check(`${locale}: japan draft has overview and before-you-go`, headings.every((h) => japan.draft.includes(h)));
   check(`${locale}: japan draft marks estimates`, zh ? /约/.test(japan.draft) : /approx/i.test(japan.draft));
   check(`${locale}: japan draft covers every day`, japan.next.days.length >= 6);
-  const legs = /(线|新干线|Line|Shinkansen|Skyliner|Haruka|→)/;
-  const legStops = japan.next.days.flatMap((d) => d.stops.map((s) => s.name)).filter((name) => legs.test(name));
+  const legStops = japan.next.days.flatMap((d) => d.stops.map((s) => s.name)).filter((name) => TRAVEL_LEG.test(name));
   check(`${locale}: travel legs are not stops`, legStops.length === 0);
   if (legStops.length) console.log(`  leg stops: ${JSON.stringify(legStops)}`);
   // Full days (all but the first and last block) each need a rainy-day / drop-if-tired line.

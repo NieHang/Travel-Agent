@@ -1,0 +1,215 @@
+{
+  "id": "ext-en-other-02",
+  "category": "non_japan",
+  "locale": "en",
+  "text": "Paris for a couple, 2026-12-10 to 2026-12-14, 2 people",
+  "today": "2026-10-30",
+  "draft": "I'll search hotels in Paris for those dates and load the relevant city skills.# Paris for two — draft itinerary (10–14 Dec 2026)\n\n**Overview**: Paris 4 nights, one base, no hotel changes | light · standard · standard · standard · light\nNote: my city skills cover Japan only, so this Paris plan is built from general planning rules — please double-check opening days and any timed-entry bookings before you go.\n\n**Before you go**\n- Book timed-entry slots a few weeks ahead for the Eiffel Tower summit and any museum you care about most (please check availability).\n- Many museums close one day a week (often Monday) and most churches close in the evening — check each site's day before you go.\n- Get a Navigo Easy card or a carnet of tickets at the airport for metro/bus rides; a single card each is simplest for two people.\n- December is cold and dark early (sunset approx. 17:00): pack warm layers and plan indoor stops for late afternoon.\n- Reserve one dinner for the two of you a few weeks ahead if you want somewhere special.\n\n**Day 1 | Arrival · Left Bank near the hotel (light)**\n- 14:00 CDG Airport → RER B to central Paris, approx. 35–45 min, then metro/walk to the hotel, approx. 15 min, 1 transfer\n- 15:30 Check in, unpack, rest\n- 17:00 Short walk in the neighbourhood, a café stop\n- 19:00 Early dinner near the hotel, early night\n- Tonight: Hotel Victoria Paris (巴黎维多利亚酒店)\n\n**Day 2 | Louvre · Tuileries · Seine (standard)**\n- 09:00 Walk/metro to the Louvre, approx. 15 min\n- 09:30 Louvre (pre-booked slot): start with the quieter wings first\n- 12:30 Lunch near Palais Royal\n- 14:00 Tuileries Garden and Place de la Concorde, walk approx. 15 min\n- 16:00 Orangerie or a covered passage for warmth, approx. 10 min walk\n- 18:00 Seine-side walk toward Pont Neuf, lit up and quieter in the evening\n- 19:30 Dinner on the Left Bank\n- Alternatives: if rain, spend the afternoon in the Louvre or Orsay instead of the garden walk; if tired, drop the Orangerie\n- Tonight: Hotel Victoria Paris (巴黎维多利亚酒店)\n\n**Day 3 | Île de la Cité · Latin Quarter · Montmartre evening (standard)**\n- 09:00 Notre-Dame area and Sainte-Chapelle, walk approx. 15 min from the hotel\n- 11:00 Walk across to the Latin Quarter, approx. 15 min\n- 12:00 Lunch in the Latin Quarter\n- 14:00 Panthéon or Luxembourg Gardens, approx. 10 min walk\n- 16:00 Metro to Montmartre, approx. 25 min, 1 transfer\n- 16:30 Sacré-Cœur and the lanes around Abbesses: late afternoon light, fewer people than midday\n- 19:00 Dinner in Montmartre\n- Alternatives: if rain, swap the Panthéon for the Cluny museum; if tired, drop the Luxembourg Gardens and go straight to Montmartre\n- Tonight: Hotel Victoria Paris (巴黎维多利亚酒店)\n\n**Day 4 | Eiffel Tower · Orsay · Marais (standard)**\n- 09:00 Metro to Trocadéro, approx. 25 min, 1 transfer\n- 09:30 Eiffel Tower views from Trocadéro, then up if you booked a slot\n- 12:00 Lunch near the tower\n- 13:30 Metro to the Musée d'Orsay, approx. 20 min, 1 transfer\n- 14:00 Musée d'Orsay\n- 16:30 Walk to the Marais, approx. 20 min, or metro approx. 10 min\n- 17:00 Marais stroll and a warm drink\n- 19:30 Dinner in the Marais\n- Alternatives: if rain, skip Trocadéro and go straight to Orsay, adding the Rodin museum's indoor rooms; if tired, drop the Marais and rest before dinner\n- Tonight: Hotel Victoria Paris (巴黎维多利亚酒店)\n\n**Day 5 | Departure (light)**\n- 09:00 Breakfast and a last short walk near the hotel only\n- 10:30 Check out; metro + RER B to CDG, approx. 50–60 min, 1 transfer — leave plenty of time for check-in\n\nHotel options I found for your dates are shown above; the draft uses the central, lowest-priced one. Prices are per night as listed and should be re-checked at booking.",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "214464",
+        "title": {
+          "original": "巴黎维多利亚酒店",
+          "translation": "Hotel Victoria Paris"
+        },
+        "address": {
+          "original": "巴黎2 bis Cité Bergère",
+          "translation": "2 bis Cité Bergère, Paris"
+        },
+        "price": {
+          "amount": 857,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=214464&checkInDate=2026-12-10&checkOutDate=2026-12-14&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/FR/214464/Featured%20Image/14777624_16_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "2",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "1027",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "电梯",
+            "translation": "Elevator"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          },
+          {
+            "original": "旅游票务专柜",
+            "translation": "Tour/ticket desk"
+          }
+        ],
+        "summary": "Closest to the centre of the options found (approx. 1 km from the search point), near the Grands Boulevards area; simple 2-star base, lowest price of the central picks."
+      },
+      {
+        "ref": "h2",
+        "id": "8198",
+        "title": {
+          "original": "巴黎蒙帕纳斯铂尔曼酒店",
+          "translation": "Pullman Paris Montparnasse"
+        },
+        "address": {
+          "original": "19 Rue Commandant Rene Mouchotte",
+          "translation": "19 Rue Commandant René Mouchotte, Paris"
+        },
+        "price": {
+          "amount": 1217,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=8198&checkInDate=2026-12-10&checkOutDate=2026-12-14&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/8198/hotel/default/14/image/0221z12000a12ibe3AA45_R_960_660_R5_D.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "3193",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "健身中心",
+            "translation": "Fitness centre"
+          },
+          {
+            "original": "酒吧",
+            "translation": "Bar"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "露台",
+            "translation": "Terrace"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "4-star with bar, restaurant, terrace and fitness centre in Montparnasse; good for a couple wanting a comfortable base with evening options in the building."
+      },
+      {
+        "ref": "h3",
+        "id": "8243",
+        "title": {
+          "original": "美居巴黎中心埃菲尔铁塔酒店",
+          "translation": "Mercure Paris Centre Tour Eiffel"
+        },
+        "address": {
+          "original": "20 Rue Jean Rey",
+          "translation": "20 Rue Jean Rey, Paris"
+        },
+        "price": {
+          "amount": 1146,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=8243&checkInDate=2026-12-10&checkOutDate=2026-12-14&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/FR/8243/Featured%20Image/564660_287_b.jpg-t",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "3855",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "健身设施",
+            "translation": "Fitness facilities"
+          },
+          {
+            "original": "酒吧",
+            "translation": "Bar"
+          },
+          {
+            "original": "露台",
+            "translation": "Terrace"
+          },
+          {
+            "original": "花园",
+            "translation": "Garden"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "4-star near the Eiffel Tower area with bar, terrace and garden; handy for evening walks to the tower."
+      }
+    ]
+  }
+}
