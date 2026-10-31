@@ -172,6 +172,40 @@ crossed threshold or invalid results. It needs no network.
 The P1 `eval:replay-check` remains separate: neither P2 suite calls MCP, so this
 pass does not add the later itinerary recording command.
 
+## Geocoder check
+
+`evals/geocode-labels.json` holds the stops from the 2026-10-30 accuracy check
+that chose P3's geocoders (see the plan's P3 section). It has 213 real stops from
+the 17 Japan extract-days items and 24 made-up names. For each of Nominatim,
+Wikidata and Google it keeps every result a search has returned, each with
+Claude's label; a person has not reviewed the labels. Real stops are `correct`, `near`
+(the right spot but another feature, such as the station by a park), `wrong` or
+`missing`; made-up names are `none` or `matched`. The result is Nominatim's
+name, a Wikidata item id or a Google place id. Google's terms allow storing only
+place ids, so no Google name, address or coordinate is kept. The Nominatim names
+are OpenStreetMap data: © OpenStreetMap contributors, ODbL.
+
+```sh
+bun run eval:geocode-check                     # all three sources, about 10 minutes
+bun run eval:geocode-check google wikidata
+```
+
+Each stop is searched within its trip's region, as when it was labeled. Nominatim
+is paced at one request per second and Wikidata a little slower. Google needs
+`GOOGLE_MAPS_API_KEY` in `.env.eval`. Its search asks for place IDs only, which
+Google does not charge for (Text Search Essentials, IDs Only), and takes the top
+result. Each unlabeled ID costs one Place Details Pro call (5,000 free a month)
+to print its name and distance. Each source prints the plan's accuracy
+table row, counted over stops that still return the labeled result; "correct"
+includes `near`. Stops that return a result with no label yet are listed as
+changed, with the distance from the region: check each one and add it, with its
+label, to that source's list in the JSON. Keep the old entries, because results
+flip back and forth. Google returned a new result for 4 to 9 of the 237 stops on
+each of five runs on 2026-10-30, often the same place under another id and
+sometimes nothing for a well-known stop (关西机场), so expect a few every run.
+Nominatim and Wikidata changed 1 and 2 stops in one rerun. The check exits 1
+only on request errors.
+
 ## Trace rules
 
 - For scripts that send traces to Langfuse, load env, then import `./instrumentation.js`, before importing LangChain or

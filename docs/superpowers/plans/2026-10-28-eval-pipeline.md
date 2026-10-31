@@ -333,10 +333,40 @@ Code graders:
 - **Grounding**: every hotel name in the draft and days must come from tool results; otherwise `invented_hotel=1`.
 - **Budget**: lowest hotel price × nights ≤ budget (checked only when the budget currency is explicit).
 - **Pacing**: stops per day; arrival and departure days at or below the limit for the days in between; lower limits for family and elderly trips.
-- **Geography**: geocode every stop, then compute each day's total straight-line distance and the number of backtracks. A failed geocode counts as a likely invented place. Cache geocodes in `evals/geocache.json` (committed) so replay makes no network requests. **The geocoding service is undecided** (see §4).
+- **Geography** (geocoders chosen 2026-10-30, see the accuracy check below):
+  - Coordinates come from Google Places Text Search, Japan only, limited to a box around that night's hotel (RollingGo results carry latitude and longitude). Each day's route runs hotel → stops → hotel.
+  - Google's terms allow storing only place IDs. `evals/geocache.json` (committed) maps each stop name to a place ID. That cache also keeps scores stable: Text Search returns a different place for a few stops on every run (see below). Coordinates are fetched again on every run by place ID, so geography needs the network and `GOOGLE_MAPS_API_KEY` even under replay. Google names and addresses go into neither committed files nor Langfuse.
+  - Prices, from Google's pricing page on 2026-10-30:
+    - Text Search with an IDs-only field mask is Text Search Essentials (IDs Only): free, with no cap.
+    - Coordinates by place ID (`location`) are Place Details Essentials: 10,000 free a month, then $5 per 1,000.
+    - Asking Text Search for `displayName` or `location` moves it to Pro: 5,000 free a month, then $32 per 1,000.
+    - So the grader never asks Text Search for more than IDs.
+  - Invented places: Google returns something near every made-up name, so existence comes from Wikidata (CirrusSearch `nearcoord`) and Nominatim (`viewbox`, `bounded=1`). Their results are cached in the committed geocache: Nominatim's policy requires caching (1 request/s, an identifying User-Agent, attribution "© OpenStreetMap contributors"), and Wikidata is CC0.
+  - Scores: `day_km_max` (longest day, straight-line); `route_detour` (the day's route ÷ the shortest order of the same stops between the same hotels; replaces the backtrack count); `hotel_far` (a stop far from that night's hotel); `stop_unverified` (neither Wikidata nor Nominatim finds the stop); `geocode_conflict` (Google and Wikidata both find it, more than 3 km apart). A geocoder API error is `task_error`, not a miss.
+  - All of these are reported; gates stay loose, with thresholds from the baseline. `stop_unverified` also flags about 5% of real stops, so it never gates on its own.
+  - It can't check travel times, opening hours or whether a stop makes sense; that's the P4 judge.
 - `tool_args_ok`: the lodging search's destination, check-in and check-out dates and traveler count match the requirements.
 
 Acceptance: every assertion in the live check has a matching L3 grader, and the baseline pass rate on `main` matches the live check's results.
+
+**Geocoder accuracy check (2026-10-30).** 213 real stops from the 17 Japan extract-days items (88 en, 125 zh) plus 24 made-up names (12 zh, 12 en, e.g. 奈良金鹿寺, "Kyoto Sky Garden Tower"). Every search was limited to the trip's region. Claude labeled each result by hand; a person has not reviewed the labels. The labels are in `evals/geocode-labels.json`, and `bun run eval:geocode-check` reruns the searches against them (by hand; it needs the network and lists stops whose result changed, see `evals/README.md`). YOLP was ruled out: it needs a Yahoo! JAPAN ID, and its terms forbid storing results. Amap was not tested.
+
+| Source | en correct (of 88) | zh correct (of 125) | Wrong place | Not found | Made-up names matched (of 24) |
+|---|---|---|---|---|---|
+| Nominatim | 77 | 90 | 26 | 20 | 1 |
+| Wikidata | 81 | 82 | 13 | 37 | 0 |
+| Google | 88 | 119 | 6 | 0 | 24 |
+
+"Correct" includes near-misses in the right spot, such as the station next to a park.
+
+- Google placed 207 of 213. Its 6 errors come from vague names: 天守阁 → 伊賀's castle twice, 青山, Lumine, 玻璃工房, and 八坂神社 in a Kanto + Kansai box.
+- In every source a wrong place looks like a normal match.
+- Google answers every made-up name with a real place nearby ("Asakusa Dragon Pagoda Park" → 浅草寺). Comparing the query with the result's name, with Google asked in the stop's own language, did not separate them: a similarity cut of 0.5 keeps 180 of 213 real stops and flags 20 of 24 made-up ones; 0.7 keeps 173 and flags all 24.
+- Wikidata never matched a made-up name, but misses 37 real stops, mostly simplified-Chinese names (小樽运河, 花见小路, 黑门市场).
+- A stop neither Wikidata nor Nominatim finds: 23 of 24 made-up names and 10 of 213 real stops (e.g. 白色恋人公园, 新宿站东口). Claude wrote the made-up names; the model's own inventions may be harder to catch.
+- Multi-city trips searched a Kanto + Kansai box, which caused several wrong places (上野 → 上野市 in Mie, 东京站 → a freight terminal); hence the per-hotel box.
+- Vague names caused most wrong places in every source. Asking drafts for full names (大阪城天守阁, not 天守阁) is a separate prompt change, not done.
+- Google is not repeatable. In five more runs the same day, 4 to 9 of 237 stops each time returned a place that had no label yet. Most were the same place under another ID (銀座, 法華堂 for 三月堂). Some fixed earlier errors (Lumine → ルミネエスト新宿, 青山). Some found nothing for a well-known stop (关西机场, 大阪城公园, 二月堂). So the grader fixes each stop's place ID on first lookup and retries a search that finds nothing before counting the stop as unplaced. A rerun of Nominatim and Wikidata changed 1 and 2 stops.
 
 ## P4. LLM judge + human calibration
 1. **Judge model**: different from the model under test and stronger. Configured in `evals/configs/judge.yaml`, temperature 0.
@@ -365,7 +395,7 @@ Acceptance: at least 3 criteria at ≥ 80% agreement; pairwise comparison picks 
 ## 4. Decisions for you
 1. **Self-hosted Langfuse or Cloud.** Self-hosted is the default; Cloud means itineraries and user text are stored by a third party.
 2. **Judge model**: which one, different from DeepSeek.
-3. **Geocoding service** (P3): Amap, Google or Nominatim, depending on coverage of Japanese place names and whether a key is needed.
+3. **Geocoding service** (P3): decided 2026-10-30. Google Places for coordinates; Wikidata and Nominatim to check that a stop exists (see P3's accuracy check).
 4. Whether to do P5, and the sampling rate.
 
 ## 5. Risks

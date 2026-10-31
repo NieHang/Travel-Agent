@@ -26,6 +26,7 @@
     "eval:sync": "bun run evals/sync.ts",
     "eval:compare": "bun run evals/compare.ts",
     "eval:noise": "bun run evals/noise.ts",
+    "eval:geocode-check": "bun run evals/geocode-check.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
