@@ -110,14 +110,15 @@ export async function* streamToolLoop(
         );
         continue;
       }
-      const result = toResult(callId, call.name, call.args, output);
+      // show_results items cite a short id, not the provider's: models mis-copy long random ids
+      // (call_01_t8cufVY… came back with a lowercase v and grounding dropped every hotel).
+      const result = toResult(`t${results.length + 1}`, call.name, call.args, output);
       results.push(result);
       yield { type: 'tool_results', results: [...results] };
       conversation.push(
         new ToolMessage({
           tool_call_id: callId,
-          // show_results items cite callId as `source`; the model cannot see tool_call_id otherwise.
-          content: JSON.stringify({ callId, content: result.content, isError: result.isError }),
+          content: JSON.stringify({ source: result.callId, content: result.content, isError: result.isError }),
         }),
       );
     }

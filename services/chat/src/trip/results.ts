@@ -8,7 +8,7 @@ import {
 } from '@autix/contracts';
 
 export interface ToolResult {
-  /** tool_call_id of the call; show_results items cite it as `source`. */
+  /** Short per-turn id (t1, t2…), not the provider's tool_call_id; show_results items cite it as `source`. */
   callId: string;
   tool: string;
   args: Record<string, unknown>;
@@ -28,7 +28,7 @@ export const SHOW_RESULTS = 'show_results';
 export const MAX_AMENITIES = 8;
 
 const ResultItemInputSchema = z.object({
-  source: z.string().describe('callId of the tool result that contains this item, copied exactly'),
+  source: z.string().describe('source of the tool result that contains this item, e.g. "t1"'),
   id: z.string().nullable().describe('provider ID, e.g. hotelId, copied exactly'),
   title: LocalizedTextSchema,
   address: LocalizedTextSchema.nullable(),
@@ -57,7 +57,7 @@ export const SHOW_RESULTS_RULES = `Show items from tool results as cards.
   facilities, tags that name a facility), one entry each, preferring those that matter for the user's
   request (e.g. family facilities for a family trip). Do not add amenities the result does not list.
 - Comparisons and opinions go only in summary.
-- source is the callId of the tool result that contains the item, copied exactly (not the tool name).`;
+- source is the \`source\` of the tool result that contains the item, e.g. "t1" (not the tool name).`;
 
 const normalize = (value: string) => value.replace(/\s+/g, ' ').trim();
 
