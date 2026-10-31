@@ -7,14 +7,17 @@ const textChunks = (...parts: string[]) => parts.map((content) => new AIMessageC
 const callChunk = (id: string, name: string, args: unknown, raw = JSON.stringify(args)) =>
   new AIMessageChunk({ content: '', tool_call_chunks: [{ id, name, args: raw, index: 0, type: 'tool_call_chunk' }] });
 
-/** Each invocation streams the next scripted round and records the conversation it saw. */
-function scripted(rounds: AIMessageChunk[][]): StreamingModel & { seen: BaseMessage[][] } {
+/** Each invocation streams the next scripted round and records the conversation and options it saw. */
+function scripted(rounds: AIMessageChunk[][]): StreamingModel & { seen: BaseMessage[][]; toolChoices: (string | undefined)[] } {
   const seen: BaseMessage[][] = [];
+  const toolChoices: (string | undefined)[] = [];
   let i = 0;
   return {
     seen,
-    async stream(messages) {
+    toolChoices,
+    async stream(messages, options) {
       seen.push([...messages]);
+      toolChoices.push(options.tool_choice);
       const round = rounds[Math.min(i++, rounds.length - 1)];
       return (async function* () {
         yield* round;
@@ -134,10 +137,29 @@ describe('streamToolLoop', () => {
     expect(events.at(-1)).toEqual({ type: 'text', delta: 'ok' });
   });
 
-  it('stops after MAX_TOOL_ROUNDS', async () => {
+  it('writes the reply in a text-only round once every tool round is used', async () => {
+    // A live zh Tokyo→Osaka→Kyoto→Nara draft spent all rounds like this and ended without any text.
+    const model = scripted([
+      [callChunk('k1', 'load_skill', { names: ['japan-tokyo', 'japan-osaka', 'japan-kyoto', 'japan-nara'] })],
+      [callChunk('c1', 'searchHotels', { city: '东京' })],
+      [callChunk('c2', 'searchHotels', { city: '大阪' })],
+      [callChunk('c3', 'searchHotels', { city: '京都' })],
+      [callChunk('c4', 'searchHotels', { city: '奈良' })],
+      textChunks('## 第1天'),
+    ]);
+    const events = await collectUnrecorded(model, 'NOTES');
+    expect(model.toolChoices).toEqual([undefined, undefined, undefined, undefined, undefined, 'none']);
+    expect(model.seen[MAX_TOOL_ROUNDS].at(-1)).toBeInstanceOf(HumanMessage);
+    expect(model.seen[MAX_TOOL_ROUNDS].at(-1)?.text).toContain('No more tool calls');
+    expect(events.filter((e) => e.type === 'tool_call')).toHaveLength(MAX_TOOL_ROUNDS);
+    expect(events.at(-1)).toEqual({ type: 'text', delta: '## 第1天' });
+  });
+
+  it('does not run tool calls from the text-only round', async () => {
     const model = scripted([[callChunk('c1', 'searchHotels', { city: 'x' })]]);
-    await collect(model);
-    expect(model.seen).toHaveLength(MAX_TOOL_ROUNDS);
+    const events = await collect(model);
+    expect(model.seen).toHaveLength(MAX_TOOL_ROUNDS + 1);
+    expect(events.filter((e) => e.type === 'tool_call')).toHaveLength(MAX_TOOL_ROUNDS);
   });
 
   it('stops when aborted', async () => {

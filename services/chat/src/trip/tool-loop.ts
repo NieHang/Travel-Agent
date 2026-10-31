@@ -21,8 +21,14 @@ export type LoopEvent =
   | { type: 'text'; delta: string };
 
 export interface StreamingModel {
-  stream(messages: BaseMessage[], options: { signal: AbortSignal }): Promise<AsyncIterable<AIMessageChunk>>;
+  stream(
+    messages: BaseMessage[],
+    options: { signal: AbortSignal; tool_choice?: 'none' },
+  ): Promise<AsyncIterable<AIMessageChunk>>;
 }
+
+const FINAL_ROUND_NOTE =
+  '[Server note, not from the user] No more tool calls are available in this turn. Write the reply now from the tool results above.';
 
 /** Bound next to the MCP tools; the loop handles it itself and never invokes this function. */
 export const showResultsTool = tool(async () => 'shown', {
@@ -49,6 +55,8 @@ function toResult(callId: string, name: string, args: Record<string, unknown>, o
 /**
  * One tool-calling conversation: each round is streamed; a round with tool calls runs them and
  * continues, a round with only text is the answer. Text is yielded as it arrives.
+ * When `maxRounds` tool rounds are used up, one more round runs with tools disabled, so the turn
+ * still ends with a reply (a multi-city draft can spend every round on skills and searches).
  * Tools named in `unrecorded` (e.g. load_skill) reach the model as raw text and are not reported as results.
  */
 export async function* streamToolLoop(
@@ -62,10 +70,12 @@ export async function* streamToolLoop(
   const byName = new Map(tools.map((t) => [t.name, t]));
   const conversation = [...messages];
   const results: ToolResult[] = [];
-  for (let round = 0; round < maxRounds; round++) {
+  for (let round = 0; round <= maxRounds; round++) {
     signal.throwIfAborted();
+    const final = round === maxRounds;
+    if (final) conversation.push(new HumanMessage(FINAL_ROUND_NOTE));
     let reply: AIMessageChunk | undefined;
-    for await (const chunk of await model.stream(conversation, { signal })) {
+    for await (const chunk of await model.stream(conversation, final ? { signal, tool_choice: 'none' } : { signal })) {
       signal.throwIfAborted();
       reply = reply ? reply.concat(chunk) : chunk;
       if (typeof chunk.content === 'string' && chunk.content) yield { type: 'text', delta: chunk.content };
@@ -73,7 +83,7 @@ export async function* streamToolLoop(
     const calls = reply?.tool_calls ?? [];
     // Calls whose arguments are not valid JSON (DeepSeek truncates long show_results payloads now and then).
     const invalid = reply?.invalid_tool_calls ?? [];
-    if (!reply || (!calls.length && !invalid.length)) return;
+    if (final || !reply || (!calls.length && !invalid.length)) return;
     // Only valid calls are sent back to the API, so invalid ones get no ToolMessage (it would be orphaned).
     if (calls.length) conversation.push(reply);
     for (const call of calls) {
