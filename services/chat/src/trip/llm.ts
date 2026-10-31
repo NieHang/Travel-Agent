@@ -183,14 +183,14 @@ export class ModelTripLlm implements TripLlm {
   async classify(input: { text: string; state: TripState; history: BaseMessage[] }, signal: AbortSignal) {
     const output = await createChatModel({ operation: 'trip.classify', callbacks: this.options.callbacks })
       .withStructuredOutput(ClassifyOutputSchema, { name: 'classify', method: 'functionCalling', strict: true })
-      .invoke([new SystemMessage(`${CLASSIFY_PROMPT}\nToday is ${this.today()}.`), ...input.history, context(input.state), new HumanMessage(input.text)], { signal });
+      .invoke([new SystemMessage(`${CLASSIFY_PROMPT}\nToday is ${this.today()}.`), ...input.history, context(input.state), new HumanMessage(input.text)], { signal, runName: 'trip.classify' });
     return ClassifyOutputSchema.parse(output);
   }
 
   async locate(destination: string, signal: AbortSignal): Promise<Place> {
     const output = await createChatModel({ operation: 'trip.locate', callbacks: this.options.callbacks })
       .withStructuredOutput(PlaceSchema, { name: 'locate', method: 'functionCalling', strict: true })
-      .invoke([new SystemMessage(LOCATE_PROMPT), new HumanMessage(destination)], { signal });
+      .invoke([new SystemMessage(LOCATE_PROMPT), new HumanMessage(destination)], { signal, runName: 'trip.locate' });
     const place = PlaceSchema.parse(output);
     return { japan: place.japan?.trim() || null, outside: place.outside.map((name) => name.trim()).filter(Boolean) };
   }
@@ -212,6 +212,7 @@ export class ModelTripLlm implements TripLlm {
       signal,
       MAX_TOOL_ROUNDS,
       new Set([LOAD_SKILL]),
+      this.options.callbacks,
     );
   }
 
@@ -223,7 +224,7 @@ export class ModelTripLlm implements TripLlm {
           new SystemMessage(extractDaysPrompt(locale, stays)),
           new HumanMessage(draft),
         ],
-        { signal },
+        { signal, runName: 'trip.extract_days' },
       );
     return DaysSchema.parse(output).days;
   }

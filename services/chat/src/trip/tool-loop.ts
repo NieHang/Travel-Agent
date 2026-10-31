@@ -1,5 +1,6 @@
 import { HumanMessage, ToolMessage, type AIMessageChunk, type BaseMessage } from '@langchain/core/messages';
 import { tool, type StructuredToolInterface } from '@langchain/core/tools';
+import type { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import { compactToolContent } from '../llm/mcp/compact.js';
 import {
   SHOW_RESULTS,
@@ -23,19 +24,22 @@ export type LoopEvent =
 export interface StreamingModel {
   stream(
     messages: BaseMessage[],
-    options: { signal: AbortSignal; tool_choice?: 'none' },
+    options: { signal: AbortSignal; tool_choice?: 'none'; runName?: string },
   ): Promise<AsyncIterable<AIMessageChunk>>;
 }
 
 const FINAL_ROUND_NOTE =
   '[Server note, not from the user] No more tool calls are available in this turn. Write the reply now from the tool results above.';
 
-/** Bound next to the MCP tools; the loop handles it itself and never invokes this function. */
-export const showResultsTool = tool(async () => 'shown', {
-  name: SHOW_RESULTS,
-  description: SHOW_RESULTS_RULES,
-  schema: ShowResultsInputSchema,
-});
+/** The model sees the same schema as the traced tool that emits the grounding event. */
+export const showResultsTool = createShowResultsTool();
+
+function createShowResultsTool(onShow?: (input: ShowResultsInput) => void) {
+  return tool(async (input) => {
+    onShow?.(input);
+    return 'shown';
+  }, { name: SHOW_RESULTS, description: SHOW_RESULTS_RULES, schema: ShowResultsInputSchema });
+}
 
 function toResult(callId: string, name: string, args: Record<string, unknown>, output: unknown): ToolResult {
   const raw =
@@ -66,16 +70,19 @@ export async function* streamToolLoop(
   signal: AbortSignal,
   maxRounds = MAX_TOOL_ROUNDS,
   unrecorded: ReadonlySet<string> = new Set(),
+  callbacks: BaseCallbackHandler[] = [],
 ): AsyncGenerator<LoopEvent> {
   const byName = new Map(tools.map((t) => [t.name, t]));
   const conversation = [...messages];
   const results: ToolResult[] = [];
+  const shown: LoopEvent[] = [];
+  const showTool = createShowResultsTool((input) => shown.push({ type: 'show_results', input, results: [...results] }));
   for (let round = 0; round <= maxRounds; round++) {
     signal.throwIfAborted();
     const final = round === maxRounds;
     if (final) conversation.push(new HumanMessage(FINAL_ROUND_NOTE));
     let reply: AIMessageChunk | undefined;
-    for await (const chunk of await model.stream(conversation, final ? { signal, tool_choice: 'none' } : { signal })) {
+    for await (const chunk of await model.stream(conversation, { signal, runName: 'trip.respond', ...final ? { tool_choice: 'none' as const } : {} })) {
       signal.throwIfAborted();
       reply = reply ? reply.concat(chunk) : chunk;
       if (typeof chunk.content === 'string' && chunk.content) yield { type: 'text', delta: chunk.content };
@@ -89,24 +96,27 @@ export async function* streamToolLoop(
     for (const call of calls) {
       const callId = call.id ?? `${call.name}-${round}`;
       if (call.name === SHOW_RESULTS) {
-        const parsed = ShowResultsInputSchema.safeParse(call.args);
-        if (parsed.success) yield { type: 'show_results', input: parsed.data, results: [...results] };
+        const response = await showTool.invoke({ type: 'tool_call', id: callId, name: SHOW_RESULTS, args: call.args }, { signal, callbacks, runName: SHOW_RESULTS }).catch((error: unknown) => {
+          if (signal.aborted) throw error;
+          return `Invalid show_results arguments: ${error instanceof Error ? error.message : String(error)}`;
+        });
+        yield* shown.splice(0);
         conversation.push(
           new ToolMessage({
             tool_call_id: callId,
-            content: parsed.success
-              ? 'shown'
-              : `Invalid show_results arguments: ${parsed.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`,
+            content: typeof response === 'string' ? response : response.content,
           }),
         );
         continue;
       }
       yield { type: 'tool_call', name: call.name, args: call.args };
       const found = byName.get(call.name);
+      const registered = found && 'callbacks' in found ? found.callbacks : undefined;
+      const callCallbacks = Array.isArray(registered) ? callbacks.filter((handler) => !registered.includes(handler)) : callbacks;
       let output: unknown;
       try {
         output = found
-          ? await found.invoke(call.args, { signal })
+          ? await found.invoke(call.args, { signal, callbacks: callCallbacks, runName: call.name })
           : { content: `Unknown tool ${call.name}`, isError: true };
       } catch (error) {
         if (signal.aborted) throw error;

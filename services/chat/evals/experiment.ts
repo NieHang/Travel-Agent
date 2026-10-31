@@ -4,16 +4,18 @@ import type { TripLlm } from '../src/trip/llm.js';
 import { initialState } from '../src/trip/state.js';
 import { gradeClassify } from './evaluators/classify.js';
 import { gradeExtractDays } from './evaluators/extract-days.js';
+import { failedItineraryScores, gradeItinerary } from './evaluators/itinerary.js';
+import { turn, type TurnOutput } from './turn.js';
 import type { Entry, RunResult, Score, Suite } from './schemas.js';
 
 export type ItemResult = RunResult['items'][number];
 
-export async function executeItem(item: Entry, llm: TripLlm): Promise<ItemResult> {
+export async function executeItem(item: Entry, llm: TripLlm, geography?: (out: TurnOutput) => Promise<Score[]>): Promise<ItemResult> {
   const totals = createLlmTotals();
   return runWithTrace(newTraceId(), async () => {
     const started = performance.now();
     const signal = AbortSignal.timeout(180_000);
-    const result = await runItem(item, llm, signal).catch((error: unknown): ItemResult => {
+    const result = await runItem(item, llm, signal, geography).catch((error: unknown): ItemResult => {
       if (signal.aborted) throw error;
       return { id: item.id, category: item.category, output: null, error: error instanceof Error ? error.message : String(error), scores: failedScores(item) };
     });
@@ -29,8 +31,14 @@ export async function executeItem(item: Entry, llm: TripLlm): Promise<ItemResult
   }, totals);
 }
 
-async function runItem(item: Entry, llm: TripLlm, signal: AbortSignal): Promise<ItemResult> {
-  if ('text' in item) {
+async function runItem(item: Entry, llm: TripLlm, signal: AbortSignal, geography?: (out: TurnOutput) => Promise<Score[]>): Promise<ItemResult> {
+  if ('must' in item) {
+    const history = item.history.map((message) => message.role === 'user' ? new HumanMessage(message.text) : new AIMessage(message.text));
+    const output = await turn(llm, initialState(0, item.locale), item.text, { history, signal });
+    if (!geography) throw new Error('L3 requires a geography grader with an approved Google request budget');
+    return { id: item.id, category: item.category, output, scores: [...gradeItinerary(item, output), ...await geography(output)] };
+  }
+  if ('state' in item) {
     const state = { ...initialState(0, item.locale), ...item.state };
     const history = item.history.map((message) => message.role === 'user' ? new HumanMessage(message.text) : new AIMessage(message.text));
     const output = await llm.classify({ text: item.text, state, history }, signal);
@@ -47,7 +55,8 @@ async function runItem(item: Entry, llm: TripLlm, signal: AbortSignal): Promise<
 // A failed task scores zero on every accuracy metric, so it still counts against the run. Rate metrics
 // (patch_hallucination, leg_as_stop) have no meaningful value without an output and are left out.
 function failedScores(item: Entry): Score[] {
-  if ('text' in item)
+  if ('must' in item) return failedItineraryScores(item);
+  if ('state' in item)
     return [
       { name: 'intent_acc', value: 0 },
       { name: 'patch_exact', value: 0 },

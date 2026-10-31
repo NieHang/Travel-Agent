@@ -2,15 +2,16 @@ import { AIMessage, AIMessageChunk, HumanMessage, type BaseMessage } from '@lang
 import type { Classified } from './commands.js';
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 
-const model = vi.hoisted(() => ({ seen: [] as BaseMessage[][], bound: [] as string[], classify: vi.fn() }));
+const model = vi.hoisted(() => ({ seen: [] as BaseMessage[][], streamOptions: [] as { runName?: string }[], bound: [] as string[], classify: vi.fn() }));
 vi.mock('../llm/model.factory.js', () => ({
   createChatModel: vi.fn(() => ({
     withStructuredOutput: () => ({ invoke: model.classify }),
     bindTools: (tools: { name: string }[]) => {
       model.bound = tools.map((t) => t.name);
       return {
-      async stream(messages: BaseMessage[]) {
+      async stream(messages: BaseMessage[], options: { runName?: string }) {
         model.seen.push([...messages]);
+        model.streamOptions.push(options);
         return (async function* () {
           yield new AIMessageChunk({ content: 'ok' });
         })();
@@ -45,6 +46,7 @@ const chatted: Classified = {
 describe('ModelTripLlm', () => {
   beforeEach(() => {
     model.seen = [];
+    model.streamOptions = [];
     model.classify.mockReset().mockResolvedValue(chatted);
   });
 
@@ -58,7 +60,7 @@ describe('ModelTripLlm', () => {
     expect(await new ModelTripLlm().locate('Seoul then Fukuoka', abort)).toEqual(expected);
     const [sent, options] = model.classify.mock.calls[0] as [BaseMessage[], { signal: AbortSignal }];
     expect(sent.map((message) => message.text)).toEqual([LOCATE_PROMPT, 'Seoul then Fukuoka']);
-    expect(options).toEqual({ signal: abort });
+    expect(options).toEqual({ signal: abort, runName: 'trip.locate' });
     expect(createChatModel).toHaveBeenCalledWith({ operation: 'trip.locate', callbacks: undefined });
   });
 
@@ -87,6 +89,20 @@ describe('ModelTripLlm', () => {
       [{ operation: 'trip.respond', callbacks }],
       [{ operation: 'trip.extract_days', callbacks }],
     ]);
+  });
+
+  it('names each generation for the Langfuse trace', async () => {
+    const llm = new ModelTripLlm();
+    await llm.classify({ text: 'next', state: initialState(), history: [] }, signal());
+    expect(model.classify.mock.calls.at(-1)?.[1]).toMatchObject({ runName: 'trip.classify' });
+    model.classify.mockResolvedValue({ japan: 'Kyoto', outside: [] });
+    await llm.locate('Kyoto', signal());
+    expect(model.classify.mock.calls.at(-1)?.[1]).toMatchObject({ runName: 'trip.locate' });
+    await respond(llm, 'answer');
+    expect(model.streamOptions.at(-1)).toMatchObject({ runName: 'trip.respond' });
+    model.classify.mockResolvedValue({ days: [] });
+    await llm.extractDays('Day 1', null, 'en', signal());
+    expect(model.classify.mock.calls.at(-1)?.[1]).toMatchObject({ runName: 'trip.extract_days' });
   });
 
   it('answers with every message of the context, not only the last 20', async () => {

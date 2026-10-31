@@ -15,6 +15,7 @@ export async function readRuns(folder: string, prefix: string): Promise<RunResul
 }
 
 export function compareRuns(base: RunResult[], candidate: RunResult[], gates: Gates) {
+  requireGeography([...base, ...candidate]);
   const suite = base[0].suite;
   if ([...base, ...candidate].some((run) => run.suite !== suite)) throw new Error('Cannot compare different suites');
   const baseline = averageItems(base);
@@ -28,7 +29,7 @@ export function compareRuns(base: RunResult[], candidate: RunResult[], gates: Ga
     ).map((row) => ({ category, ...row })),
   );
   // clarify_match too: a request for suggestions that stops asking keeps patch_exact at 1.
-  const regressionMetrics = suite === 'classify' ? ['patch_exact', 'clarify_match'] : ['stop_f1'];
+  const regressionMetrics = suite === 'classify' ? ['patch_exact', 'clarify_match'] : suite === 'itinerary' ? ['live_checks_pass', 'every_night_linked', 'tool_args_ok'] : ['stop_f1'];
   const regressed = [...baseline].filter(([id, item]) => {
     const after = next.get(id)!;
     const dropped = regressionMetrics.some((metric) => {
@@ -62,6 +63,8 @@ export function compareRuns(base: RunResult[], candidate: RunResult[], gates: Ga
  * up to 0.01 and at least 0.02. Run-level scores use the spread of their per-trial values.
  */
 export function noiseGates(a: RunResult[], b: RunResult[]) {
+  requireGeography([...a, ...b]);
+  if ([...a, ...b].some((run) => run.suite === 'itinerary' && run.items.some((item) => item.scores.some((s) => s.name === 'task_error' && s.value > 0)))) throw new Error('Cannot calibrate noise from failed L3 tasks; rerun after resolving provider/task errors');
   const trials = 1 / a.length + 1 / b.length;
   const itemValues = new Map<string, Map<string, number[]>>();
   for (const run of [...a, ...b]) for (const item of run.items) for (const score of item.scores) {
@@ -77,6 +80,10 @@ export function noiseGates(a: RunResult[], b: RunResult[]) {
     metric, sd: Math.sqrt(variance([...a, ...b].flatMap((run) => run.scores.filter((score) => score.name === metric).map((score) => score.value))) * trials),
   }));
   return [...itemNoise, ...runNoise].map(({ metric, sd }) => ({ metric, sd, gate: Math.max(0.02, Math.ceil(3 * sd * 100) / 100) }));
+}
+
+function requireGeography(runs: RunResult[]): void {
+  if (runs.some((run) => run.items.some((item) => item.scores.some((score) => score.name === 'geography_pending' && score.value > 0)))) throw new Error('Geography is pending; approve and attach geocoder scores before compare or noise');
 }
 
 function variance(values: number[]): number {

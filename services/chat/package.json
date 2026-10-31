@@ -27,6 +27,8 @@
     "eval:compare": "bun run evals/compare.ts",
     "eval:noise": "bun run evals/noise.ts",
     "eval:geocode-check": "bun run evals/geocode-check.ts",
+    "eval:record-itinerary": "bun run evals/record-itinerary.ts",
+    "eval:geography": "bun run evals/score-geography.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",

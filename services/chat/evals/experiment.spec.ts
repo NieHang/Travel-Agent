@@ -2,6 +2,8 @@ import { FakeTripLlm } from '../src/trip/fake-llm.js';
 import { getLlmTotals } from '../src/observability/trace-context.js';
 import { executeItem, runName } from './experiment.js';
 import type { ClassifyEntry, ExtractDaysEntry } from './schemas.js';
+import { ItineraryEntrySchema } from './schemas.js';
+import { gradeLiveAssertions } from './evaluators/itinerary.js';
 
 const entry: ClassifyEntry = {
   id: 'cls-zh-partial-01', category: 'partial', locale: 'zh', today: '2026-10-30',
@@ -65,4 +67,13 @@ it('summarizes fake extraction as stop names and stays', async () => {
 it('names clean and dirty tagged trials', () => {
   expect(runName('classify', 'abc1234', false, undefined, 1)).toBe('classify@abc1234#1');
   expect(runName('extract-days', 'abc1234', true, 'test', 3)).toBe('extract-days@abc1234-dirty-test#3');
+});
+
+it('keeps failed L3 assertions in the live accuracy denominator', async () => {
+  const llm = new FakeTripLlm();
+  vi.spyOn(llm, 'classify').mockRejectedValue(new Error('classifier failed'));
+  const item = ItineraryEntrySchema.parse({ id: 'l3-en-family', today: '2026-10-30', locale: 'en', text: 'Family Osaka trip', history: [], expected: { effect: 'itinerary', nights: 2 }, must: ['Family pacing'] });
+  const failed = await executeItem(item, llm);
+  expect(failed.scores).toContainEqual({ name: 'live_assertion_count', value: 5 });
+  expect(gradeLiveAssertions([...failed.scores, { name: 'live_assertion_count', value: 5 }, { name: 'live_assertion_passed', value: 5 }])).toEqual([{ name: 'live_assertion_accuracy', value: 0.5 }]);
 });

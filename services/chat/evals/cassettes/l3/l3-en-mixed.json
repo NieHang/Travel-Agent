@@ -1,0 +1,196 @@
+{
+  "tools": [
+    {
+      "name": "mcp_rollingGo_getHotelDetail",
+      "description": "查询单个酒店实时房型与价格明细（房型、价税、可售状态、退改规则等）。用于用户已选定具体酒店后的二次查价",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dateParam": {
+            "type": "object",
+            "properties": {
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式 YYYY-MM-DD。建议传合法未来日期"
+              },
+              "checkOutDate": {
+                "type": "string",
+                "description": "离店日期，格式 YYYY-MM-DD，必须晚于 checkInDate"
+              }
+            },
+            "description": "入离店日期对象"
+          },
+          "filter": {
+            "type": "object",
+            "properties": {
+              "cancelPolicy": {
+                "type": "string",
+                "enum": [
+                  "CANCELABLE",
+                  "NON_CANCELABLE"
+                ],
+                "description": "取消政策筛选。CANCELABLE：仅可免费取消房型；NON_CANCELABLE：仅不可取消房型。非法值忽略。"
+              },
+              "mealType": {
+                "type": "string",
+                "enum": [
+                  "WITH_BREAKFAST",
+                  "SINGLE_BREAKFAST",
+                  "DOUBLE_BREAKFAST",
+                  "NO_MEAL"
+                ],
+                "description": "餐食类别枚举。WITH_BREAKFAST（含早餐，mealAmount>0）/ SINGLE_BREAKFAST（单份早餐，mealAmount=1）/ DOUBLE_BREAKFAST（双份早餐，mealAmount=2）/ NO_MEAL（不含餐食，mealAmount=0）。非法值忽略。"
+              }
+            },
+            "description": "房型筛选条件对象。未传或为空时返回全部房型；多条件 AND 组合。"
+          },
+          "hotelId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "酒店唯一ID。与 name 二选一；若同时传入，优先使用 hotelId（从searchHotels工具获取）"
+          },
+          "name": {
+            "type": "string",
+            "description": "酒店名称（模糊匹配）。仅在没有 hotelId 时使用"
+          },
+          "occupancyParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房成人数，整数，>=1，默认2"
+              },
+              "childAgeDetails": {
+                "description": "儿童年龄数组，如 [3,5]；长度应与 childCount 一致",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "childCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房儿童数，整数，>=0，默认0"
+              },
+              "roomCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "房间数，整数，>=1，默认1"
+              }
+            },
+            "description": "入住人数与房间数量对象"
+          }
+        }
+      }
+    },
+    {
+      "name": "mcp_rollingGo_getHotelSearchTags",
+      "description": "获取酒店搜索元数据（AI Cache），包含可用的标签列表（以当前启用数据为准）。",
+      "schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "mcp_rollingGo_searchHotels",
+      "description": "该工具用于查询全球酒店。根据地点及结构化筛选条件（日期、入住晚数、人数、星级、距离、标签、品牌、预算）返回符合条件的酒店候选列表与最低价格，用于酒店初筛与比选。",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "checkInParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房入住的成人数量，默认两成人"
+              },
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式：YYYY-MM-DD，例如：2026-02-01。可不传；未传或早于今天时，自动使用明天；格式错误会返回参数错误"
+              },
+              "stayNights": {
+                "type": "integer",
+                "format": "int32",
+                "description": "入住天数（晚数），可不传，默认 1 晚。最多 28 晚，超出限制将返回参数错误。"
+              }
+            },
+            "description": "入住信息参数，包括入住日期、入住天数和每间房成人数量"
+          },
+          "filterOptions": {
+            "type": "object",
+            "properties": {
+              "distanceInMeter": {
+                "type": "integer",
+                "format": "int32",
+                "description": "直线距离，单位（米），当地点是一个POI位置时生效，生效时默认设定值为2000"
+              },
+              "starRatings": {
+                "description": "酒店星级(0.0-5.0, 梯度为0.5)，默认[0.0, 5.0]以上，例如 [4.5, 5.0]，[0.0, 2.0]",
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                }
+              }
+            },
+            "description": "酒店筛选选项，例如酒店星级、每间房成人数、距离等"
+          },
+          "hotelTags": {
+            "type": "object",
+            "properties": {
+              "maxPricePerNight": {
+                "type": "number",
+                "format": "double",
+                "description": "每晚价格上限（人民币，数值）"
+              },
+              "preferredBrands": {
+                "description": "偏好品牌",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requiredTags": {
+                "description": "必须命中标签（硬约束，未命中应被过滤）",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "酒店筛选标签参数（可选）。当传入此参数时，将直接使用这些标签进行筛选和排序，无需服务端额外解析。包含字段：requiredTags（必须标签）、preferredBrands（偏好品牌）、maxPricePerNight（每晚最高预算）"
+          },
+          "nextPageToken": {
+            "type": "string",
+            "description": "分页游标。仅当获取下一页(换一批)时,原样回传上一页返回的 nextPageToken;首页查询不传。传入有效 Token 时,核心检索条件以 Token 内快照为准。"
+          },
+          "originQuery": {
+            "type": "string",
+            "description": "综合多轮对话，归纳用户的完整住宿/预订意图。"
+          },
+          "place": {
+            "type": "string",
+            "description": "搜索地点关键词/酒店名称。具体酒店直接填入酒店名称；位置或区县需用空格补齐城市，填入 位置 城市；仅查询城市需补齐国家，填入 城市 国家。"
+          },
+          "placeType": {
+            "type": "string",
+            "description": "place 的类型，必须与 place 的实际内容一致。可选值：城市、机场、景点、火车站、地铁站、酒店、区/县、详细地址。"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "返回酒店结果数量，默认5个酒店，最大不超过10个"
+          }
+        },
+        "required": [
+          "originQuery",
+          "place",
+          "placeType"
+        ]
+      }
+    }
+  ],
+  "calls": []
+}

@@ -22,6 +22,7 @@ vi.mock('../src/trip/llm.js', async (original) => {
 
 import { run } from './runner.js';
 import { ResultSchema } from './schemas.js';
+import { FakeTripLlm } from '../src/trip/fake-llm.js';
 
 it('runs trials through dataset.runExperiment, persists validated fake output and excludes archived items', async () => {
   const active = { status: 'ACTIVE', input: {
@@ -38,7 +39,7 @@ it('runs trials through dataset.runExperiment, persists validated fake output an
     const itemResults = await Promise.all(items.map(async (item) => {
       const output = await params.task(item);
       const evaluations = (await Promise.all(params.evaluators.map((evaluate) => evaluate({ input: item.input })))).flat();
-      return { input: item.input, output, evaluations };
+      return { item: { input: item.input }, output, evaluations, traceId: '0123456789abcdef0123456789abcdef' };
     }));
     return { itemResults, runEvaluations: (await Promise.all(params.runEvaluators.map((evaluate) => evaluate()))).flat(), experimentUrl: 'http://localhost/experiment/one' };
   });
@@ -56,6 +57,7 @@ it('runs trials through dataset.runExperiment, persists validated fake output an
     const result = ResultSchema.parse(JSON.parse(content));
     expect(result.items).toHaveLength(1);
     expect(result.items[0].id).toBe('cls-zh-partial-01');
+    expect(result.items[0].traceId).toBe('0123456789abcdef0123456789abcdef');
     expect(result.items[0].scores).toContainEqual({ name: 'patch_exact', value: 1 });
     expect(result.scores).toEqual([{ name: 'clarify_recall', value: 1 }, { name: 'clarify_precision', value: 1 }]);
     expect(result.metadata).toMatchObject({ config: 'config/langchain.yaml', today: ['2026-10-30'], promptHash: expect.stringMatching(/^[0-9a-f]{8}$/) });
@@ -64,4 +66,27 @@ it('runs trials through dataset.runExperiment, persists validated fake output an
   } finally {
     log.mockRestore(); table.mockRestore();
   }
+});
+
+it('stops issuing model requests and refuses a baseline after insufficient balance', async () => {
+  vi.clearAllMocks();
+  const classify = vi.spyOn(FakeTripLlm.prototype, 'classify').mockRejectedValue(new Error('402 Insufficient Balance'));
+  const items = ['one', 'two'].map((id) => ({ status: 'ACTIVE', input: { id, category: 'partial', today: '2026-10-30', locale: 'en', text: 'Hello', state: { stage: 'idle', requirements: {} }, history: [] }, expectedOutput: { intent: 'chat', patch: {}, clarifyField: null } }));
+  const runExperiment = vi.fn(async (params: { task: (item: { input: unknown }) => Promise<unknown>; evaluators: ((item: { input: unknown }) => Promise<Score[]>)[] }) => {
+    const itemResults = [];
+    for (const item of items) {
+      try {
+        const output = await params.task(item);
+        itemResults.push({ item, output, evaluations: await params.evaluators[0](item) });
+      } catch { itemResults.push({ item, output: null, evaluations: [] }); }
+    }
+    return { itemResults };
+  });
+  mocks.get.mockResolvedValue({ items, runExperiment });
+  try {
+    await expect(run(['classify', '--trials', '3'])).rejects.toThrow('insufficient balance');
+    expect(classify).toHaveBeenCalledTimes(1);
+    expect(runExperiment).toHaveBeenCalledTimes(1);
+    expect(mocks.writeFile).not.toHaveBeenCalled();
+  } finally { classify.mockRestore(); }
 });

@@ -19,15 +19,15 @@ export class ReplayMcp implements McpToolSource {
   readonly misses: { tool: string; args: Record<string, unknown> }[] = [];
   readonly mcpManager: { getTools(): DynamicStructuredTool[] };
 
-  constructor(cassette: Cassette, callbacks?: BaseCallbackHandler[]) {
+  constructor(cassette: Cassette, callbacks?: BaseCallbackHandler[], keyArgs: (tool: string, args: Record<string, unknown>) => unknown = (_tool, args) => normalizeArgs(args)) {
     const tools = cassette.tools.map((tool) => new DynamicStructuredTool({
       name: tool.name,
       description: tool.description,
       schema: tool.schema,
       callbacks,
       func: async (args: Record<string, unknown>) => {
-        const key = JSON.stringify(normalizeArgs(args));
-        const match = cassette.calls.find((call) => call.tool === tool.name && JSON.stringify(normalizeArgs(call.args)) === key);
+        const key = JSON.stringify(keyArgs(tool.name, args));
+        const match = cassette.calls.find((call) => call.tool === tool.name && JSON.stringify(keyArgs(call.tool, call.args)) === key);
         if (match) return match.result;
         this.misses.push({ tool: tool.name, args });
         return cassette.calls.find((call) => call.tool === tool.name)?.result

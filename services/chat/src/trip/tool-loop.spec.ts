@@ -1,6 +1,8 @@
 import { AIMessage, AIMessageChunk, HumanMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
+import type { Serialized } from '@langchain/core/load/serializable';
 import { MAX_TOOL_ROUNDS, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
 
 const textChunks = (...parts: string[]) => parts.map((content) => new AIMessageChunk({ content }));
@@ -58,6 +60,32 @@ const validItem = {
 };
 
 describe('streamToolLoop', () => {
+  it('traces skill loading, MCP search and show_results once each through the supplied callbacks', async () => {
+    const started: string[] = [];
+    const finished: unknown[] = [];
+    class TraceHandler extends BaseCallbackHandler {
+      name = 'trip-test';
+      handleToolStart(serialized: Serialized, _input: string, _runId: string, _parentRunId?: string, _tags?: string[], _metadata?: Record<string, unknown>, runName?: string) {
+        started.push(runName ?? serialized.id.at(-1)!);
+      }
+      handleToolEnd(output: unknown) { finished.push(output); }
+    }
+    const model = scripted([
+      [callChunk('k1', 'load_skill', { names: ['japan-tokyo'] })],
+      [callChunk('c1', 'searchHotels', { city: 'Tokyo' })],
+      [callChunk('s1', 'show_results', { panel: 'hotels', items: [validItem] })],
+      textChunks('done'),
+    ]);
+    const events: LoopEvent[] = [];
+    const handler = new TraceHandler();
+    const tracedSearch = tool(async () => '{"hotels":[]}', { name: 'searchHotels', description: 'search', schema: z.object({ city: z.string() }), callbacks: [handler] });
+    for await (const e of streamToolLoop(model, [tracedSearch, rawTool('TOKYO-NOTES')], [new HumanMessage('hi')], new AbortController().signal, MAX_TOOL_ROUNDS, new Set(['load_skill']), [handler])) events.push(e);
+    expect(started).toEqual(['load_skill', 'searchHotels', 'show_results']);
+    expect(finished).toHaveLength(3);
+    expect(events.filter((e) => e.type === 'show_results')).toHaveLength(1);
+    expect(events.at(-1)).toEqual({ type: 'text', delta: 'done' });
+  });
+
   it('asks the model to retry a tool call whose arguments are not valid JSON', async () => {
     const model = scripted([
       [callChunk('c1', 'show_results', null, '{"panel": "hotels", "items": [{"source": "c1"}}, "x"]}')],

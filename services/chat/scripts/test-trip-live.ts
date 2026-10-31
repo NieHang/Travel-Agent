@@ -5,8 +5,7 @@ import { TRAVEL_LEG } from '../evals/travel-leg.js';
 import { McpService } from '../src/llm/mcp/mcp.service.js';
 import { ModelTripLlm } from '../src/trip/llm.js';
 import { loadSkills } from '../src/skills/registry.js';
-import { reduce, uncheckedDestination } from '../src/trip/commands.js';
-import { groundResults, linkStays, mergeStays } from '../src/trip/results.js';
+import { turn as runTurn } from '../evals/turn.js';
 import { initialState, type Locale, type TripState } from '../src/trip/state.js';
 
 const mcp = new McpService();
@@ -18,33 +17,7 @@ const check = (label: string, ok: boolean) => {
   if (!ok) failures++;
 };
 
-async function turn(state: TripState, text: string) {
-  const signal = AbortSignal.timeout(180_000);
-  const classified = await llm.classify({ text, state, history: [] }, signal);
-  const command = { type: 'message', text } as const;
-  const destination = uncheckedDestination(state, command, classified);
-  const place = destination ? { destination, ...(await llm.locate(destination, signal)) } : undefined;
-  const { state: next, effect } = reduce(state, command, classified, place);
-  let draft = '';
-  const loaded: string[] = [];
-  const calls: string[] = [];
-  if (effect)
-    for await (const e of llm.respond(effect, { text, state: next, history: [] }, signal)) {
-      if (e.type === 'text') draft += e.delta;
-      if (e.type === 'tool_call') calls.push(e.name);
-      if (e.type === 'tool_call' && e.name === 'load_skill' && Array.isArray(e.args.names)) loaded.push(...(e.args.names as string[]));
-      if (e.type === 'show_results') {
-        const group = groundResults(e.input, e.results);
-        if (effect === 'itinerary' && group.panel === 'hotels') next.stays = mergeStays(next.stays, group);
-        else if (group.items.length) next.results.push(group);
-      }
-    }
-  if (effect === 'itinerary') {
-    next.itinerary = draft;
-    next.days = linkStays(await llm.extractDays(draft, next.stays, next.locale, signal), next.stays);
-  }
-  return { classified, place, next, effect, draft, loaded, calls };
-}
+const turn = (state: TripState, text: string) => runTurn(llm, state, text);
 
 for (const locale of ['zh', 'en'] as Locale[]) {
   const start = initialState(0, locale);

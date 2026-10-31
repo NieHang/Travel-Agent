@@ -2,9 +2,11 @@ import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import { RequirementsSchema, ResultGroupSchema } from '@autix/contracts';
 import { ClassifiedSchema } from '../src/trip/commands.js';
-import { ClarifySchema, STAGES } from '../src/trip/state.js';
+import { ClarifySchema, STAGES, TripStateSchema } from '../src/trip/state.js';
+import { PlaceSchema } from '../src/trip/commands.js';
+import { ToolResultSchema } from '../src/trip/results.js';
 
-export const SuiteSchema = z.enum(['classify', 'extract-days']);
+export const SuiteSchema = z.enum(['classify', 'extract-days', 'itinerary']);
 export type Suite = z.infer<typeof SuiteSchema>;
 
 const common = {
@@ -39,7 +41,23 @@ export const ExtractDaysEntrySchema = z.object({
   expected: z.object({ days: z.array(z.object({ stops: z.array(z.string()), stayRef: z.string().nullable() }).strict()) }).strict(),
 }).strict();
 export type ExtractDaysEntry = z.infer<typeof ExtractDaysEntrySchema>;
-export type Entry = ClassifyEntry | ExtractDaysEntry;
+export const ItineraryEntrySchema = z.object({
+  id: z.string().min(1), category: z.string().default('itinerary'), today: z.string().date(), locale: z.enum(['zh', 'en']),
+  text: z.string().min(1), history: ClassifyEntrySchema.shape.history,
+  expected: z.object({
+    effect: z.enum(['itinerary', 'answer']).nullable(), nights: z.number().int().nonnegative(),
+    budget: z.object({ amount: z.number().positive(), currency: z.string().length(3) }).strict().optional(),
+  }).strict(), must: z.array(z.string()).min(1),
+}).strict();
+export type ItineraryEntry = z.infer<typeof ItineraryEntrySchema>;
+export type Entry = ClassifyEntry | ExtractDaysEntry | ItineraryEntry;
+
+export const TurnOutputSchema = z.object({
+  classified: ClassifiedSchema, place: PlaceSchema.extend({ destination: z.string() }).optional(),
+  next: TripStateSchema, effect: z.enum(['answer', 'itinerary']).nullable(), draft: z.string(),
+  loaded: z.array(z.string()), calls: z.array(z.string()),
+  toolCalls: z.array(z.object({ name: z.string(), args: z.record(z.unknown()) })), toolResults: z.array(ToolResultSchema),
+});
 
 export const ScoreSchema = z.object({ name: z.string(), value: z.number().finite(), comment: z.string().optional() });
 export type Score = z.infer<typeof ScoreSchema>;
@@ -49,16 +67,17 @@ const result = {
   scores: z.array(ScoreSchema),
 };
 // A failed task (e.g. the model's structured output does not parse) keeps its item with a null output and the error.
-const item = { id: z.string(), category: z.string(), scores: z.array(ScoreSchema), error: z.string().optional() };
+const item = { id: z.string(), category: z.string(), scores: z.array(ScoreSchema), error: z.string().optional(), traceId: z.string().optional() };
 export const ResultSchema = z.discriminatedUnion('suite', [
   z.object({ ...result, suite: z.literal('classify'), items: z.array(z.object({ ...item, output: ClassifiedSchema.nullable() })) }),
   z.object({ ...result, suite: z.literal('extract-days'), items: z.array(z.object({ ...item, output: ExtractDaysEntrySchema.shape.expected.shape.days.nullable() })) }),
+  z.object({ ...result, suite: z.literal('itinerary'), items: z.array(z.object({ ...item, output: TurnOutputSchema.nullable() })) }),
 ]);
 export type RunResult = z.infer<typeof ResultSchema>;
 
 export async function readDataset(suite: Suite): Promise<Entry[]> {
   const raw = await readFile(new URL(`./datasets/${suite}.jsonl`, import.meta.url), 'utf8');
-  const schema = suite === 'classify' ? ClassifyEntrySchema : ExtractDaysEntrySchema;
+  const schema = suite === 'classify' ? ClassifyEntrySchema : suite === 'itinerary' ? ItineraryEntrySchema : ExtractDaysEntrySchema;
   const entries = raw.split(/\r?\n/).filter((line) => line.trim()).map((line) => schema.parse(JSON.parse(line)));
   if (new Set(entries.map((entry) => entry.id)).size !== entries.length) throw new Error(`Duplicate ids in ${suite}`);
   return entries;
