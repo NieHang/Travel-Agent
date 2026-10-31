@@ -2,6 +2,7 @@ import { AIMessage, AIMessageChunk, HumanMessage, ToolMessage, type BaseMessage 
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { MAX_TOOL_ROUNDS, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
+import { groundResults } from './results.js';
 
 const textChunks = (...parts: string[]) => parts.map((content) => new AIMessageChunk({ content }));
 const callChunk = (id: string, name: string, args: unknown, raw = JSON.stringify(args)) =>
@@ -50,7 +51,7 @@ async function collectUnrecorded(model: StreamingModel, output: string) {
 }
 
 const validItem = {
-  source: 'c1', id: null, title: { original: 'Casa Lisboa', translation: null }, address: null, price: null,
+  source: 't1', id: null, title: { original: 'Casa Lisboa', translation: null }, address: null, price: null,
   rating: null, url: null, image: null, details: [], amenities: [], summary: null,
 };
 
@@ -82,7 +83,7 @@ describe('streamToolLoop', () => {
     expect(events[0]).toEqual({ type: 'tool_call', name: 'searchHotels', args: { city: 'Lisboa' } });
     expect(events[1]).toMatchObject({
       type: 'tool_results',
-      results: [{ callId: 'c1', tool: 'searchHotels', args: { city: 'Lisboa' }, isError: false }],
+      results: [{ callId: 't1', tool: 'searchHotels', args: { city: 'Lisboa' }, isError: false }],
     });
     expect(events.at(-1)).toEqual({ type: 'text', delta: 'done' });
     expect(model.seen[1].at(-1)).toBeInstanceOf(ToolMessage);
@@ -101,16 +102,46 @@ describe('streamToolLoop', () => {
     expect(message?.content).toBe(output);
   });
 
-  it('shows the model each result with the callId that show_results items must cite', async () => {
+  it('shows the model each result with the short source that show_results items must cite', async () => {
     const model = scripted([[callChunk('c1', 'searchHotels', { city: 'Lisboa' })], textChunks('done')]);
     await collect(model);
-    const reply = JSON.parse(String((model.seen[1].at(-1) as ToolMessage).content));
-    expect(reply).toMatchObject({ callId: 'c1', isError: false });
+    const reply = model.seen[1].at(-1) as ToolMessage;
+    expect(reply.tool_call_id).toBe('c1');
+    expect(JSON.parse(reply.text)).toEqual({
+      source: 't1',
+      content: '{"hotels":[{"name":"Casa Lisboa"}]}',
+      isError: false,
+    });
+  });
+
+  // Trace d38bf1ad: the model cited call_01_t8cufvYResu8… for call_01_t8cufVYResu8… and every hotel was dropped.
+  it('grounds hotels when provider callIds are long and random', async () => {
+    const osaka = { ...validItem, source: 't2', title: { original: 'Casa Osaka', translation: null } };
+    const model = scripted([
+      [callChunk('call_00_Qx4mZ1rT9bWkLp2sYd7Hc3Ea', 'searchHotels', { city: 'Tokyo' })],
+      [callChunk('call_01_t8cufVYResu8WeidMg2M5922', 'searchHotels', { city: 'Osaka' })],
+      [callChunk('call_02_Jn5vR8sKq2LmXw7Tb4Yp9Ud1', 'show_results', { panel: 'hotels', items: [osaka] })],
+      textChunks('done'),
+    ]);
+    const events = await collect(model);
+    const osakaReply = model.seen[2].at(-1) as ToolMessage;
+    expect(osakaReply.tool_call_id).toBe('call_01_t8cufVYResu8WeidMg2M5922');
+    expect(JSON.parse(osakaReply.text)).toEqual({ source: 't2', content: '{"hotels":[{"name":"Casa Osaka"}]}', isError: false });
+    const shown = events.find((e) => e.type === 'show_results');
+    expect(shown?.type === 'show_results' && groundResults(shown.input, shown.results)).toEqual({
+      panel: 'hotels',
+      items: [
+        {
+          ref: 'r1', id: null, title: { original: 'Casa Osaka', translation: null }, address: null, price: null,
+          rating: null, url: null, image: null, details: [], amenities: [], summary: null,
+        },
+      ],
+    });
   });
 
   it('feeds tool errors back as error results instead of failing', async () => {
     const events = await collect(scripted([[callChunk('c9', 'broken', {})], textChunks('sorry')]));
-    expect(events[1]).toMatchObject({ type: 'tool_results', results: [{ callId: 'c9', isError: true }] });
+    expect(events[1]).toMatchObject({ type: 'tool_results', results: [{ callId: 't1', isError: true }] });
   });
 
   it('emits show_results with the results so far and answers "shown"', async () => {
@@ -121,7 +152,7 @@ describe('streamToolLoop', () => {
     ]);
     const events = await collect(model);
     const shown = events.find((e) => e.type === 'show_results');
-    expect(shown).toMatchObject({ type: 'show_results', input: { panel: 'hotels' }, results: [{ callId: 'c1' }] });
+    expect(shown).toMatchObject({ type: 'show_results', input: { panel: 'hotels' }, results: [{ callId: 't1' }] });
     const reply = model.seen[2].at(-1) as ToolMessage;
     expect(reply.content).toBe('shown');
   });
