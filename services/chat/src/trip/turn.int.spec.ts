@@ -6,7 +6,7 @@ import { resetDb } from '../../test/helpers/db.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { COMPACT_THRESHOLD } from '../llm/compact.js';
 import { ROLLINGGO_COMPACT } from '../llm/mcp/rollinggo.fixture.js';
-import type { Classified } from './commands.js';
+import type { Classified, Place } from './commands.js';
 import { TRIP_LLM, type TripLlm } from './llm.js';
 import type { TripDay, TripState } from './state.js';
 import type { LoopEvent } from './tool-loop.js';
@@ -33,6 +33,7 @@ const searchAndShow = (panel: 'hotels'): LoopEvent[] => [
 
 /** A scripted TripLlm: queues of classifications and respond() event lists, consumed in order. */
 class ScriptedLlm implements TripLlm {
+  place: Place | null = null;
   classifications: Classified[] = [];
   responses: LoopEvent[][] = [];
   days: TripDay[] = [{ title: '第 1 天', stops: [], stayRef: 'h1' }];
@@ -42,6 +43,9 @@ class ScriptedLlm implements TripLlm {
   inputs: { text: string | null; state: TripState; history: string[] }[] = [];
   /** The history each classify() call received, as message texts. */
   classified: string[][] = [];
+  async locate(destination: string): Promise<Place> {
+    return this.place ?? { japan: destination, outside: [] };
+  }
   async classify(input: { history: BaseMessage[] }) {
     this.classified.push(input.history.map((m) => m.text));
     const next = this.classifications.shift();
@@ -74,7 +78,7 @@ describe('TurnService', () => {
   });
   beforeEach(async () => {
     await resetDb(prisma);
-    Object.assign(llm, { classifications: [], responses: [], inputs: [], classified: [], hang: false, days: [{ title: '第 1 天', stops: [], stayRef: 'h1' }] });
+    Object.assign(llm, { classifications: [], responses: [], inputs: [], classified: [], place: null, hang: false, days: [{ title: '第 1 天', stops: [], stayRef: 'h1' }] });
     summarizer.invoke.mockReset().mockResolvedValue(new AIMessage('SUMMARY'));
     const { user } = await createUser(app);
     conversationId = (await prisma.conversation.create({ data: { userId: user.id, title: '' } })).id;
@@ -112,6 +116,24 @@ describe('TurnService', () => {
     expect(end.components).toEqual([]);
     expect(end.trip).toBeNull();
     expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(1);
+  });
+
+  it('refuses a destination without responding, saves the refusal and offers Japan destinations', async () => {
+    llm.classifications.push(planned({ destination: 'Lisbon', tripType: 'family', departureDate: '2027-01-04', returnDate: '2027-01-09', travelers: 3 }));
+    llm.place = { japan: null, outside: ['Lisbon'] };
+    const end = done(await send({ revision: 0, locale: 'en', command: { type: 'message', text: 'Plan a family trip to Lisbon' } }));
+    expect(llm.inputs).toEqual([]);
+    expect(end.message.content).toBe("Hilda only plans trips within Japan, so I can't plan Lisbon. Please choose a destination in Japan.");
+    expect(end.components[0]).toEqual({ type: 'choice', command: 'set_destination', title: 'Choose a destination in Japan', options: [
+      { value: 'Tokyo', label: 'Tokyo', description: null },
+      { value: 'Kyoto', label: 'Kyoto', description: null },
+      { value: 'Osaka', label: 'Osaka', description: null },
+      { value: 'Nara', label: 'Nara', description: null },
+    ] });
+    const row = await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } });
+    expect(row.tripState).toMatchObject({ stage: 'requirements', checkedDestination: null, outsideJapan: { places: ['Lisbon'], japan: null }, requirements: { tripType: 'family', departureDate: '2027-01-04', returnDate: '2027-01-09', travelers: 3 } });
+    expect(row.tripState).not.toHaveProperty('requirements.destination');
+    expect(row.tripRevision).toBe(1);
   });
 
   it('runs the full planning path with hotels joined to the itinerary', async () => {

@@ -20,7 +20,7 @@ vi.mock('../llm/model.factory.js', () => ({
   })),
 }));
 
-import { countNights, ModelTripLlm } from './llm.js';
+import { CLASSIFY_PROMPT, LOCATE_PROMPT, countNights, ModelTripLlm } from './llm.js';
 import { initialState } from './state.js';
 import type { Skill } from '../skills/registry.js';
 import { createChatModel } from '../llm/model.factory.js';
@@ -46,6 +46,25 @@ describe('ModelTripLlm', () => {
   beforeEach(() => {
     model.seen = [];
     model.classify.mockReset().mockResolvedValue(chatted);
+  });
+
+  it.each([
+    [{ japan: ' Fukuoka ', outside: [' Seoul ', '', '   '] }, { japan: 'Fukuoka', outside: ['Seoul'] }],
+    [{ japan: '   ', outside: [' 成都 '] }, { japan: null, outside: ['成都'] }],
+    [{ japan: null, outside: [] }, { japan: null, outside: [] }],
+  ])('locates a destination with the dedicated prompt and normalises %j', async (output, expected) => {
+    model.classify.mockResolvedValue(output);
+    const abort = signal();
+    expect(await new ModelTripLlm().locate('Seoul then Fukuoka', abort)).toEqual(expected);
+    const [sent, options] = model.classify.mock.calls[0] as [BaseMessage[], { signal: AbortSignal }];
+    expect(sent.map((message) => message.text)).toEqual([LOCATE_PROMPT, 'Seoul then Fukuoka']);
+    expect(options).toEqual({ signal: abort });
+    expect(createChatModel).toHaveBeenCalledWith({ operation: 'trip.locate', callbacks: undefined });
+  });
+
+  it('limits suggested destinations and answers to Japan', async () => {
+    expect(CLASSIFY_PROMPT).toContain('Suggested destinations (clarify options only) are places in Japan');
+    expect(await respond(new ModelTripLlm(), 'answer')).toContain('Hilda covers travel in Japan only. If the user asks about visiting a place outside Japan, say briefly that Hilda only plans trips in Japan, and call no tools.');
   });
 
   it('uses the injected date in the system prompt sent by respond', async () => {

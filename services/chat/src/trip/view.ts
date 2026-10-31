@@ -46,7 +46,15 @@ export function render(s: TripState, c: Copy): Component[] {
     if (s.stage !== 'idle') out.push({ type: 'buttons', buttons: [{ command: 'resume', label: c.resume }] });
     return out;
   }
-  if (s.clarify?.field === 'destination' && s.clarify.options.length)
+  if (s.outsideJapan)
+    out.push({
+      type: 'choice',
+      command: 'set_destination',
+      title: c.japanDestinationTitle,
+      options: [...new Set([...(s.outsideJapan.japan ? [s.outsideJapan.japan] : []), ...c.japanCities])]
+        .slice(0, 5).map((value) => ({ value, label: value, description: null })),
+    });
+  else if (s.clarify?.field === 'destination' && s.clarify.options.length)
     out.push({
       type: 'choice',
       command: 'set_destination',
@@ -75,6 +83,7 @@ export function render(s: TripState, c: Copy): Component[] {
 
 /** Assistant text for turns where the LLM wrote nothing. */
 export function stageMessage(s: TripState, c: Copy): string {
+  if (s.outsideJapan) return c.outsideJapan(s.outsideJapan.places, s.outsideJapan.japan);
   if (s.clarify) return s.clarify.question;
   switch (s.stage) {
     case 'trip_type':

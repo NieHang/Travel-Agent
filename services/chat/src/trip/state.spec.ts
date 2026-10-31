@@ -18,6 +18,12 @@ const group = (panel: ResultGroup['panel'], refs: string[]): ResultGroup => ({ p
 const state = (patch: Partial<TripState>): TripState => ({ ...initialState(4), ...patch });
 
 describe('readState', () => {
+  it('keeps legacy state data and defaults the destination check fields', () => {
+    const saved: Record<string, unknown> = { ...initialState(4), stage: 'review', requirements: { destination: 'Kyoto', travelers: 2 }, itinerary: '# Kyoto' };
+    delete saved.checkedDestination;
+    delete saved.outsideJapan;
+    expect(readState(saved, 9)).toEqual({ ...initialState(9), stage: 'review', requirements: { destination: 'Kyoto', travelers: 2 }, itinerary: '# Kyoto', checkedDestination: null, outsideJapan: null });
+  });
   it('falls back to the initial state and always uses the column revision', () => {
     expect(readState(null, 7)).toEqual(initialState(7));
     expect(readState({ version: 1 }, 2).stage).toBe('idle');

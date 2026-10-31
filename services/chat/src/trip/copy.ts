@@ -1,6 +1,11 @@
 import type { TripType } from '@autix/contracts';
 
 const en = {
+  japanDestinationTitle: 'Choose a destination in Japan',
+  japanCities: ['Tokyo', 'Kyoto', 'Osaka', 'Nara'],
+  outsideJapan: (places: string[], japan: string | null): string =>
+    `Hilda only plans trips within Japan, so I can't plan ${places.join(', ')}.` +
+    (japan ? ` I can plan just ${japan}, or you can choose another destination in Japan.` : ' Please choose a destination in Japan.'),
   tripTypes: {
     business: { label: 'Business travel', description: 'Combine work with short visits' },
     family: { label: 'Family travel', description: 'A pace suitable for families' },
@@ -30,6 +35,11 @@ const en = {
 export type Copy = typeof en;
 
 const zh: Copy = {
+  japanDestinationTitle: '选择日本的目的地',
+  japanCities: ['东京', '京都', '大阪', '奈良'],
+  outsideJapan: (places: string[], japan: string | null): string =>
+    `Hilda 目前只规划日本境内的旅行，暂时无法安排${places.join('、')}。` +
+    (japan ? `可以只规划${japan}，或换一个日本的目的地。` : '请换一个日本的目的地。'),
   tripTypes: {
     business: { label: '商务出差', description: '兼顾工作安排与短途游览' },
     family: { label: '亲子游', description: '适合家庭出行的节奏' },

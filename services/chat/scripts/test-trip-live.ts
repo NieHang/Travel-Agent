@@ -5,7 +5,7 @@ import { TRAVEL_LEG } from '../evals/travel-leg.js';
 import { McpService } from '../src/llm/mcp/mcp.service.js';
 import { ModelTripLlm } from '../src/trip/llm.js';
 import { loadSkills } from '../src/skills/registry.js';
-import { reduce } from '../src/trip/commands.js';
+import { reduce, uncheckedDestination } from '../src/trip/commands.js';
 import { groundResults, linkStays, mergeStays } from '../src/trip/results.js';
 import { initialState, type Locale, type TripState } from '../src/trip/state.js';
 
@@ -21,7 +21,10 @@ const check = (label: string, ok: boolean) => {
 async function turn(state: TripState, text: string) {
   const signal = AbortSignal.timeout(180_000);
   const classified = await llm.classify({ text, state, history: [] }, signal);
-  const { state: next, effect } = reduce(state, { type: 'message', text }, classified);
+  const command = { type: 'message', text } as const;
+  const destination = uncheckedDestination(state, command, classified);
+  const place = destination ? { destination, ...(await llm.locate(destination, signal)) } : undefined;
+  const { state: next, effect } = reduce(state, command, classified, place);
   let draft = '';
   const loaded: string[] = [];
   const calls: string[] = [];
@@ -40,15 +43,30 @@ async function turn(state: TripState, text: string) {
     next.itinerary = draft;
     next.days = linkStays(await llm.extractDays(draft, next.stays, next.locale, signal), next.stays);
   }
-  return { classified, next, effect, draft, loaded, calls };
+  return { classified, place, next, effect, draft, loaded, calls };
 }
 
 for (const locale of ['zh', 'en'] as Locale[]) {
   const start = initialState(0, locale);
   const zh = locale === 'zh';
 
+  const refused = await turn(start, zh ? '成都三天美食之旅，2026-11-27 到 2026-11-29，2 个人，朋友' : 'Plan a family trip to Lisbon, 2027-01-04 to 2027-01-09, 3 people');
+  check(`${locale}: non-Japan trip is refused`, refused.effect === null && refused.next.requirements.destination === undefined);
+  check(`${locale}: refusal names the city`, (refused.next.outsideJapan?.places ?? []).some((name) => name.toLowerCase().includes(zh ? '成都' : 'lisbon')));
+  check(`${locale}: refused trip calls no tools`, refused.calls.length === 0);
+
+  const mixed = await turn(start, zh ? '先去首尔再去福冈，2026-12-01 到 2026-12-06，情侣 2 个人' : 'Seoul then Fukuoka, 2026-12-01 to 2026-12-06, 2 people, couple');
+  check(`${locale}: mixed trip is refused`, mixed.effect === null && mixed.next.requirements.destination === undefined);
+  check(`${locale}: mixed refusal names the outside city`, (mixed.next.outsideJapan?.places ?? []).some((name) => name.toLowerCase().includes(zh ? '首尔' : 'seoul')));
+  check(`${locale}: mixed trip offers the Japan part`, (mixed.next.outsideJapan?.japan ?? '').toLowerCase().includes(zh ? '福冈' : 'fukuoka'));
+
+  const outsideHotel = await turn(start, zh ? '巴黎 1000 元以内的酒店' : 'Hotels in Paris under 1000 CNY');
+  check(`${locale}: outside-Japan hotel question is chat`, outsideHotel.classified.intent === 'chat');
+  check(`${locale}: outside-Japan hotel question calls no tools`, outsideHotel.calls.length === 0);
+
   const overnight = await turn(start, zh ? '帮我规划大阪亲子游，2026-12-01 到 2026-12-03，4 个人' : 'Plan a family trip to Osaka, 2026-12-01 to 2026-12-03, 4 people');
   check(`${locale}: one-shot planning reaches review`, overnight.next.stage === 'review' && overnight.effect === 'itinerary');
+  check(`${locale}: Japan destination was checked`, overnight.next.checkedDestination !== null);
   check(`${locale}: overnight trip found stays`, (overnight.next.stays?.items.length ?? 0) > 0);
   if (!overnight.next.stays) console.log(`  tool calls: ${JSON.stringify(overnight.calls)}`);
   check(`${locale}: stays carry amenities or images`, (overnight.next.stays?.items ?? []).some((h) => h.amenities.length > 0 || h.image));

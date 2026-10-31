@@ -13,6 +13,30 @@ const hotels: ResultGroup = {
 const types = (components: Component[]) => components.map((c) => c.type);
 
 describe('render', () => {
+  it.each([
+    ['en', 'Lisbon', null, 'Choose a destination in Japan', ['Tokyo', 'Kyoto', 'Osaka', 'Nara'], "Hilda only plans trips within Japan, so I can't plan Lisbon. Please choose a destination in Japan."],
+    ['zh', '成都', null, '选择日本的目的地', ['东京', '京都', '大阪', '奈良'], 'Hilda 目前只规划日本境内的旅行，暂时无法安排成都。请换一个日本的目的地。'],
+    ['en', 'Seoul', 'Fukuoka', 'Choose a destination in Japan', ['Fukuoka', 'Tokyo', 'Kyoto', 'Osaka', 'Nara'], "Hilda only plans trips within Japan, so I can't plan Seoul. I can plan just Fukuoka, or you can choose another destination in Japan."],
+    ['zh', '首尔', '福冈', '选择日本的目的地', ['福冈', '东京', '京都', '大阪', '奈良'], 'Hilda 目前只规划日本境内的旅行，暂时无法安排首尔。可以只规划福冈，或换一个日本的目的地。'],
+    ['en', 'Seoul', 'Kyoto', 'Choose a destination in Japan', ['Kyoto', 'Tokyo', 'Osaka', 'Nara'], "Hilda only plans trips within Japan, so I can't plan Seoul. I can plan just Kyoto, or you can choose another destination in Japan."],
+  ] as const)('renders %s refusal for %s with Japan part %s', (locale, outside, japan, title, cities, message) => {
+    const state = at({ stage: 'requirements', outsideJapan: { places: [outside], japan }, clarify: { field: 'other', question: 'ignored', options: [] } });
+    const components = render(state, copy(locale));
+    expect(types(components)).toEqual(['choice', 'form']);
+    const choice = components[0];
+    expect(choice).toMatchObject({ type: 'choice', command: 'set_destination', title });
+    if (choice.type !== 'choice') throw new Error('Expected destination choice');
+    expect(choice.options.map((option) => option.value)).toEqual(cities);
+    expect(choice.options.map((option) => option.label)).toEqual(cities);
+    expect(choice.options.every((option) => option.description === null)).toBe(true);
+    expect(stageMessage(state, copy(locale))).toBe(message);
+  });
+
+  it('joins multiple refused places in both languages', () => {
+    const state = at({ outsideJapan: { places: ['Paris', 'Seoul'], japan: null } });
+    expect(stageMessage(state, en)).toBe("Hilda only plans trips within Japan, so I can't plan Paris, Seoul. Please choose a destination in Japan.");
+    expect(stageMessage(state, zh)).toBe('Hilda 目前只规划日本境内的旅行，暂时无法安排Paris、Seoul。请换一个日本的目的地。');
+  });
   it('idle renders nothing', () => expect(render(at({}), zh)).toEqual([]));
 
   it('trip_type renders every trip type in both languages', () => {
