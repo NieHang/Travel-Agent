@@ -11,6 +11,11 @@ import { initialState, type Locale, type TripState } from '../src/trip/state.js'
 const mcp = new McpService();
 await mcp.mcpManager.start();
 const llm = new ModelTripLlm(mcp, loadSkills());
+// The provider answered "大阪 日本" with Shanghai hotels; an Osaka stay names Osaka in its title or address.
+const hasOsakaStay = (state: TripState) =>
+  (state.stays?.items ?? []).some((h) =>
+    /大阪|Osaka/i.test([h.title.original, h.title.translation, h.address?.original, h.address?.translation].join(' ')),
+  );
 let failures = 0;
 const check = (label: string, ok: boolean) => {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${label}`);
@@ -41,6 +46,7 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   check(`${locale}: one-shot planning reaches review`, overnight.next.stage === 'review' && overnight.effect === 'itinerary');
   check(`${locale}: Japan destination was checked`, overnight.next.checkedDestination !== null);
   check(`${locale}: overnight trip found stays`, (overnight.next.stays?.items.length ?? 0) > 0);
+  check(`${locale}: overnight trip found Osaka stays`, hasOsakaStay(overnight.next));
   if (!overnight.next.stays) console.log(`  tool calls: ${JSON.stringify(overnight.calls)}`);
   check(`${locale}: stays carry amenities or images`, (overnight.next.stays?.items ?? []).some((h) => h.amenities.length > 0 || h.image));
   check(`${locale}: at least one day links to a stay`, overnight.next.days.some((d) => d.stayRef));
@@ -64,6 +70,7 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   check(`${locale}: japan trip reaches review`, japan.next.stage === 'review' && japan.effect === 'itinerary');
   check(`${locale}: japan trip loads the city skills`, ['japan-tokyo', 'japan-osaka'].every((n) => japan.loaded.includes(n)));
   check(`${locale}: japan trip still finds stays`, (japan.next.stays?.items.length ?? 0) > 0);
+  check(`${locale}: japan trip finds Osaka stays`, hasOsakaStay(japan.next));
   const headings = zh ? ['总览', '出发前要办'] : ['Overview', 'Before you go'];
   check(`${locale}: japan draft has overview and before-you-go`, headings.every((h) => japan.draft.includes(h)));
   const legDetail = legDetails(japan.draft);
