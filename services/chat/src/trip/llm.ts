@@ -85,8 +85,8 @@ Hilda covers travel in Japan only. If the user asks about visiting a place outsi
 };
 
 const FACTS_RULE = 'Never invent prices, availability, addresses or distances; only state facts that come from tool results.';
-// With a skill loaded (the Japan rules), the draft needs travel legs that no tool provides yet.
-const SKILL_FACTS_RULE = `Never invent prices, availability, addresses or opening hours; only state facts that come from tool results. Travel times, walking distances and transfers may be estimated when no tool gives them; mark every estimate as approximate ("约" in Chinese, "approx." in English).`;
+// No tool gives transit or location facts yet, so with the Japan rules loaded a travel leg names only its mode.
+const SKILL_FACTS_RULE = `Never invent prices, availability, addresses, opening hours, travel times or distances; only state facts that come from tool results. Skills give rules and unchecked suggestions, not facts. Give each travel leg its mode only. Time spent at a place may be estimated; mark it as approximate ("约" in Chinese, "approx." in English).`;
 
 function systemPrompt(task: LlmTask, locale: Locale, always: Skill[], onDemand: Skill[], today: string): string {
   let prompt = `You are Hilda, a travel assistant. Reply in ${language(locale)}. ${DATA_RULE}

@@ -1,19 +1,20 @@
 import { z } from 'zod';
 import type { ItineraryEntry, Score } from '../schemas.js';
 import type { TurnOutput } from '../turn.js';
-import { TRAVEL_LEG } from '../travel-leg.js';
+import { legDetails, TRAVEL_LEG } from '../travel-leg.js';
 
 // Ends in a station or airport name, optionally with a bracketed code: "Kansai Airport (KIX)", "近铁奈良站".
 // "Tokyo Station Character Street" is a shopping street and still counts as a place.
 const TRANSIT_STOP = /(Station|Airport|駅|站|機場|机场|空港)\s*(?:[（(][^）)]*[）)])?$/i;
 // The skill lets meals happen "nearby"; extraction still turns "lunch near the park" or "东福寺附近午餐" into a stop. The hotel is never a place.
-const NEARBY_STOP = /\bnear(?:by)?\b|附近|^hotel$/i;
+const NEARBY_STOP = /\bnear(?:by)?\b|附近|^(?:hotel|酒店)$/i;
+const MEAL_STOP = /\b(?:breakfast|brunch|lunch|dinner|meal|snacks?|drinks?|coffee|rest)\b|\bcaf[eé]|早餐|午餐|晚餐|午饭|晚饭|用餐|吃饭|小吃|休息/i;
 
 const LIVE_CHECKS: Record<string, string[]> = {
   refused: ['outside_refused', 'refusal_names_city', 'no_tools'], mixed: ['outside_refused', 'refusal_names_city', 'offers_japan_part'],
   'outside-hotel': ['hotel_intent_chat', 'no_tools'], family: ['reaches_review', 'destination_checked', 'has_stays', 'stays_have_media', 'at_least_one_stay_link'],
   'day-trip': ['has_stays'], 'hotel-question': ['hotel_intent_chat', 'hotel_cards'], vague: ['destination_clarified'],
-  'multi-city': ['reaches_review', 'skills_loaded', 'has_stays', 'headings_present', 'estimates_marked', 'every_day_covered', 'leg_as_stop', 'full_day_alternatives', 'city_min_nights'],
+  'multi-city': ['reaches_review', 'skills_loaded', 'has_stays', 'headings_present', 'legs_mode_only', 'every_day_covered', 'leg_as_stop', 'full_day_alternatives', 'city_min_nights'],
 };
 
 export function gradeItinerary(item: ItineraryEntry, out: TurnOutput): Score[] {
@@ -50,7 +51,7 @@ export function gradeItinerary(item: ItineraryEntry, out: TurnOutput): Score[] {
     const skills = kind === 'multi-city' ? ['japan-tokyo', 'japan-osaka'] : kind === 'family' || kind === 'tight-budget' ? ['japan-osaka'] : kind === 'lodging-area' ? ['japan-tokyo'] : kind === 'day-trip' ? ['japan-nara'] : ['japan-kyoto'];
     check('skills_loaded', skills.every((s) => out.loaded.includes(s)));
     check('headings_present', (zh ? ['总览', '出发前要办'] : ['Overview', 'Before you go']).every((s) => draft.includes(s)));
-    check('estimates_marked', zh ? /约/.test(draft) : /approx/i.test(draft));
+    check('legs_mode_only', legDetails(draft).length === 0);
     check('every_day_covered', next.days.length >= item.expected.nights + 1);
     const blocks = draft.split(/^(?=[#*\s]*(?:Day\s*\d+|第\s*\d+\s*天|D\d+\b))/im).filter((b) => /^[#*\s]*(?:Day\s*\d+|第\s*\d+\s*天|D\d+\b)/i.test(b));
     check('full_day_alternatives', blocks.length >= item.expected.nights + 1 && blocks.slice(1, -1).every((b) => /备选|Alternative/i.test(b)));
@@ -61,8 +62,13 @@ export function gradeItinerary(item: ItineraryEntry, out: TurnOutput): Score[] {
       check('city_min_nights', nights.length >= 2 && nights.every((n) => n >= 2));
     }
     // Same rule as the japan-travel skill: restaurants and shops count as places; stations, airports, "nearby" meals and same-day repeats do not.
+    // A meal at one of the day's places is a repeat: "Lunch in Gion" next to "Gion".
     const limit = kind === 'elderly' || next.requirements.tripType === 'family' ? 3 : 4;
-    const counts = next.days.map((d) => new Set(d.stops.map((s) => s.name).filter((name) => !TRANSIT_STOP.test(name) && !NEARBY_STOP.test(name))).size);
+    const counts = next.days.map((d) => {
+      const names = d.stops.map((s) => s.name).filter((name) => !TRANSIT_STOP.test(name) && !NEARBY_STOP.test(name));
+      const places = names.filter((name) => !MEAL_STOP.test(name)).map((name) => name.toLowerCase());
+      return new Set(names.filter((name) => !MEAL_STOP.test(name) || !places.some((place) => name.toLowerCase().includes(place)))).size;
+    });
     const middle = counts.slice(1, -1);
     check('pacing_ok', counts.length > 0 && counts.every((n) => n <= limit) && (!middle.length || (counts[0] <= Math.max(...middle) && counts.at(-1)! <= Math.max(...middle))));
     scores.push({ name: 'leg_as_stop', value: next.days.flatMap((d) => d.stops).filter((s) => TRAVEL_LEG.test(s.name)).length });
@@ -94,7 +100,7 @@ export function failedItineraryScores(item: ItineraryEntry): Score[] {
   const live = LIVE_CHECKS[item.id.replace(/^l3-(zh|en)-/, '')] ?? [];
   const names = new Set(['effect_match', 'code_checks_pass', ...live.filter((name) => name !== 'leg_as_stop')]);
   if (item.expected.effect === 'itinerary') {
-    for (const name of ['reaches_review', 'destination_checked', 'has_stays', 'skills_loaded', 'headings_present', 'estimates_marked', 'every_day_covered', 'full_day_alternatives', 'pacing_ok', 'tool_args_ok', 'geocode_coverage']) names.add(name);
+    for (const name of ['reaches_review', 'destination_checked', 'has_stays', 'skills_loaded', 'headings_present', 'legs_mode_only', 'every_day_covered', 'full_day_alternatives', 'pacing_ok', 'tool_args_ok', 'geocode_coverage']) names.add(name);
     if (item.expected.nights > 0 && !item.id.endsWith('lodging-booked'))
       for (const name of ['stays_have_media', 'at_least_one_stay_link', 'every_night_linked']) names.add(name);
     else names.add('no_lodging_search');

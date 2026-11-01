@@ -29,6 +29,12 @@ it('checks actual lodging arguments, including travelers and the full date range
   result.toolCalls[0].args.checkInParam = { checkInDate: '2026-12-01', stayNights: 1, adultCount: 2 };
   expect(gradeItinerary(entry, result)).toContainEqual({ name: 'tool_args_ok', value: 0 });
 });
+it('fails drafts whose travel legs give more than the mode', () => {
+  const result = output();
+  expect(gradeItinerary(entry, result)).toContainEqual({ name: 'legs_mode_only', value: 1 });
+  result.draft = result.draft.replace('Day 2\n', 'Day 2\n- 10:00 Osaka → Nara by train, approx. 45 min\n');
+  expect(gradeItinerary(entry, result)).toContainEqual({ name: 'legs_mode_only', value: 0 });
+});
 it('enforces family stop limits and treats travel legs as errors', () => {
   const result = output();
   result.next.days[1].stops = ['A', 'B', 'C', 'D', 'E', 'Shinkansen to Kyoto'].map((name) => ({ name, time: null, note: null }));
@@ -42,7 +48,10 @@ it.each([
   { tripType: 'family', stops: ['Kansai Airport (KIX)', 'Osaka Castle', 'Kuromon Market', '近铁奈良站'], expected: 1 },
   { tripType: 'family', stops: ['Osaka Castle', 'Kuromon Market', 'Dotonbori dinner', 'Shinsaibashi shops'], expected: 0 },
   { tripType: 'family', stops: ['Osaka Castle Park', 'Lunch near the park', 'Kuromon Market', '东福寺附近', 'Dinner nearby', 'Hotel', 'Dotonbori'], expected: 1 },
-] as const)('allows four places a day ($tripType: three), counting restaurants and shops but not stations, nearby meals or repeats: $stops', ({ tripType, stops, expected }) => {
+  { tripType: 'family', stops: ['Kiyomizu-dera', 'Gion', 'Lunch in Gion', 'Café on Sannenzaka', 'Sannenzaka', '酒店'], expected: 1 },
+  { tripType: 'family', stops: ['奈良公园', '东大寺', '春日大社', '奈良公园一带午餐与休息'], expected: 1 },
+  { tripType: 'family', stops: ['Kiyomizu-dera', 'Gion', 'Lunch in Pontocho', 'Yasaka Shrine'], expected: 0 },
+] as const)('allows four places a day ($tripType: three), counting restaurants and shops but not stations, nearby meals, meals at a listed place or repeats: $stops', ({ tripType, stops, expected }) => {
   const result = output();
   result.next.requirements.tripType = tripType;
   result.next.days[1].stops = stops.map((name) => ({ name, time: null, note: null }));
