@@ -1,8 +1,10 @@
 import { normalizeArgs } from './replay.js';
 
+// Aliases must return the same hotels live. The provider answers "大阪 日本" and "大阪市 日本" with Shanghai hotels or none,
+// but "大阪" with Osaka ones, so those two stay exact keys and a retry with "大阪" replays the Osaka snapshot.
 const PLACES: Record<string, string[]> = {
   tokyo: ['Tokyo', 'Tokyo Japan', '东京', '东京 日本', '東京', '東京 日本'],
-  osaka: ['Osaka', 'Osaka Japan', 'Osaka 大阪 日本', '大阪', '大阪 日本', '大阪市 日本'],
+  osaka: ['Osaka', 'Osaka Japan', 'Osaka 大阪 日本', '大阪'],
   kyoto: ['Kyoto', 'Kyoto Japan', '京都', '京都 日本'],
   'kyoto-station': ['Kyoto Station', 'Kyoto Station Kyoto', 'Kyoto Station Kyoto Japan', '京都站', '京都站 京都', '京都駅 京都'],
   'ueno-station': ['Ueno Station Tokyo', 'Ueno Station Tokyo Japan', '上野站 东京', '上野站 東京', '上野駅 東京'],

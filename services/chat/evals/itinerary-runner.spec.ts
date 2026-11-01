@@ -9,7 +9,7 @@ it('requires explicit Google approval or deferred geography before running L3', 
 
 it('records the L3 replay profile and the frozen cassette hash in run metadata', async () => {
   const context = await itineraryContext(undefined, true);
-  expect(context.metadata).toMatchObject({ replayProfile: 'itinerary-hybrid-v1', cassetteHash: expect.stringMatching(/^[0-9a-f]{12}$/) });
+  expect(context.metadata).toMatchObject({ replayProfile: 'itinerary-hybrid-v2', cassetteHash: expect.stringMatching(/^[0-9a-f]{12}$/) });
 });
 
 it('refuses comparison of pending geography results', () => {

@@ -17,7 +17,7 @@ export async function itineraryContext(rawBudget: string | undefined, defer = fa
   const files = (await readdir(folder)).filter((name) => name.endsWith('.json')).sort();
   const cassettes = new Map(await Promise.all(files.map(async (name) => [name.slice(0, -5), await readCassette(fileURLToPath(new URL(name, folder)))] as const)));
   return {
-    metadata: { replayProfile: 'itinerary-hybrid-v1', cassetteHash: createHash('sha256').update(JSON.stringify([...cassettes])).digest('hex').slice(0, 12) },
+    metadata: { replayProfile: 'itinerary-hybrid-v2', cassetteHash: createHash('sha256').update(JSON.stringify([...cassettes])).digest('hex').slice(0, 12) },
     async replay(id: string, callbacks: BaseCallbackHandler[]) {
       const cassette = cassettes.get(id);
       if (!cassette) throw new Error(`Missing L3 cassette for ${id}; run eval:record-itinerary first`);

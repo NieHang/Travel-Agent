@@ -189,6 +189,11 @@ async function request<T>(url: string, schema: z.ZodType<T>, options: RequestIni
     const payload: unknown = await response.json();
     if (wikidata) {
       const error = z.object({ error: z.object({ code: z.string() }) }).safeParse(payload);
+      // Wikidata's search cluster reports load as a 200 with this code, not as a 429.
+      if (error.success && error.data.error.code === 'cirrussearch-too-busy-error' && attempt < 2) {
+        console.log('Wikidata search busy; waiting before retry (no Google retry)');
+        continue;
+      }
       if (error.success) throw new Error(`Wikidata API error: ${error.data.error.code}`);
     }
     return schema.parse(payload);

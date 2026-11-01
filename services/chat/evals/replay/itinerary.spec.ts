@@ -12,7 +12,7 @@ const cassette: Cassette = {
   calls: [{ tool: 'mcp_rollingGo_searchHotels', args, result: { content: 'Osaka fixture', isError: false } }],
 };
 
-it.each(['大阪', '大阪 日本', 'Osaka 大阪 日本'])('matches the same place alias %s and ignores scenario-scoped query prose', async (place) => {
+it.each(['Osaka', '大阪', 'Osaka 大阪 日本'])('matches the same place alias %s and ignores scenario-scoped query prose', async (place) => {
   const replay = new ReplayMcp(cassette, undefined, itineraryReplayKey);
   expect(await replay.mcpManager.getTools()[0].invoke({ ...args, originQuery: 'Different phrasing of the same fixture request', place })).toEqual({ content: 'Osaka fixture', isError: false });
   expect(replay.misses).toEqual([]);
@@ -20,6 +20,8 @@ it.each(['大阪', '大阪 日本', 'Osaka 大阪 日本'])('matches the same pl
 
 it.each([
   { place: 'Kyoto Japan' }, { place: '难波 大阪' }, { place: '大阪城 大阪' },
+  // The provider answers these with Shanghai hotels, so they must not replay the Osaka snapshot.
+  { place: '大阪 日本' }, { place: '大阪市 日本' },
   { placeType: '区/县' }, { size: 10 },
   { checkInParam: { ...args.checkInParam, checkInDate: '2026-12-02' } },
   { checkInParam: { ...args.checkInParam, stayNights: 3 } },

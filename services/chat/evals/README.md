@@ -207,9 +207,11 @@ bun run eval itinerary --trials 3 --tag base-b --concurrency 4 --defer-geography
 
 Recording also saves local preview turns in gitignored `results/prepared/`.
 P1's exact argument normalization, fallback and miss reporting are unchanged.
-L3 uses the scenario-scoped `itinerary-hybrid-v1` profile: hotel searches omit
+L3 uses the scenario-scoped `itinerary-hybrid-v2` profile: hotel searches omit
 free-text `originQuery` from the lookup key and canonicalize an explicit list
-of same-place aliases. City, station, neighborhood and attraction searches
+of same-place aliases. An alias is listed only if it returns the same hotels
+live; v2 dropped "大阪 日本" and "大阪市 日本", which return Shanghai hotels while
+"大阪" returns Osaka ones. City, station, neighborhood and attraction searches
 remain distinct. Dates, nights, travelers, place type, price/tags, radius,
 result count and other structured arguments remain in the key. Other tool
 types still use exact normalized arguments. Raw tool arguments are retained
@@ -238,10 +240,11 @@ retries. The curated cassettes retain every recorded argument/result pair but
 put a nonempty Japan response first for P1's fallback. Exact matches still
 return their original result, including empty or wrong-region responses.
 
-Every assertion in the current live check has an L3 counterpart: refusals and
+Every assertion in the current live check, except the four "Osaka stays"
+checks added with the hotel fix, has an L3 counterpart: refusals and
 outside-city names, Japan-only suggestions, chat intent and hotel cards,
 destination clarification, review, destination checking, stays and media,
-at least one stay link, city skills, headings, estimates, day coverage, travel
+at least one stay link, city skills, headings, mode-only legs, day coverage, travel
 legs, full-day alternatives and minimum city nights. `live_assertion_accuracy`
 is the assertion-weighted run score over those 52 checks; failed tasks remain
 in its denominator. `live_checks_pass` is per original scenario, while
@@ -266,11 +269,14 @@ streets count as places. These do not count:
   a bracketed code;
 - meals placed only by what they are near ("Lunch near the park", "东福寺附近"),
   which the skill allows;
-- a stop named just "Hotel";
+- a stop named just "Hotel" or "酒店";
+- a meal, café or rest stop whose name contains another of the day's places
+  ("Lunch in Gion" next to "Gion", "Café on Sannenzaka", "奈良公园一带午餐与休息"),
+  because the skill says to eat at one of the day's places;
 - a name repeated within a day.
 
-Arrival/departure days cannot exceed the busiest interior day. A meal at a named
-place counts when extraction names it as a stop.
+Arrival/departure days cannot exceed the busiest interior day. A meal at any
+other named place counts: "Lunch in Pontocho" is a new place.
 `invented_hotel` checks explicit per-night choices (`Tonight:`, `今晚：`,
 `Overnight:`, lodging lines inside a day block, and `Stay at …`) against the
 grounded hotel catalog and successful tool hotel names. It uses the linked
@@ -535,7 +541,8 @@ into two groups, about half each:
   ("Lunch in Gion" next to "Gion"), or an area and a street inside it count
   separately (Harajuku and Takeshita Street).
 
-The `pacing_ok` gate is now 0.29, from an A/A SD of 0.0943 on the current pair.
+The `pacing_ok` gate became 0.29, from an A/A SD of 0.0943 on the current pair
+(0.32 after the follow-up below).
 `code_checks_pass` keeps 0.11: the pair compared against itself stays within
 it. `eval:noise` and `eval:compare` refuse pending geography, so the gate and
 the comparisons here come from `noiseGates` and `compareRuns`, run from a
@@ -565,8 +572,363 @@ pair:
   so grounding dropped every hotel. Short per-turn source ids fix this in
   NieHang/Travel-Agent#2, which is not merged and not in these runs.
 
-Geography is not scored for these pairs: it would need new Google Place
-Details requests, which need approval first.
+### Pacing follow-up and geography (2026-10-31)
+
+**Grader.** A meal, café or rest stop that names one of the day's places is
+now a repeat, and a stop named "酒店" is the hotel (see the pacing rule above).
+On the places pair this alone moves `pacing_ok` from 80% to 85%. The skill did
+not change.
+
+**Two skill probes, both reverted.** Each ran two trials. The places pair's
+first two trials, regraded, pass 85%; a control probe of the committed skill
+passed 80%.
+
+- Separating a neighbourhood from its streets ("Harajuku, Takeshita Street and
+  Omotesando is 3"), "Higashiyama is 5 places: take at most 4", and a day-trip
+  line: 60%. The examples anchored the model. Elderly and family headers
+  listed four places on a "light" day, and the Harajuku day gained Omotesando
+  and still walked Takeshita Street.
+- "Swap a place for one in the header, never add one on top", plus a check
+  before the next day: 55%.
+
+Neither beat the control. Two-trial runs move by about ten points, so these
+probes show no real change either way.
+
+**Run-to-run variance.** Three A/A pairs of the same committed skill and
+grader, three trials a side:
+
+| Pair | Skill file | `pacing_ok` |
+|---|---|---:|
+| `itinerary@132ba8e-dirty-places-a` / `-b` | LF | 85% |
+| `itinerary@ec53810-dirty-pacing-a` / `-b` | CRLF | 63% |
+| `itinerary@ec53810-dirty-pacinglf-a` / `-b` | LF | 75% |
+
+With the control probe that is 150/200 (75%). Single trials range from 5/10 to
+10/10 at temperature 0. Judge a pacing change with full pairs, not two-trial
+probes. On Windows, `git checkout` with `core.autocrlf` writes skill files
+with CRLF, which adds 89 `\r` characters to the prompt. The CRLF runs scored
+63% and 80%, so no effect is shown, but run evals from an LF checkout.
+
+**Baseline and gates.** `itinerary@ec53810-dirty-pacinglf-a` / `-b` is the
+baseline. `pacing_ok` is gated at 0.32, from an A/A SD of 0.1043. The pair
+passes every current gate against itself, so the other gates are unchanged.
+The three pairs disagree on several suggested gates: the coverage SDs are
+0.0026 in one pair and 0.0333 in the others, and `route_detour` suggests
+0.03–0.05 against the current 0.14. So the geography gates stay as they are.
+
+**Geography.** Scored for all three pairs. "Old" is the hybrid pair before the
+pace rule. The old and places pairs' `pacing_ok` are regraded under the
+current rule; the other two pairs ran under it. Means over six trials:
+
+| Metric | Old | Places | CRLF | LF |
+|---|---:|---:|---:|---:|
+| `pacing_ok` | 7% | 85% | 63% | 75% |
+| `day_km_max` (km) | 89.5 | 85.4 | 87.0 | 89.0 |
+| `route_detour` | 1.140 | 1.038 | 1.039 | 1.039 |
+| `hotel_far` (km) | 41.2 | 41.6 | 41.5 | 42.6 |
+| `geocode_conflict` | 0.53 | 0.22 | 0.23 | 0.25 |
+| `stop_unverified` | 1.68 | 0.83 | 0.53 | 1.07 |
+| `geocode_coverage` | 1.000 | 0.983 | 0.983 | 0.999 |
+
+Fewer places a day make routes less roundabout: `route_detour` falls from
+1.14 to 1.04 in every pair. Longest-day distance and hotel distance do not
+change.
+
+**Old → new comparison.** `eval:compare` of the old pair's run `-a` against
+the baseline's run `-a` reports no regressed items. It fails three gates, all
+on the hotel side:
+
+- `replay_miss` +0.17: hotel-question searches no longer match the recorded
+  keys, and one Chinese multi-city trial missed four times and had no Osaka
+  hotels;
+- `every_night_linked` −0.05, from that same trial;
+- `invented_hotel` +0.03, from that trial, plus one tight-budget line that
+  shortens two returned hotels ("BRACKETS HOTEL" for "BRACKETS HOTEL 大阪本町",
+  "APA 难波站东" for "APA酒店〈难波站东〉"), which the detector cannot ground.
+
+Re-record the cassettes (`eval:record-itinerary`) before relying on the hotel
+gates.
+
+**Google usage.** Filling the cache took 175 Text Search Essentials (IDs Only)
+requests. Scoring took at most 182 Place Details Essentials requests,
+`location` only, one per distinct place ID across the three pairs. The cache
+stores place IDs only. Wikidata's "search too busy" reply stopped the fill
+twice, so it is now retried like a 429.
+
+### City areas resized (2026-10-31)
+
+**Change.** Most remaining over-limit days followed a city skill's "Areas that
+go together" line. Those lines named 4–6 places per area, and the core skill
+said "One area per half day", so a two-area day could reach 8 places. Each area
+now has at most 3 places, under one rule: a day is one area or parts of two
+neighbouring areas, within the place limit, and an evening place counts as one
+of the day's places.
+
+- Kyoto: Higashiyama is split into Kiyomizu-dera (Kiyomizu-dera, Sannenzaka,
+  Yasaka Shrine) and Central (Nishiki Market, Pontocho, Gion). Northern
+  Higashiyama drops Eikan-do. The Sagano train replaces an Arashiyama place
+  instead of adding one.
+- Tokyo: Asakusa, Ueno, Akihabara, Harajuku and Shibuya are separate areas.
+  Shinjuku's evening is Omoide Yokocho or Golden Gai, not both.
+- Osaka: the Osaka Castle keep and its park are one place. Tennoji no longer
+  "pairs with Minami".
+- Nara: Nara Park is the park, Todai-ji and Kasuga Taisha. Kofuku-ji or
+  Naramachi takes the place of one of them.
+- Core skill: arrival and departure days take "only places near the hotel or
+  on the way" (was "at most one easy area"). "One area per half day" became "A
+  day stays in one area, or two neighbouring ones, within the place limit".
+
+**Result.** Pair `itinerary@ec53810-dirty-areas-a` / `-b` against the
+baseline:
+
+| Pair | `pacing_ok` passes per trial (of 10) | Total |
+|---|---|---:|
+| `pacinglf` (baseline) | 9 8 7 5 8 8 | 45/60 (75%) |
+| `areas` | 9 8 8 8 8 9 | 50/60 (83%) |
+
+The 8-point gain is under one A/A SD (0.10), so it is not proven. The worst
+trial went from 5/10 to 8/10.
+
+**What still fails.** Ten items. Seven name places beyond the day's header in
+the timeline, or split one header place into several stops:
+
+- a Kiyomizu-dera walk that adds 八坂神社, 花见小路 or 祇园 (2);
+- a four-place Harajuku day that ends at Shibuya Sky (2, both Chinese
+  multi-city);
+- the Osaka family day: Osaka Castle and its park as two stops, or a walk
+  through 心斋桥 between 黑门市场 and 道顿堀 (3);
+
+The other three:
+
+- 梅田 split into its shopping streets, underground mall and winter lights (1);
+- an English family trial whose arrival day (2 places) was busier than its only
+  full day (1);
+- a Nara stop "Kintetsu-Nara", a station named without "Station", which the
+  grader counts as a place.
+
+**Other metrics.** Over both pairs, every gate passes except
+`every_night_linked`: 0.976 → 0.929, against a gate of 0.02. All three misses
+are multi-city. Two are Chinese trials with 1 and 4 replay misses (stale
+cassettes, as above). The third is an English trial that wrote 5 of 6 days,
+which also costs `every_day_covered` 0.017. `eval:compare` of the baseline's
+run `-a` against `areas-a` reports no regressed items. It fails the same two
+gates (`every_day_covered` −0.033, `every_night_linked` −0.048), because that
+run holds the 5-day trial and the 1-miss trial.
+
+**Geography.** Means over six trials:
+
+| Metric | Baseline | Areas |
+|---|---:|---:|
+| `day_km_max` (km) | 89.0 | 82.5 |
+| `route_detour` | 1.039 | 1.026 |
+| `hotel_far` (km) | 42.6 | 40.2 |
+| `geocode_conflict` | 0.25 | 0.23 |
+| `stop_unverified` | 1.07 | 0.37 |
+| `geocode_coverage` | 0.999 | 0.998 |
+
+Shorter days and fewer unverified stops, as expected from fewer places a day.
+The pair's own A/A noise suggests `pacing_ok` 0.29 and `every_night_linked`
+0.24. Replay misses drive most of the night-link noise, so the gates stay as
+they are until the cassettes are re-recorded.
+
+Google usage: 33 Text Search Essentials (IDs Only) to fill the cache, and at
+most 103 Place Details Essentials, `location` only, to score.
+
+**Live check.** In the first run, the English Osaka family one-shot kept no
+hotels, failing 3 checks. Two reruns of that turn searched with the same
+arguments and kept 4 hotels each. A second full run passed all 52 checks.
+
+### Mode-only legs and suggestion-only city skills (2026-10-31)
+
+**Change.** No tool gives location or transit facts yet, so hand-written
+facts left the prompts:
+
+- City skills keep only unchecked suggestions: sights (name and what it is),
+  food, crowds and best times, rainy-day options, reservations, day-trip
+  ideas and seasons. Area groupings, "next to" hints, getting-around and
+  hotel-area advice, travel times and lines, and planning decisions ("a half
+  day", "better as its own stay") are gone.
+- Core skill: city skills are "unchecked suggestions, not facts" and never
+  change the planning rules. A travel leg gives its mode only, with English
+  and Chinese wording ("by subway", "乘地铁"). It names no line or operator
+  (not even "JR") and gives no minutes, stops or transfers. The format sample
+  and the airport legs follow suit. Time at a place may still be estimated.
+- `SKILL_FACTS_RULE` in `src/trip/llm.ts` says the same.
+
+**Grader.** `estimates_marked` is replaced by `legs_mode_only` (gate 0.02).
+`legDetails` in `travel-leg.ts` checks every line from the first day heading
+on, skipping hotel lines. A line fails if it:
+
+- names a line, named train or operator used as transport;
+- counts stops or transfers;
+- or gives a travel time: minutes in the same clause as a mode, minutes in the
+  stop part (before the description colon) of a line that names a mode, or
+  hours beside a journey such as "Kyoto → Nara by train, approx. 1 h".
+
+Hours elsewhere are the visit ("Osaka Castle by subway (approx. 1.5 h)").
+Airport check-in buffers and "please check" reminders are not travel
+details. The live check runs the same function.
+
+All 120 itinerary drafts from the `pacinglf` and `areas` pairs fail it, as
+they should: the old rule required lines, minutes and transfers.
+
+**Result.** Pair `itinerary@ec53810-dirty-modeonly2-a` / `-b`:
+
+| Pair | `pacing_ok` passes per trial (of 10) | Total |
+|---|---|---:|
+| `pacinglf` | 9 8 7 5 8 8 | 45/60 (75%) |
+| `areas` | 9 8 8 8 8 9 | 50/60 (83%) |
+| `modeonly2` | 9 9 9 10 9 10 | 56/60 (93%) |
+
+- `legs_mode_only`: 56/60 (0.933), against 0/120 before. The four leaks are
+  all Chinese, and none comes from a skill:
+  - "乘地铁转乘前往" to Fushimi Inari (lodging-booked, 2);
+  - "乘近铁" / "乘近铁或 JR" for the Nara return (day trip, 2).
+- Mixed-language legs: 0 of 30 Chinese drafts. A first run with only the
+  English "by subway" example had 4 of 15 ("浅草寺 by 地铁"). That run is
+  kept in `results/stale-modeonly/` and excluded.
+- Against `areas`:
+  - `full_day_alternatives` 0.917 → 0.983;
+  - `invented_hotel` 0.033 → 0.008;
+  - `tool_args_ok` 0.800 → 0.817;
+  - `replay_miss` 0.108 → 0.092.
+- `every_night_linked` 0.929 → 0.905 (−0.024) breaks its gate. All four misses
+  are Chinese multi-city trials whose Osaka nights have no hotel. In three of
+  them, the recorded "大阪 日本" search returns Shanghai hotels and the model
+  rightly refuses them; in the fourth, a replay miss fell back to Tokyo
+  hotels. The live check, against the real hotel server, found Osaka stays.
+  This is a replay problem, not the prompt (see the re-recording below).
+
+**Live check.** The first run failed one check: `15:00 Osaka Castle by subway
+(approx. 1.5 h)`, a visit time the grader then misread as a ride (fixed
+above). On the final prompt, all 52 checks pass. Both drafts give every leg
+by mode only, and the Chinese one writes "乘电车" and "乘新干线".
+
+**Geography.** Means over six trials (Google usage: 35 Text Search
+Essentials (IDs Only) to fill the cache, 94 Place Details Essentials,
+`location` only, to score):
+
+| Metric | `pacinglf` | `areas` | `modeonly2` | A/A SD | Gate |
+|---|---:|---:|---:|---:|---:|
+| `day_km_max` (km) | 89.0 | 82.5 | 92.2 | 12.3 | +30.07 |
+| `route_detour` | 1.039 | 1.026 | 1.089 | 0.046 | +0.14 |
+| `hotel_far` (km) | 42.6 | 40.2 | 42.4 | 5.3 | +10.6 |
+| `geocode_conflict` | 0.25 | 0.23 | 0.32 | 0.080 | +0.33 |
+| `stop_unverified` | 1.07 | 0.37 | 0.70 | | |
+| `geocode_coverage` | 0.999 | 0.998 | 1.000 | 0 | −0.02 |
+
+Every geography gate passes. Most of the rise is not planning:
+
+- Chinese multi-city: `day_km_max` 105 → 202. Its 清水寺 geocodes about 240 km
+  away in exactly the four trials whose Osaka nights have no hotel (the
+  replay problem above), so the Kyoto day trip is measured from the wrong
+  side of the country.
+- Chinese day trip: two trials list the city "奈良" as a stop, which the
+  geocoder cannot pin down (2 conflicts, 92 and 174 km, detour 1.92).
+- 八坂神社 (Chinese lodging-booked) and Tokyo National Museum (English
+  lodging-area) conflict in most trials of both pairs.
+
+What is left is `route_detour`, up 1.4 A/A SD: single backtracking days in
+one Chinese (1.75) and one English (1.67) family trial. Without area
+groupings the model has only the core rule "keep each day's places close
+together"; a place tool is the real fix.
+
+### Re-recorded cassettes (2026-10-31)
+
+**Recording.** `eval:record-itinerary` re-recorded all 20 L3 scenarios against
+the live model and hotel server. `--refresh all` then added live responses for
+the argument variants seen in `modeonly2` (9 calls) and in a first pair on the
+new cassettes (6 calls). No Google requests and no traces.
+
+**The hotel server, not staleness.** Every live "大阪 日本" search in this
+recording returned Shanghai hotels (5 calls) or none (1). The same happened
+in the old recording, and "大阪市 日本" behaves the same way. "大阪", "大阪 难波",
+"难波 大阪 日本", "大阪市 大阪府 日本" and "Osaka Japan" return Osaka hotels. The
+tool description asks for "城市 国家" for a city, so "大阪 日本" is the model's
+usual first search (31 of 45 Chinese Osaka searches in `rec2`). Live Chinese
+users get the same Shanghai results unless the model retries with another
+name.
+
+**Replay profile v2.** `itinerary-hybrid-v1` aliased "大阪 日本" and "大阪市
+日本" to "大阪". The first Osaka snapshot answered all three, so a retry with
+"大阪" replayed Shanghai, unlike live. `itinerary-hybrid-v2` keys those two
+exactly.
+
+**Curation.** As before, the first hotel search of each cassette must be a
+nonempty Japan result, because a miss falls back to it. `l3-zh-family` and
+`l3-zh-tight-budget` started with a Shanghai and an empty search. Their first
+Osaka or Namba search was moved to the front; nothing else changed.
+
+**Pairs.** The first pair (`rec`, kept in `results/stale-rec/`) still had
+`every_night_linked` 0.905. Two of its four misses were replay misses (Namba
+searches typed 区/县) that fell back to the Tokyo search. Those variants were
+refreshed, and `itinerary@ec53810-dirty-rec2-a` / `-b` is the new baseline:
+
+| Metric | `modeonly2` | `rec2` |
+|---|---:|---:|
+| `replay_miss` | 0.092 | 0.033 |
+| `every_night_linked` | 0.905 | 0.929 |
+| `has_stays` | 1.000 | 0.983 |
+| `at_least_one_stay_link` | 1.000 | 0.976 |
+| `tool_args_ok` | 0.817 | 0.850 |
+| `legs_mode_only` | 0.933 | 0.883 |
+| `full_day_alternatives` | 0.983 | 0.950 |
+| `pacing_ok` | 0.933 | 0.833 |
+| `live_checks_pass` | 1.000 | 0.979 |
+
+(`legs_mode_only` for `modeonly2` is regraded with the current grader. Its
+stored score, 0.917, predates a false-positive fix.)
+
+- Unlinked nights in `rec2`: two Chinese trials (multi-city, family) searched
+  only "大阪 日本" and got only Shanghai hotels, as live would; the family one
+  has no stays at all. The third is a replay miss on "大阪 难波".
+- `pacing_ok`: no prompt changed since `modeonly2`. `l3-zh-day-trip` makes no
+  tool calls, yet failed 5 of 6 trials, against 2 of 6 before: four places on a
+  standard Nara day. Session-to-session noise is larger than the
+  `modeonly2` A/A pair showed.
+- `legs_mode_only` leaks: 转乘 (3), "机场线" / "机场快线" (3) and "Taxi down to
+  Yasaka Shrine, approx. 45 min" (1). The grader fails "机场快线" but not the
+  English "airport express".
+
+**Geography.** Means over six trials (Google usage: 35 Text Search
+Essentials (IDs Only) to fill the cache, 112 Place Details Essentials,
+`location` only, to score):
+
+| Metric | `modeonly2` | `rec2` | `rec2` A/A SD |
+|---|---:|---:|---:|
+| `day_km_max` (km) | 92.2 | 82.3 | 12.0 |
+| `route_detour` | 1.089 | 1.083 | 0.035 |
+| `hotel_far` (km) | 42.4 | 37.8 | 5.2 |
+| `geocode_conflict` | 0.32 | 0.32 | 0.086 |
+| `stop_unverified` | 0.70 | 0.77 | |
+| `geocode_coverage` | 1.000 | 0.983 | 0.033 |
+
+`day_km_max` falls because fewer Chinese multi-city trials lose their Osaka
+hotel to a replay miss, so fewer Kyoto day trips are measured from Tokyo.
+
+**Gates.** `eval:compare` of `rec2-a` against `rec2-b` reports no regressed
+items but fails five gates: `has_stays` (−0.033), `stays_have_media` and
+`at_least_one_stay_link` (−0.048), `geocode_coverage` and
+`geography_day_coverage` (−0.033). All five come from one trial,
+`rec2-b_2` `l3-zh-family`, which searched only "大阪 日本", got only Shanghai
+hotels and so has no stays to measure from. `thresholds.json` is unchanged:
+the gates stay as they are until the app drops non-Japan hotels and the
+baseline pair is re-run with that fix.
+
+**Osaka hotel fix.** `compactToolContent` (`src/llm/mcp/compact.ts`) now
+drops hotels whose `areaCode` is not `JP`. When none remain, it tells the
+model to search again without the country ("大阪", not "大阪 日本"). Replay runs
+through the same code, and the recorded Shanghai hotels carry `areaCode`
+`CN`. The live check gained "Osaka stays" checks for both locales and passes
+56/56.
+
+The `osakafix` pair stopped on a model-provider 402 after two trials of run
+`a`; run `b` made no progress. Those two trials (`results/stale-osakafix/`)
+have `every_night_linked` 1.000 and `has_stays` 1.000. Every Chinese Osaka
+trial retried "大阪" after "大阪 日本". `l3-zh-tight-budget` has no "大阪"
+recording, so its retry is a replay miss (`replay_miss` 0.033 → 0.050). Two
+trials are not a baseline. Once the provider balance is restored, refresh
+the "大阪" variant and re-run the pair.
 
 ## Geocoder accuracy check
 

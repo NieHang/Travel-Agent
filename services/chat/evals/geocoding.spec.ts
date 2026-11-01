@@ -51,7 +51,10 @@ it('stops a resumed fill at its remaining Google ceiling, including empty-result
   expect(fetch).toHaveBeenCalledTimes(1);
 });
 
-it('retries a Wikidata 429 without repeating the Google search', async () => {
+it.each([
+  { label: 'a 429', busy: () => new Response('', { status: 429 }) },
+  { label: 'a busy search error', busy: () => Response.json({ error: { code: 'cirrussearch-too-busy-error' } }) },
+])('retries $label from Wikidata without repeating the Google search', async ({ busy }) => {
   vi.useFakeTimers();
   vi.stubEnv('GOOGLE_MAPS_API_KEY', 'unit-test');
   const calls = { google: 0, wikidata: 0 };
@@ -62,7 +65,7 @@ it('retries a Wikidata 429 without repeating the Google search', async () => {
     }
     if (url.includes('wikidata.org')) {
       calls.wikidata++;
-      return calls.wikidata === 1 ? new Response('', { status: 429 }) : Response.json({ query: { search: [] } });
+      return calls.wikidata === 1 ? busy() : Response.json({ query: { search: [] } });
     }
     return Response.json([]);
   }));
