@@ -255,9 +255,10 @@ in its denominator. `live_checks_pass` is per original scenario, while
 Additional checks require every overnight day to link a grounded stay, no
 lodging search for day trips/already-booked lodging, and matching lodging search
 destinations, dates and traveler counts. Known English/Japanese/Chinese city
-names are accepted. `adultCount` is compared with the stated traveler count;
-the model sometimes searches two adults for a four-person family, which this
-flags. The budget fixture explicitly uses CNY: minimum shown hotel price ×
+names are accepted. `searchHotels` takes `adultCount` per room and has no
+room or child count (those are on `getHotelDetail`), so a party of three or
+more may search anything from 2 per room to the whole party; parties of one or
+two must search their own size. The budget fixture explicitly uses CNY: minimum shown hotel price ×
 nights must fit its total lodging budget. A missing comparable price emits
 `budget_checkable=0` but no `budget_ok` score, and does not fail the aggregate
 because of budget. Task errors still receive failed budget scores. No exchange
@@ -975,6 +976,22 @@ smaller ones.
 
 **Google usage.** 14 Text Search Essentials (IDs Only) requests to fill the
 cache and at most 87 Place Details Essentials, `location` only, to score.
+
+**`tool_args_ok` per room (2026-11-02).** The grader required `adultCount` to
+equal the party size, so a family of four searching two adults per room
+failed; that was 10 of the 11 failures in this pair and 9 of 9 in `rec2`. It
+now accepts 2 per room up to the whole party (see above). Regraded from the
+saved outputs, with no model calls:
+
+| Pair | `tool_args_ok` | `code_checks_pass` |
+|---|---:|---:|
+| `rec2` | 0.850 → 1.000 | 0.817 → 0.842 |
+| `osakastays2` | 0.817 → 0.983 | 0.800 → 0.842 |
+
+The remaining failure is `b_1` `l3-zh-multi-city`, a "大阪" search without
+`checkInParam`. The result files still hold the old scores, which
+`eval:compare` reads, so a candidate compared with `osakastays2` gains about
+0.17 on `tool_args_ok` from the grader alone. The gate (0.11) is unchanged.
 
 ## Geocoder accuracy check
 

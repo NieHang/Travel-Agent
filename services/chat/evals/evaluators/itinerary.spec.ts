@@ -29,6 +29,14 @@ it('checks actual lodging arguments, including travelers and the full date range
   result.toolCalls[0].args.checkInParam = { checkInDate: '2026-12-01', stayNights: 1, adultCount: 2 };
   expect(gradeItinerary(entry, result)).toContainEqual({ name: 'tool_args_ok', value: 0 });
 });
+it('lets a party of four search double rooms but not single or oversized rooms', () => {
+  const result = output();
+  const grade = (adultCount: number) => {
+    result.toolCalls = [{ name: 'mcp_rollingGo_searchHotels', args: { place: 'Osaka', checkInParam: { checkInDate: '2026-12-01', stayNights: 2, adultCount } } }];
+    return gradeItinerary(entry, result).find((s) => s.name === 'tool_args_ok')?.value;
+  };
+  expect([1, 2, 3, 4, 5].map(grade)).toEqual([0, 1, 1, 1, 0]);
+});
 it('fails drafts whose travel legs give more than the mode', () => {
   const result = output();
   expect(gradeItinerary(entry, result)).toContainEqual({ name: 'legs_mode_only', value: 1 });

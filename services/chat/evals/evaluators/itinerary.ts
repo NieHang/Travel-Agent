@@ -173,7 +173,10 @@ function lodgingArgsOk(item: ItineraryEntry, out: TurnOutput): boolean {
   return searches.every(({ place, checkInParam: p }) => {
     const start = Date.parse(p.checkInDate);
     const end = start + p.stayNights * 86_400_000;
-    if (p.adultCount !== r.travelers || start < Date.parse(r.departureDate!) || end > Date.parse(r.returnDate!)) return false;
+    // searchHotels takes adults per room and has no room count, so a party above two may search double rooms
+    // (2 per room) or rooms for everyone; parties of one or two search their own size.
+    const perRoomOk = r.travelers! > 2 ? p.adultCount >= 2 && p.adultCount <= r.travelers! : p.adultCount === r.travelers;
+    if (!perRoomOk || start < Date.parse(r.departureDate!) || end > Date.parse(r.returnDate!)) return false;
     const cityTokens = destinations.flat();
     if (!cityTokens.some((city) => city && place.toLowerCase().includes(city.toLowerCase()))) return false;
     for (let day = start; day < end; day += 86_400_000) dates.add(new Date(day).toISOString().slice(0, 10));
