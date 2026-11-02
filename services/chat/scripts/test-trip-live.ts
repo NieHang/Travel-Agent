@@ -1,6 +1,7 @@
 // Live check of the trip prompts against the configured model and MCP servers.
 // Usage: bun run scripts/test-trip-live.ts (PRINT_DRAFT=1 also prints the Tokyo→Osaka drafts)
 import 'dotenv/config';
+import { hasOsakaStay } from '../evals/evaluators/itinerary.js';
 import { legDetails, TRAVEL_LEG } from '../evals/travel-leg.js';
 import { McpService } from '../src/llm/mcp/mcp.service.js';
 import { ModelTripLlm } from '../src/trip/llm.js';
@@ -11,11 +12,6 @@ import { initialState, type Locale, type TripState } from '../src/trip/state.js'
 const mcp = new McpService();
 await mcp.mcpManager.start();
 const llm = new ModelTripLlm(mcp, loadSkills());
-// The provider answered "大阪 日本" with Shanghai hotels; an Osaka stay names Osaka in its title or address.
-const hasOsakaStay = (state: TripState) =>
-  (state.stays?.items ?? []).some((h) =>
-    /大阪|Osaka/i.test([h.title.original, h.title.translation, h.address?.original, h.address?.translation].join(' ')),
-  );
 let failures = 0;
 const check = (label: string, ok: boolean) => {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${label}`);

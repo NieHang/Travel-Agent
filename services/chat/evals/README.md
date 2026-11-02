@@ -240,13 +240,15 @@ retries. The curated cassettes retain every recorded argument/result pair but
 put a nonempty Japan response first for P1's fallback. Exact matches still
 return their original result, including empty or wrong-region responses.
 
-Every assertion in the current live check, except the four "Osaka stays"
-checks added with the hotel fix, has an L3 counterpart: refusals and
+Every assertion in the current live check has an L3 counterpart: refusals and
 outside-city names, Japan-only suggestions, chat intent and hotel cards,
-destination clarification, review, destination checking, stays and media,
-at least one stay link, city skills, headings, mode-only legs, day coverage, travel
-legs, full-day alternatives and minimum city nights. `live_assertion_accuracy`
-is the assertion-weighted run score over those 52 checks; failed tasks remain
+destination clarification, review, destination checking, stays and Osaka
+stays, media, at least one stay link, city skills, headings, mode-only legs,
+day coverage, travel legs, full-day alternatives and minimum city nights.
+`osaka_stays` uses the live check's own `hasOsakaStay` and also runs on
+`l3-zh-tight-budget`, though only the family and multi-city scenarios count it
+as a live check. `live_assertion_accuracy` is the assertion-weighted run
+score over those 56 checks; failed tasks remain
 in its denominator. `live_checks_pass` is per original scenario, while
 `code_checks_pass` additionally includes the other applicable code checks.
 
@@ -927,8 +929,52 @@ The `osakafix` pair stopped on a model-provider 402 after two trials of run
 have `every_night_linked` 1.000 and `has_stays` 1.000. Every Chinese Osaka
 trial retried "大阪" after "大阪 日本". `l3-zh-tight-budget` has no "大阪"
 recording, so its retry is a replay miss (`replay_miss` 0.033 → 0.050). Two
-trials are not a baseline. Once the provider balance is restored, refresh
-the "大阪" variant and re-run the pair.
+trials are not a baseline. The "大阪" variant is now recorded for
+`l3-zh-tight-budget` (10 Japan hotels; one live hotel call on 2026-11-01).
+
+### Osaka stays baseline (2026-11-01)
+
+**Grader.** `osaka_stays` passes when a family, tight-budget or multi-city
+trip has a stay that names Osaka (大阪) in its title or address. The live check
+uses the same `hasOsakaStay`, so every live-check assertion now has an L3
+counterpart (56 checks). The live check passes 56/56.
+
+**Recording.** The first pair (`osakastays`, kept in
+`results/stale-osakastays/`) showed four new argument variants in
+`l3-zh-multi-city` ("大阪 城市" with size 5 and 6, "大阪市 城市", "大阪 难波
+区/县"). `--refresh` recorded them; all four return only Japan hotels.
+
+**Baseline.** `itinerary@507790f-dirty-osakastays2-a` / `-b` is the new
+baseline (model cost $0.39). Means over six trials against `rec2`:
+
+| Metric | `rec2` | `osakastays2` |
+|---|---:|---:|
+| `osaka_stays` | | 1.000 |
+| `every_night_linked` | 0.929 | 1.000 |
+| `has_stays` | 0.983 | 1.000 |
+| `replay_miss` | 0.033 | 0.008 |
+| `live_checks_pass` | 0.979 | 1.000 |
+| `legs_mode_only` | 0.883 | 0.883 |
+| `pacing_ok` | 0.833 | 0.833 |
+| `tool_args_ok` | 0.850 | 0.817 |
+| `day_km_max` (km) | 82.3 | 76.3 |
+| `route_detour` | 1.083 | 1.072 |
+| `hotel_far` (km) | 37.8 | 35.5 |
+| `geocode_conflict` | 0.32 | 0.35 |
+| `geocode_coverage` | 0.983 | 1.000 |
+
+Every Osaka trial has an Osaka stay and every night is linked. The one replay
+miss ("大阪 城市" in `b_1` `l3-zh-multi-city`) still found Osaka stays.
+
+**Gates.** `eval:compare` of `-a` against `-b` failed only `legs_mode_only`
+(0.900 → 0.867), whose gate was still the 0.02 default. Its A/A SD is 0.083,
+so the three-SD rule gives 0.25, which is now its gate. The pair passes every
+other gate, so the others are unchanged, and `eval:noise` and `eval:compare`
+pass. A 0.25 gate only catches a large leak; read the regressed items for
+smaller ones.
+
+**Google usage.** 14 Text Search Essentials (IDs Only) requests to fill the
+cache and at most 87 Place Details Essentials, `location` only, to score.
 
 ## Geocoder accuracy check
 

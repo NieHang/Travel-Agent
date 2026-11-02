@@ -74,6 +74,6 @@ it('keeps failed L3 assertions in the live accuracy denominator', async () => {
   vi.spyOn(llm, 'classify').mockRejectedValue(new Error('classifier failed'));
   const item = ItineraryEntrySchema.parse({ id: 'l3-en-family', today: '2026-10-30', locale: 'en', text: 'Family Osaka trip', history: [], expected: { effect: 'itinerary', nights: 2 }, must: ['Family pacing'] });
   const failed = await executeItem(item, llm);
-  expect(failed.scores).toContainEqual({ name: 'live_assertion_count', value: 5 });
-  expect(gradeLiveAssertions([...failed.scores, { name: 'live_assertion_count', value: 5 }, { name: 'live_assertion_passed', value: 5 }])).toEqual([{ name: 'live_assertion_accuracy', value: 0.5 }]);
+  expect(failed.scores).toContainEqual({ name: 'live_assertion_count', value: 6 });
+  expect(gradeLiveAssertions([...failed.scores, { name: 'live_assertion_count', value: 6 }, { name: 'live_assertion_passed', value: 6 }])).toEqual([{ name: 'live_assertion_accuracy', value: 0.5 }]);
 });

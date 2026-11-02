@@ -59,12 +59,22 @@ it.each([
 });
 
 function withHotel(result: TurnOutput): TurnOutput {
-  result.next.stays = groundResults({ panel: 'hotels', items: [{ source: 'c1', id: '1', title: { original: 'Real Hotel', translation: null }, address: null, price: null, rating: null, url: null, image: 'https://example.com/h.jpg', details: [], amenities: [], summary: null }] }, [{ callId: 'c1', tool: 'searchHotels', args: {}, content: 'Real Hotel 1 https://example.com/h.jpg', isError: false }]);
+  result.next.stays = groundResults({ panel: 'hotels', items: [{ source: 'c1', id: '1', title: { original: 'Real Hotel', translation: null }, address: { original: 'Namba, Osaka', translation: null }, price: null, rating: null, url: null, image: 'https://example.com/h.jpg', details: [], amenities: [], summary: null }] }, [{ callId: 'c1', tool: 'searchHotels', args: {}, content: 'Real Hotel 1 Namba, Osaka https://example.com/h.jpg', isError: false }]);
   result.next.days.forEach((d) => { d.stayRef = 'r1'; });
   result.toolCalls = [{ name: 'mcp_rollingGo_searchHotels', args: { place: 'Osaka', checkInParam: { checkInDate: '2026-12-01', stayNights: 2, adultCount: 4 } } }];
   return result;
 }
 
+it('fails Osaka scenarios whose only stays are outside Osaka', () => {
+  const result = withHotel(output());
+  expect(gradeItinerary(entry, result)).toContainEqual({ name: 'osaka_stays', value: 1 });
+  result.next.stays!.items[0].address = { original: '上海市黄浦区', translation: 'Huangpu, Shanghai' };
+  const scores = gradeItinerary(entry, result);
+  expect(scores).toContainEqual({ name: 'osaka_stays', value: 0 });
+  expect(scores).toContainEqual({ name: 'live_checks_pass', value: 0 });
+  const kyoto = ItineraryEntrySchema.parse({ ...entry, id: 'l3-en-elderly' });
+  expect(gradeItinerary(kyoto, result).map((s) => s.name)).not.toContain('osaka_stays');
+});
 it('fails the aggregate when a travel leg is extracted, even if every other family check passes', () => {
   const result = withHotel(output());
   expect(gradeItinerary(entry, result)).toContainEqual({ name: 'code_checks_pass', value: 1 });

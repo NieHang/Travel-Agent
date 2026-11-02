@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ItineraryEntry, Score } from '../schemas.js';
+import type { TripState } from '../../src/trip/state.js';
 import type { TurnOutput } from '../turn.js';
 import { legDetails, TRAVEL_LEG } from '../travel-leg.js';
 
@@ -8,13 +9,19 @@ import { legDetails, TRAVEL_LEG } from '../travel-leg.js';
 const TRANSIT_STOP = /(Station|Airport|駅|站|機場|机场|空港)\s*(?:[（(][^）)]*[）)])?$/i;
 // The skill lets meals happen "nearby"; extraction still turns "lunch near the park" or "东福寺附近午餐" into a stop. The hotel is never a place.
 const NEARBY_STOP = /\bnear(?:by)?\b|附近|^(?:hotel|酒店)$/i;
+// Scenarios that stay in Osaka. The hotel server answered "大阪 日本" with Shanghai hotels; an Osaka stay names Osaka in its title or address.
+const OSAKA_STAYS = ['family', 'tight-budget', 'multi-city'];
+export const hasOsakaStay = (state: TripState) =>
+  (state.stays?.items ?? []).some((h) =>
+    /大阪|Osaka/i.test([h.title.original, h.title.translation, h.address?.original, h.address?.translation].join(' ')),
+  );
 const MEAL_STOP = /\b(?:breakfast|brunch|lunch|dinner|meal|snacks?|drinks?|coffee|rest)\b|\bcaf[eé]|早餐|午餐|晚餐|午饭|晚饭|用餐|吃饭|小吃|休息/i;
 
 const LIVE_CHECKS: Record<string, string[]> = {
   refused: ['outside_refused', 'refusal_names_city', 'no_tools'], mixed: ['outside_refused', 'refusal_names_city', 'offers_japan_part'],
-  'outside-hotel': ['hotel_intent_chat', 'no_tools'], family: ['reaches_review', 'destination_checked', 'has_stays', 'stays_have_media', 'at_least_one_stay_link'],
+  'outside-hotel': ['hotel_intent_chat', 'no_tools'], family: ['reaches_review', 'destination_checked', 'has_stays', 'osaka_stays', 'stays_have_media', 'at_least_one_stay_link'],
   'day-trip': ['has_stays'], 'hotel-question': ['hotel_intent_chat', 'hotel_cards'], vague: ['destination_clarified'],
-  'multi-city': ['reaches_review', 'skills_loaded', 'has_stays', 'headings_present', 'legs_mode_only', 'every_day_covered', 'leg_as_stop', 'full_day_alternatives', 'city_min_nights'],
+  'multi-city': ['reaches_review', 'skills_loaded', 'has_stays', 'osaka_stays', 'headings_present', 'legs_mode_only', 'every_day_covered', 'leg_as_stop', 'full_day_alternatives', 'city_min_nights'],
 };
 
 export function gradeItinerary(item: ItineraryEntry, out: TurnOutput): Score[] {
@@ -44,6 +51,7 @@ export function gradeItinerary(item: ItineraryEntry, out: TurnOutput): Score[] {
     check('destination_checked', next.checkedDestination !== null);
     check('has_stays', item.expected.nights > 0 && !booked ? hotels.length > 0 : next.stays === null);
     if (item.expected.nights > 0 && !booked) {
+      if (OSAKA_STAYS.includes(kind)) check('osaka_stays', hasOsakaStay(next));
       check('stays_have_media', hotels.some((h) => h.amenities.length > 0 || Boolean(h.image)));
       check('at_least_one_stay_link', next.days.some((d) => d.stayRef));
       check('every_night_linked', next.days.length >= item.expected.nights && next.days.slice(0, item.expected.nights).every((d) => hotels.some((h) => h.ref === d.stayRef)));
@@ -102,7 +110,7 @@ export function failedItineraryScores(item: ItineraryEntry): Score[] {
   if (item.expected.effect === 'itinerary') {
     for (const name of ['reaches_review', 'destination_checked', 'has_stays', 'skills_loaded', 'headings_present', 'legs_mode_only', 'every_day_covered', 'full_day_alternatives', 'pacing_ok', 'tool_args_ok', 'geocode_coverage']) names.add(name);
     if (item.expected.nights > 0 && !item.id.endsWith('lodging-booked'))
-      for (const name of ['stays_have_media', 'at_least_one_stay_link', 'every_night_linked']) names.add(name);
+      for (const name of ['stays_have_media', 'at_least_one_stay_link', 'every_night_linked', ...(OSAKA_STAYS.includes(item.id.replace(/^l3-(zh|en)-/, '')) ? ['osaka_stays'] : [])]) names.add(name);
     else names.add('no_lodging_search');
     if (item.expected.budget) { names.add('budget_ok'); names.add('budget_checkable'); }
   }

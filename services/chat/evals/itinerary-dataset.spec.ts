@@ -11,5 +11,5 @@ it('has 20 itinerary scenarios retaining every live case in both languages', asy
   for (const name of ['elderly', 'tight-budget', 'lodging-area', 'lodging-booked'])
     expect(entries.some((entry) => entry.id.endsWith(name))).toBe(true);
   const assertionCount = entries.flatMap((entry) => 'must' in entry ? failedItineraryScores(entry) : []).filter((s) => s.name === 'live_assertion_count').reduce((sum, s) => sum + s.value, 0);
-  expect(assertionCount).toBe(52);
+  expect(assertionCount).toBe(56);
 });
