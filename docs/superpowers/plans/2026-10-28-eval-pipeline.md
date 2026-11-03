@@ -189,7 +189,7 @@ Datasets:
 - **classify**: 120 entries drafted by Codex, 10 per category, 5 zh + 5 en each. Many read template-like ("出行人数1"), and the expected values are unreviewed.
 - **extract-days**: 10 real drafts from live itinerary runs (`evals/drafts/`), labeled by Codex with a note per judgment call, plus 2 synthetic entries.
   - The two zh "朋友出游" requests never reached an itinerary: classify left tripType empty.
-  - The MCP calls from those runs are saved in `evals/cassettes/itinerary/` for P3.
+  - The MCP calls from those runs were saved in `evals/cassettes/itinerary/` for P3. P3 recorded its own (`evals/cassettes/l3/`), so they were removed on 2026-11-03.
 
 Baselines (`*@accc65d-dirty-baseline`, 3 trials each, DeepSeek flash, temperature 0):
 
