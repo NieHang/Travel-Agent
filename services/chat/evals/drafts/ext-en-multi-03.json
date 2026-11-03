@@ -1,0 +1,316 @@
+{
+  "id": "ext-en-multi-03",
+  "category": "multi_city",
+  "locale": "en",
+  "text": "Tokyo and Hakone with friends, 2026-12-05 to 2026-12-09, 3 people",
+  "today": "2026-10-30",
+  "draft": "I'll load the city skills and search hotels for both bases in one go.# Draft itinerary — Tokyo & Hakone with friends (5–9 Dec 2026)\n\n**Overview**: Tokyo 2 nights → Hakone 2 nights → back to Tokyo/Haneda on the last day | 1 hotel change | light · standard · standard · tiring · light\n\nNights split 2 + 2 so nobody sleeps in a city for a single night. Hakone is reached by Romancecar from Shinjuku, so a Shinjuku-side base in Tokyo keeps the transfer simple.\n\n**Before you go**\n- Book the Odakyu Romancecar (Shinjuku → Hakone-Yumoto) seats a few weeks ahead — reserved seats sell out in December; please check current timetables.\n- Reserve any timed-entry places you want (e.g. teamLab, Shibuya Sky sunset slot, Ghibli Museum) a few weeks ahead; please check availability.\n- Get an IC card (Suica/PASMO) at the airport for JR, subway and buses.\n- On Day 3, forward luggage from the Tokyo hotel to the Hakone hotel with takkyubin (arrange the day before) and travel with a small bag — the Hakone Tozan line and cable car are cramped with suitcases.\n- December is cold (Hakone can be near freezing at night): pack layers; check the weather for Mt Fuji views.\n- A JR Pass is not needed for this route — compare only if you add long Shinkansen legs.\n\n**Day 1 | Arrival · Shinjuku (light)**\n- 14:00 Haneda Airport → Keikyu Line to Shinagawa, approx. 20 min, no transfer (from Narita: Keisei Skyliner to Ueno, approx. 45 min, then JR approx. 20 min)\n- 15:30 Check in, rest\n- 17:00 Shinjuku Gyoen area walk or Omoide Yokocho for an early dinner — Shinjuku Station is huge, allow extra time to find exits\n- 19:30 Golden Gai for a drink, early night\n- Tonight: Shinjuku Washington Hotel Main (新宿华盛顿主酒店)\n\n**Day 2 | Shibuya · Harajuku · Omotesando (standard)**\n- 08:30 Meiji Jingu (JR Yamanote to Harajuku, approx. 10 min, no transfer): calmest early morning\n- 10:30 Takeshita Street and Omotesando, walk approx. 15 min\n- 12:30 Lunch in Omotesando\n- 14:30 Shibuya: crossing and a rooftop view at dusk (Ginza Line 1 stop, approx. 5 min)\n- 18:30 Dinner in Shibuya\n- Alternatives: if rain, Shibuya department stores and a museum instead of the Omotesando walk; if tired, drop Takeshita Street\n- Tonight: Shinjuku Washington Hotel Main (新宿华盛顿主酒店)\n\n**Day 3 | Tokyo → Hakone · Gora (standard)**\n- 09:00 Forward luggage, then Shinjuku Station → Odakyu Romancecar to Hakone-Yumoto, approx. 85 min, no transfer\n- 11:00 Hakone Tozan train to Gora, approx. 40 min, no transfer; drop bags at the hotel\n- 12:30 Lunch in Gora\n- 14:00 Hakone Open-Air Museum (walk approx. 10 min from Gora)\n- 17:00 Check in, onsen before dinner\n- Alternatives: if rain, the Open-Air Museum's indoor Picasso pavilion and the hotel's baths instead of the sculpture garden; if tired, drop the museum\n- Tonight: Hakone Gora Onsen Tokinoyu Setsugetsuka (箱根强罗温泉季之汤雪月花)\n\n**Day 4 | Hakone loop · Lake Ashi (tiring)**\n- 08:30 Gora → cable car and ropeway to Owakudani, approx. 25 min, 1 transfer: volcanic valley, clear-morning Fuji views\n- 10:30 Ropeway to Togendai, approx. 20 min, no transfer\n- 11:00 Pirate ship across Lake Ashi to Moto-Hakone, approx. 30 min\n- 12:30 Lunch at Moto-Hakone; Hakone Shrine and the lakeside torii, walk approx. 15 min\n- 15:30 Bus back to Gora, approx. 40 min, no transfer\n- 17:30 Onsen and dinner at the hotel\n- Alternatives: if rain, skip the lake crossing and do the Hakone Sekisho checkpoint and the hotel onsen instead; if tired, drop the shrine and return from Togendai by bus\n- Tonight: Hakone Gora Onsen Tokinoyu Setsugetsuka (箱根强罗温泉季之汤雪月花)\n\n**Day 5 | Departure (light)**\n- 09:00 Breakfast and a last onsen\n- 10:30 Gora → Hakone-Yumoto by Tozan train, approx. 40 min, then Romancecar to Shinjuku, approx. 85 min (or Odawara → Shinkansen if flying from Haneda via Shinagawa, approx. 35 min + approx. 20 min)\n- Leave plenty of time for check-in; please check the exact train times before you go\n\nHotel prices shown are the lowest rates found for 3 adults over each stay and can change — please confirm when booking.",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "5293",
+        "title": {
+          "original": "三井花园酒店汐留意大利街",
+          "translation": "Mitsui Garden Hotel Shiodome Italia-gai"
+        },
+        "address": {
+          "original": "2-14-24 Higashi-Shimbashi, Minato-ku",
+          "translation": null
+        },
+        "price": {
+          "amount": 1653,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=5293&checkInDate=2026-12-05&checkOutDate=2026-12-07&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/JP/5293/b1168fa5_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "洗衣设施",
+            "translation": "Laundry facilities"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "Central Shiodome/Hamamatsucho-side base, handy for the Yamanote loop and Haneda; triple rooms available. Lowest price shown for 2 nights, 3 adults."
+      },
+      {
+        "ref": "h2",
+        "id": "537",
+        "title": {
+          "original": "新宿华盛顿主酒店",
+          "translation": "Shinjuku Washington Hotel Main"
+        },
+        "address": {
+          "original": "3-2-9 Nishishinjuku, Shinjuku-ku",
+          "translation": null
+        },
+        "price": {
+          "amount": 1572,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=537&checkInDate=2026-12-05&checkOutDate=2026-12-07&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/537/hotel/250716172130/0/image/34022875.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "洗衣房",
+            "translation": "Laundry room"
+          },
+          {
+            "original": "提供三人间",
+            "translation": "Triple rooms"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "Shinjuku base, convenient for the Odakyu Romancecar to Hakone and for Shinjuku evenings; triple rooms available. Lowest price shown for 2 nights, 3 adults."
+      },
+      {
+        "ref": "h3",
+        "id": "369077",
+        "title": {
+          "original": "箱根强罗温泉季之汤雪月花",
+          "translation": "Hakone Gora Onsen Tokinoyu Setsugetsuka"
+        },
+        "address": {
+          "original": "神奈川县足柄下郡箱根Gora 1300-34, 250-0408",
+          "translation": null
+        },
+        "price": {
+          "amount": 2654,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=369077&checkInDate=2026-12-07&checkOutDate=2026-12-09&roomCount=1&adultCount=3&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/369077/hotel/default/6/image/f6c6ba6f_z.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "公共温泉",
+            "translation": "Public hot spring bath"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "花园",
+            "translation": "Garden"
+          },
+          {
+            "original": "茶道体验",
+            "translation": "Tea ceremony experience"
+          },
+          {
+            "original": "停车场",
+            "translation": "Parking"
+          }
+        ],
+        "summary": "Gora onsen ryokan with public hot-spring baths, close to the Gora cable car/ropeway; good for a friends' trip. Lowest price shown for 2 nights, 3 adults."
+      },
+      {
+        "ref": "h4",
+        "id": "1419333",
+        "title": {
+          "original": "IHGホテルインディゴ箱根强罗",
+          "translation": "Hotel Indigo Hakone Gora"
+        },
+        "address": {
+          "original": "足柄下郡箱根Kigaujishinden 924-1",
+          "translation": null
+        },
+        "price": {
+          "amount": 2317,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": null,
+        "image": "https://image-cdn.rollinggo.cn/v2/1419333/hotel/default/3/image/0201q120007r3725d94FA.jpg-t",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4.5",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "温泉",
+            "translation": "Hot spring"
+          },
+          {
+            "original": "桑拿",
+            "translation": "Sauna"
+          },
+          {
+            "original": "健身中心",
+            "translation": "Fitness centre"
+          },
+          {
+            "original": "酒吧",
+            "translation": "Bar"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "接站服务",
+            "translation": "Station pick-up"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "远足步道",
+            "translation": "Hiking trails"
+          }
+        ],
+        "summary": "Modern onsen hotel in Gora with sauna and bar; a good pick if the group wants a stylish base near the cable car. Lowest price shown for 2 nights, 3 adults."
+      },
+      {
+        "ref": "h5",
+        "id": "147315",
+        "title": {
+          "original": "王子箱根芦之湖酒店",
+          "translation": "The Prince Hakone Lake Ashinoko"
+        },
+        "address": {
+          "original": "144 Moto-hakone",
+          "translation": null
+        },
+        "price": {
+          "amount": 1203,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": null,
+        "image": "https://image-cdn.rollinggo.cn/Image/JP/147315/Featured%20Image/70a13f7c_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "温泉",
+            "translation": "Hot spring"
+          },
+          {
+            "original": "桑拿",
+            "translation": "Sauna"
+          },
+          {
+            "original": "SPA",
+            "translation": "Spa"
+          },
+          {
+            "original": "接站服务",
+            "translation": "Station pick-up"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "酒吧",
+            "translation": "Bar"
+          },
+          {
+            "original": "花园",
+            "translation": "Garden"
+          },
+          {
+            "original": "远足步道",
+            "translation": "Hiking trails"
+          }
+        ],
+        "summary": "Lakeside hotel on Lake Ashi with hot-spring baths and lake views; best value of the Hakone options. Lowest price shown for 2 nights, 3 adults."
+      }
+    ]
+  }
+}

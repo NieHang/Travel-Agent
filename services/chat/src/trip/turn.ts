@@ -7,7 +7,7 @@ import { toMessageContract } from '../conversations/conversations.service.js';
 import { deriveTitle } from '../chat/derive-title.js';
 import { errorName } from '../common/error-name.js';
 import { ContextManager } from '../llm/context-manager.js';
-import { CommandError, assertAllowed, reduce } from './commands.js';
+import { CommandError, assertAllowed, reduce, uncheckedDestination } from './commands.js';
 import { copy } from './copy.js';
 import { TRIP_LLM, type TripLlm } from './llm.js';
 import { groundResults, linkStays, mergeStays } from './results.js';
@@ -67,7 +67,9 @@ export class TurnService {
       const command = request.command;
       const classified =
         command.type === 'message' ? await this.llm.classify({ text: command.text, state, history }, signal) : undefined;
-      const { state: next, effect } = reduce(state, command, classified);
+      const destination = uncheckedDestination(state, command, classified);
+      const place = destination ? { destination, ...(await this.llm.locate(destination, signal)) } : undefined;
+      const { state: next, effect } = reduce(state, command, classified, place);
       if (classified && !request.locale) next.locale = classified.locale;
 
       if (effect) {

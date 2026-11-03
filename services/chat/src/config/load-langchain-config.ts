@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { load } from 'js-yaml';
 
 export type LangChainConfig = {
@@ -19,11 +21,10 @@ export type LangChainConfig = {
 
 export function loadLangChainConfig(): LangChainConfig {
   // Works from both src/config and dist/config.
-  const raw = readFileSync(
-    new URL('../../config/langchain.yaml', import.meta.url),
-    'utf8',
-  );
-  const config = load(raw) as LangChainConfig | undefined;
+  const file = process.env.LANGCHAIN_CONFIG || 'config/langchain.yaml';
+  const path = resolve(fileURLToPath(new URL('../../', import.meta.url)), file);
+  const raw = readFileSync(path, 'utf8');
+  const config = load(raw, { filename: file }) as LangChainConfig | undefined;
   if (
     !config?.llm ||
     typeof config.llm.model !== 'string' ||
@@ -35,7 +36,7 @@ export function loadLangChainConfig(): LangChainConfig {
       (typeof config.llm.compactModel !== 'string' || !config.llm.compactModel.trim())) ||
     (config.llm.thinking !== undefined && typeof config.llm.thinking !== 'boolean')
   ) {
-    throw new Error('Invalid llm parameters in config/langchain.yaml');
+    throw new Error(`Invalid llm parameters in ${file}`);
   }
   return config;
 }

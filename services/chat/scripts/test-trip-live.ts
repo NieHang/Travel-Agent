@@ -1,11 +1,12 @@
 // Live check of the trip prompts against the configured model and MCP servers.
 // Usage: bun run scripts/test-trip-live.ts (PRINT_DRAFT=1 also prints the Tokyo→Osaka drafts)
 import 'dotenv/config';
+import { hasOsakaStay } from '../evals/evaluators/itinerary.js';
+import { legDetails, TRAVEL_LEG } from '../evals/travel-leg.js';
 import { McpService } from '../src/llm/mcp/mcp.service.js';
 import { ModelTripLlm } from '../src/trip/llm.js';
 import { loadSkills } from '../src/skills/registry.js';
-import { reduce } from '../src/trip/commands.js';
-import { groundResults, linkStays, mergeStays } from '../src/trip/results.js';
+import { turn as runTurn } from '../evals/turn.js';
 import { initialState, type Locale, type TripState } from '../src/trip/state.js';
 
 const mcp = new McpService();
@@ -17,38 +18,31 @@ const check = (label: string, ok: boolean) => {
   if (!ok) failures++;
 };
 
-async function turn(state: TripState, text: string) {
-  const signal = AbortSignal.timeout(180_000);
-  const classified = await llm.classify({ text, state, history: [] }, signal);
-  const { state: next, effect } = reduce(state, { type: 'message', text }, classified);
-  let draft = '';
-  const loaded: string[] = [];
-  const calls: string[] = [];
-  if (effect)
-    for await (const e of llm.respond(effect, { text, state: next, history: [] }, signal)) {
-      if (e.type === 'text') draft += e.delta;
-      if (e.type === 'tool_call') calls.push(e.name);
-      if (e.type === 'tool_call' && e.name === 'load_skill' && Array.isArray(e.args.names)) loaded.push(...(e.args.names as string[]));
-      if (e.type === 'show_results') {
-        const group = groundResults(e.input, e.results);
-        if (effect === 'itinerary' && group.panel === 'hotels') next.stays = mergeStays(next.stays, group);
-        else if (group.items.length) next.results.push(group);
-      }
-    }
-  if (effect === 'itinerary') {
-    next.itinerary = draft;
-    next.days = linkStays(await llm.extractDays(draft, next.stays, next.locale, signal), next.stays);
-  }
-  return { classified, next, effect, draft, loaded, calls };
-}
+const turn = (state: TripState, text: string) => runTurn(llm, state, text);
 
 for (const locale of ['zh', 'en'] as Locale[]) {
   const start = initialState(0, locale);
   const zh = locale === 'zh';
 
+  const refused = await turn(start, zh ? '成都三天美食之旅，2026-11-27 到 2026-11-29，2 个人，朋友' : 'Plan a family trip to Lisbon, 2027-01-04 to 2027-01-09, 3 people');
+  check(`${locale}: non-Japan trip is refused`, refused.effect === null && refused.next.requirements.destination === undefined);
+  check(`${locale}: refusal names the city`, (refused.next.outsideJapan?.places ?? []).some((name) => name.toLowerCase().includes(zh ? '成都' : 'lisbon')));
+  check(`${locale}: refused trip calls no tools`, refused.calls.length === 0);
+
+  const mixed = await turn(start, zh ? '先去首尔再去福冈，2026-12-01 到 2026-12-06，情侣 2 个人' : 'Seoul then Fukuoka, 2026-12-01 to 2026-12-06, 2 people, couple');
+  check(`${locale}: mixed trip is refused`, mixed.effect === null && mixed.next.requirements.destination === undefined);
+  check(`${locale}: mixed refusal names the outside city`, (mixed.next.outsideJapan?.places ?? []).some((name) => name.toLowerCase().includes(zh ? '首尔' : 'seoul')));
+  check(`${locale}: mixed trip offers the Japan part`, (mixed.next.outsideJapan?.japan ?? '').toLowerCase().includes(zh ? '福冈' : 'fukuoka'));
+
+  const outsideHotel = await turn(start, zh ? '巴黎 1000 元以内的酒店' : 'Hotels in Paris under 1000 CNY');
+  check(`${locale}: outside-Japan hotel question is chat`, outsideHotel.classified.intent === 'chat');
+  check(`${locale}: outside-Japan hotel question calls no tools`, outsideHotel.calls.length === 0);
+
   const overnight = await turn(start, zh ? '帮我规划大阪亲子游，2026-12-01 到 2026-12-03，4 个人' : 'Plan a family trip to Osaka, 2026-12-01 to 2026-12-03, 4 people');
   check(`${locale}: one-shot planning reaches review`, overnight.next.stage === 'review' && overnight.effect === 'itinerary');
+  check(`${locale}: Japan destination was checked`, overnight.next.checkedDestination !== null);
   check(`${locale}: overnight trip found stays`, (overnight.next.stays?.items.length ?? 0) > 0);
+  check(`${locale}: overnight trip found Osaka stays`, hasOsakaStay(overnight.next));
   if (!overnight.next.stays) console.log(`  tool calls: ${JSON.stringify(overnight.calls)}`);
   check(`${locale}: stays carry amenities or images`, (overnight.next.stays?.items ?? []).some((h) => h.amenities.length > 0 || h.image));
   check(`${locale}: at least one day links to a stay`, overnight.next.days.some((d) => d.stayRef));
@@ -72,12 +66,14 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   check(`${locale}: japan trip reaches review`, japan.next.stage === 'review' && japan.effect === 'itinerary');
   check(`${locale}: japan trip loads the city skills`, ['japan-tokyo', 'japan-osaka'].every((n) => japan.loaded.includes(n)));
   check(`${locale}: japan trip still finds stays`, (japan.next.stays?.items.length ?? 0) > 0);
+  check(`${locale}: japan trip finds Osaka stays`, hasOsakaStay(japan.next));
   const headings = zh ? ['总览', '出发前要办'] : ['Overview', 'Before you go'];
   check(`${locale}: japan draft has overview and before-you-go`, headings.every((h) => japan.draft.includes(h)));
-  check(`${locale}: japan draft marks estimates`, zh ? /约/.test(japan.draft) : /approx/i.test(japan.draft));
+  const legDetail = legDetails(japan.draft);
+  check(`${locale}: japan draft legs give the mode only`, legDetail.length === 0);
+  if (legDetail.length) console.log(`  legs with details: ${JSON.stringify(legDetail)}`);
   check(`${locale}: japan draft covers every day`, japan.next.days.length >= 6);
-  const legs = /(线|新干线|Line|Shinkansen|Skyliner|Haruka|→)/;
-  const legStops = japan.next.days.flatMap((d) => d.stops.map((s) => s.name)).filter((name) => legs.test(name));
+  const legStops = japan.next.days.flatMap((d) => d.stops.map((s) => s.name)).filter((name) => TRAVEL_LEG.test(name));
   check(`${locale}: travel legs are not stops`, legStops.length === 0);
   if (legStops.length) console.log(`  leg stops: ${JSON.stringify(legStops)}`);
   // Full days (all but the first and last block) each need a rainy-day / drop-if-tired line.

@@ -1,0 +1,285 @@
+{
+  "id": "ext-en-multi-02",
+  "category": "multi_city",
+  "locale": "en",
+  "text": "Kyoto and Osaka with my two kids and partner, 2026-12-20 to 2026-12-24, 4 people",
+  "today": "2026-10-30",
+  "draft": "I'll load the city skills and search hotels for both cities.# Draft itinerary — Kyoto & Osaka with two kids (20–24 Dec 2026)\n\n**Overview**: Kyoto 2 nights → Osaka 2 nights → leave from Kansai Airport (KIX) | 1 hotel change | light · standard · standard · standard · light\n\n**Before you go**\n- Book any timed-entry or reservation-only places a few weeks ahead (please check each site's current rules).\n- Get IC cards (ICOCA/Suica) for the four of you at KIX — works on trains, subways and buses in both cities.\n- On 22 Dec, forward the big suitcases from the Kyoto hotel to the Osaka hotel by takkyubin (arrange the evening before) and travel light.\n- Winter in Kansai is cold and dry; pack layers and comfortable shoes for temple steps and the deer park.\n- Compare a JR Pass against your actual legs before buying — for this route it may not pay off (please check current prices).\n\n**Day 1 | Arrival · Kyoto Station area (light)**\n- 14:00 KIX → JR Haruka to Kyoto Station, approx. 75 min, no transfer\n- 15:30 Check in, rest and snack\n- 17:00 Short walk around Kyoto Station: illuminated station building and rooftop view — easy first evening with kids\n- 18:30 Dinner near the hotel, early night\n- Tonight: Miyako Hotel Kyoto Hachijo (京都八条都酒店)\n\n**Day 2 | Higashiyama · Kiyomizu-dera and Gion (standard)**\n- 08:30 Bus or taxi to Kiyomizu-dera, approx. 15 min — early morning is far calmer\n- 09:00 Kiyomizu-dera, then walk downhill through Sannenzaka / Ninenzaka, approx. 20 min\n- 12:00 Lunch in Higashiyama\n- 13:30 Yasaka Shrine and Maruyama Park, walk approx. 10 min\n- 15:30 Rest at the hotel or a café\n- 17:00 Gion in the evening: lantern-lit streets, fewer people than midday\n- 18:30 Dinner in Pontocho / Kawaramachi (Keihan line 1 stop, approx. 5 min)\n- Alternatives: if rain, Kyoto National Museum or the Nishiki Market arcade instead of the Sannenzaka walk; if tired, drop Maruyama Park\n- Tonight: Miyako Hotel Kyoto Hachijo (京都八条都酒店)\n\n**Day 3 | Nara day trip, then move to Osaka (standard)**\n- 08:30 Kintetsu Kyoto → Kintetsu-Nara, approx. 45 min, no transfer (limited express faster)\n- 09:30 Nara Park: Kofuku-ji, then Todai-ji Great Buddha, walk approx. 15 min — keep snacks away from the deer with small children\n- 12:00 Lunch in Naramachi\n- 13:30 Kasuga Taisha, walk approx. 20 min (hilly; take it slowly)\n- 15:00 Kintetsu-Nara → Osaka-Namba, approx. 40 min, no transfer\n- 16:30 Check in to the Osaka hotel, rest\n- 18:00 Dotonbori evening walk and street food, walk approx. 10 min from Namba\n- Alternatives: if rain, Nara National Museum and the Great Buddha Hall (both indoors) instead of Kasuga Taisha; if tired, drop Naramachi and go straight to Osaka\n- Tonight: Sotetsu Grand Fresa Osaka Namba (相铁Grand Fresa 大阪难波酒店)\n\n**Day 4 | Osaka · castle and bay area (standard)**\n- 09:00 Subway to Osaka Castle Park, approx. 20 min, 1 transfer — park and castle exterior, kids can run\n- 11:30 Lunch near the park\n- 13:00 Subway to Osakako, approx. 25 min, 1 transfer\n- 13:30 Osaka Aquarium Kaiyukan, approx. 2–3 h — indoor and warm, good for a winter afternoon\n- 17:00 Back to Namba, rest\n- 18:30 Dinner in Shinsaibashi; winter illuminations along Midosuji in the evening\n- Alternatives: if rain, swap the castle park for the Osaka Museum of History (indoor) and keep the aquarium; if tired, drop the illuminations walk\n- Tonight: Sotetsu Grand Fresa Osaka Namba (相铁Grand Fresa 大阪难波酒店)\n\n**Day 5 | Departure (light)**\n- 09:00 Breakfast and souvenirs near Namba only\n- 10:30 Nankai rapi:t Namba → KIX, approx. 40 min, no transfer; leave plenty of time for check-in\n- Please check train times and your airline's check-in deadline before going.\n\nHotel prices shown are per night from live search results and may change — please confirm when booking.",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "13249",
+        "title": {
+          "original": "京都八条都酒店",
+          "translation": "Miyako Hotel Kyoto Hachijo"
+        },
+        "address": {
+          "original": "17 Nishi Kujoin-machi, Minami-ku",
+          "translation": null
+        },
+        "price": {
+          "amount": 489,
+          "currency": "CNY"
+        },
+        "rating": 4,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=13249&checkInDate=2026-12-20&checkOutDate=2026-12-22&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/13249/hotel/250716172104/0/image/68293259.jpg-t",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "3237",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "提供家庭房",
+            "translation": "Family rooms"
+          },
+          {
+            "original": "可提供婴儿床或围栏",
+            "translation": "Crib or bed rail available"
+          },
+          {
+            "original": "儿童玩乐设施",
+            "translation": "Children's play facilities"
+          },
+          {
+            "original": "提供三人间",
+            "translation": "Triple rooms"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "Near Kyoto Station, family rooms and cribs, good base for arrivals and day trips."
+      },
+      {
+        "ref": "h2",
+        "id": "1549991",
+        "title": {
+          "original": "hotel MONday 京都丸太町",
+          "translation": "hotel MONday Kyoto Marutamachi"
+        },
+        "address": {
+          "original": "日本，京都府，京都，中京区，225 Shoshoicho, Nakagyo-ku",
+          "translation": null
+        },
+        "price": {
+          "amount": 242,
+          "currency": "CNY"
+        },
+        "rating": 3.5,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=1549991&checkInDate=2026-12-20&checkOutDate=2026-12-22&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/6/Image/1549991/05eb4c25_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "3.5",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "963",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "提供家庭房",
+            "translation": "Family rooms"
+          },
+          {
+            "original": "提供三人间",
+            "translation": "Triple rooms"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "洗衣房",
+            "translation": "Laundry room"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          }
+        ],
+        "summary": "Central Kyoto, family rooms, cheaper option close to the Kawaramachi side."
+      },
+      {
+        "ref": "h3",
+        "id": "4007",
+        "title": {
+          "original": "ART 大阪湾酒店",
+          "translation": "ART Hotel Osaka Bay Tower"
+        },
+        "address": {
+          "original": "1-2-1 Benten, Minato-ku",
+          "translation": null
+        },
+        "price": {
+          "amount": 447,
+          "currency": "CNY"
+        },
+        "rating": 4,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=4007&checkInDate=2026-12-22&checkOutDate=2026-12-24&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/JP/4007/Featured%20Image/4596074_96_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "4901",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "提供家庭房",
+            "translation": "Family rooms"
+          },
+          {
+            "original": "提供四人间",
+            "translation": "Quad rooms"
+          },
+          {
+            "original": "可提供婴儿床或围栏",
+            "translation": "Crib or bed rail available"
+          },
+          {
+            "original": "儿童玩乐设施",
+            "translation": "Children's play facilities"
+          },
+          {
+            "original": "公共温泉",
+            "translation": "Public hot spring bath"
+          },
+          {
+            "original": "SPA",
+            "translation": "Spa"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "停车场",
+            "translation": "Parking"
+          }
+        ],
+        "summary": "Family rooms and quad rooms, hot spring bath; near the bay area, handy for the aquarium."
+      },
+      {
+        "ref": "h4",
+        "id": "4009",
+        "title": {
+          "original": "相铁Grand Fresa 大阪难波酒店",
+          "translation": "Sotetsu Grand Fresa Osaka Namba"
+        },
+        "address": {
+          "original": "大阪府大阪中央区1 Chome-1-13 Nipponbashi, 542-0073",
+          "translation": null
+        },
+        "price": {
+          "amount": 398,
+          "currency": "CNY"
+        },
+        "rating": 3.5,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=4009&checkInDate=2026-12-22&checkOutDate=2026-12-24&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/JP/4009/Featured%20Image/4349657_10_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "3.5",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "3799",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "提供三人间",
+            "translation": "Triple rooms"
+          },
+          {
+            "original": "提供双床房",
+            "translation": "Twin rooms"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "洗衣设施",
+            "translation": "Laundry facilities"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          }
+        ],
+        "summary": "In Namba, walkable to Dotonbori and Kuromon Market; triple rooms."
+      }
+    ]
+  }
+}

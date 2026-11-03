@@ -1,0 +1,265 @@
+{
+  "id": "ext-en-multi-01",
+  "category": "multi_city",
+  "locale": "en",
+  "text": "Plan a couple's trip to Japan, fly into Tokyo and out of Osaka, 2026-12-01 to 2026-12-06, 2 people",
+  "today": "2026-10-30",
+  "draft": "I'll start by loading the city skills and searching hotels for both bases.# Japan draft itinerary — Tokyo in, Osaka out (1–6 Dec 2026)\n\n**Overview**: Tokyo 3 nights → Osaka 2 nights → leave from Kansai Airport | 1 hotel change | light · standard · standard · standard · tiring · light\n\nKyoto and Nara are covered as day trips from Osaka, so you only change hotels once. Early December is quiet and cool (roughly 5–15 °C, approx.), with autumn leaves mostly finished and winter illuminations starting — good walking weather, but check forecasts before each day.\n\n**Before you go**\n- Book timed-entry or reservation-only places a few weeks ahead: Shibuya Sky or an observation deck at sunset, teamLab (if you want it), and any Kyoto temple that requires advance booking (e.g. Katsura Imperial Villa, Saiho-ji) — please check availability.\n- Get an IC card (Suica/PASMO/ICOCA) at the airport; it works on trains, subways and buses in all three cities.\n- Reserve Shinkansen seats (Tokyo → Shin-Osaka) a few days ahead for two people together.\n- On 4 Dec, forward your luggage from the Tokyo hotel to the Osaka hotel by takkyubin (send it the evening of 3 Dec) and travel with a small bag.\n- A JR Pass is not worth it for this route — compare current prices if you plan extra long legs.\n- Check each temple's and museum's opening days/hours before going; many close around 16:30–17:00 and some museums close on Mondays.\n\n**Day 1 | Arrival · Asakusa / Ueno (light)**\n- 14:00 Narita Airport → Keisei Skyliner to Ueno, approx. 45 min, no transfer (if you land at Haneda: Keikyu Line to Shinagawa, approx. 20 min)\n- 15:30 Check in near Shimbashi/Shiodome, rest\n- 17:00 Senso-ji and Nakamise, Asakusa (Ginza Line to Asakusa, approx. 20 min, no transfer): lit up in the evening and far quieter than by day\n- 19:00 Dinner in Asakusa, early night\n- Tonight: Mitsui Garden Hotel Shiodome Italia-gai (三井花园酒店汐留意大利街)\n\n**Day 2 | Shibuya · Harajuku · Shinjuku (standard)**\n- 08:30 Meiji Jingu (JR to Harajuku, approx. 25 min, 1 transfer): calmest early morning\n- 10:30 Takeshita Street and Omotesando, walk approx. 15 min between them\n- 12:30 Lunch in Omotesando\n- 14:30 Shibuya Crossing and Shibuya Sky (Ginza Line 1 stop, approx. 3 min): late-afternoon slot for the view\n- 17:30 Shinjuku (JR Yamanote, approx. 7 min, no transfer): Omoide Yokocho and Golden Gai for dinner\n- Alternatives: if rain, Tokyo National Museum or a department-store food hall in Shibuya instead of the Omotesando walk; if tired, drop Shibuya Sky and keep the crossing only\n- Tonight: Mitsui Garden Hotel Shiodome Italia-gai (三井花园酒店汐留意大利街)\n\n**Day 3 | Ginza · Tsukiji · Imperial Palace (standard)**\n- 08:00 Tsukiji Outer Market for breakfast (walk approx. 15 min from the hotel): best before 10:00\n- 10:30 Imperial Palace East Gardens (walk approx. 15 min)\n- 12:30 Lunch in Marunouchi\n- 14:00 Ginza browsing and a café break (walk approx. 15 min)\n- 17:00 Back to the hotel to pack; send luggage to Osaka tonight\n- 19:00 Dinner near Shimbashi\n- Alternatives: if rain, Ginza's department stores and the Mitsui Memorial Museum instead of the East Gardens; if tired, drop Ginza and rest before dinner\n- Tonight: Mitsui Garden Hotel Shiodome Italia-gai (三井花园酒店汐留意大利街)\n\n**Day 4 | Tokyo → Osaka · Minami (standard)**\n- 09:00 Hotel → Tokyo Station (JR, approx. 10 min, no transfer), then Tokaido Shinkansen Nozomi to Shin-Osaka, approx. 2 h 30 min\n- 12:00 Shin-Osaka → Namba (Midosuji Line, approx. 15 min, no transfer), check in and lunch\n- 14:30 Kuromon Market and Shinsaibashi, walk approx. 15 min\n- 17:30 Dotonbori at dusk: neon and street food, best after dark\n- Alternatives: if rain, the Namba/Shinsaibashi covered arcades and a long lunch instead of Kuromon; if tired, skip Shinsaibashi and go straight to Dotonbori\n- Tonight: Sotetsu Grand Fresa Osaka Namba (相铁Grand Fresa 大阪难波酒店)\n\n**Day 5 | Kyoto day trip · Higashiyama (tiring)**\n- 07:30 Namba → Kyoto (Midosuji to Umeda, then JR Special Rapid, approx. 50 min total, 1 transfer)\n- 09:00 Kiyomizu-dera, then walk downhill through Sannenzaka and Ninenzaka, approx. 20 min\n- 11:30 Yasaka Shrine and Gion lanes\n- 12:30 Lunch near Kawaramachi\n- 14:00 Nishiki Market, walk approx. 15 min\n- 16:00 Kyoto Station → Namba, approx. 50 min, 1 transfer; dinner in Osaka\n- Alternatives: if rain, Kyoto National Museum or the Nishiki arcade instead of the Sannenzaka walk; if tired, drop Nishiki Market and return after Gion\n- Tonight: Sotetsu Grand Fresa Osaka Namba (相铁Grand Fresa 大阪难波酒店)\n\n**Day 6 | Departure (light)**\n- 08:30 Breakfast and a short walk near the hotel only\n- 10:30 Namba → Kansai Airport by Nankai rapi:t, approx. 40 min, no transfer; leave plenty of time for check-in\n- If your flight is late, Nara Park is a possible morning add-on (Kintetsu from Osaka-Namba, approx. 40 min) — please check your flight time first\n\nAll times are approximate; please confirm train times, opening hours and reservations before you go.",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "5293",
+        "title": {
+          "original": "三井花园酒店汐留意大利街",
+          "translation": "Mitsui Garden Hotel Shiodome Italia-gai"
+        },
+        "address": {
+          "original": "2-14-24 Higashi-Shimbashi, Minato-ku",
+          "translation": "2-14-24 Higashi-Shimbashi, Minato-ku, Tokyo"
+        },
+        "price": {
+          "amount": 881.67,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=5293&checkInDate=2026-12-01&checkOutDate=2026-12-04&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/JP/5293/b1168fa5_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "1671",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          },
+          {
+            "original": "洗衣设施",
+            "translation": "Laundry facilities"
+          }
+        ],
+        "summary": "Central Minato base near Shimbashi/Shiodome, handy for Ginza and Tokyo Station; good value for a 4-star."
+      },
+      {
+        "ref": "h2",
+        "id": "3912",
+        "title": {
+          "original": "新宿格拉斯丽酒店",
+          "translation": "Hotel Gracery Shinjuku"
+        },
+        "address": {
+          "original": "1-19-1 Kabukicho, Shinjuku-ku",
+          "translation": "1-19-1 Kabukicho, Shinjuku-ku, Tokyo"
+        },
+        "price": {
+          "amount": 985,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=3912&checkInDate=2026-12-01&checkOutDate=2026-12-04&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/3912/hotel/250630143445/1/image/9104481_12_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "5707",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "酒吧",
+            "translation": "Bar"
+          },
+          {
+            "original": "露台",
+            "translation": "Terrace"
+          },
+          {
+            "original": "咖啡厅",
+            "translation": "Cafe"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "In Kabukicho, Shinjuku — best for evenings out and easy access to the Odakyu line for day trips."
+      },
+      {
+        "ref": "h3",
+        "id": "4009",
+        "title": {
+          "original": "相铁Grand Fresa 大阪难波酒店",
+          "translation": "Sotetsu Grand Fresa Osaka Namba"
+        },
+        "address": {
+          "original": "大阪府大阪中央区1 Chome-1-13 Nipponbashi, 542-0073",
+          "translation": "1-1-13 Nipponbashi, Chuo-ku, Osaka"
+        },
+        "price": {
+          "amount": 669,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=4009&checkInDate=2026-12-04&checkOutDate=2026-12-06&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/JP/4009/Featured%20Image/4349657_10_b.jpg-t",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "3.5",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "3799",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          },
+          {
+            "original": "洗衣设施",
+            "translation": "Laundry facilities"
+          }
+        ],
+        "summary": "In Nipponbashi, a short walk from Namba and Dotonbori — good for food and nightlife, and direct Nankai access to Kansai Airport."
+      },
+      {
+        "ref": "h4",
+        "id": "1579740",
+        "title": {
+          "original": "星野集团 OMO7 大阪",
+          "translation": "Hoshino Resorts OMO7 Osaka"
+        },
+        "address": {
+          "original": "大阪府大阪浪速区3-16-30 Ebisu-nishi, 556-0003",
+          "translation": "3-16-30 Ebisu-nishi, Naniwa-ku, Osaka"
+        },
+        "price": {
+          "amount": 1041.5,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=1579740&checkInDate=2026-12-04&checkOutDate=2026-12-06&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/1579740/hotel/default/3/image/0202k120009dnwj3gC9F6.jpg-t",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "5",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "5691",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "酒吧",
+            "translation": "Bar"
+          },
+          {
+            "original": "咖啡厅",
+            "translation": "Cafe"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "班车服务",
+            "translation": "Shuttle service"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "5-star near Shin-Imamiya/Shinsekai; a step up in comfort for the Osaka nights."
+      }
+    ]
+  }
+}

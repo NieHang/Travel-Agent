@@ -1,27 +1,30 @@
 import { AIMessage, AIMessageChunk, HumanMessage, type BaseMessage } from '@langchain/core/messages';
 import type { Classified } from './commands.js';
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 
-const model = vi.hoisted(() => ({ seen: [] as BaseMessage[][], bound: [] as string[], classify: vi.fn() }));
+const model = vi.hoisted(() => ({ seen: [] as BaseMessage[][], streamOptions: [] as { runName?: string }[], bound: [] as string[], classify: vi.fn() }));
 vi.mock('../llm/model.factory.js', () => ({
-  createChatModel: () => ({
+  createChatModel: vi.fn(() => ({
     withStructuredOutput: () => ({ invoke: model.classify }),
     bindTools: (tools: { name: string }[]) => {
       model.bound = tools.map((t) => t.name);
       return {
-      async stream(messages: BaseMessage[]) {
+      async stream(messages: BaseMessage[], options: { runName?: string }) {
         model.seen.push([...messages]);
+        model.streamOptions.push(options);
         return (async function* () {
           yield new AIMessageChunk({ content: 'ok' });
         })();
       },
       };
     },
-  }),
+  })),
 }));
 
-import { countNights, ModelTripLlm } from './llm.js';
+import { CLASSIFY_PROMPT, LOCATE_PROMPT, countNights, ModelTripLlm } from './llm.js';
 import { initialState } from './state.js';
 import type { Skill } from '../skills/registry.js';
+import { createChatModel } from '../llm/model.factory.js';
 
 const core: Skill = { name: 'japan-travel', description: 'Japan rules', always: true, body: 'JAPAN-RULES' };
 const tokyo: Skill = { name: 'japan-tokyo', description: 'Tokyo (东京)', always: false, body: 'TOKYO-NOTES' };
@@ -43,13 +46,81 @@ const chatted: Classified = {
 describe('ModelTripLlm', () => {
   beforeEach(() => {
     model.seen = [];
+    model.streamOptions = [];
     model.classify.mockReset().mockResolvedValue(chatted);
+  });
+
+  it.each([
+    [{ japan: ' Fukuoka ', outside: [' Seoul ', '', '   '] }, { japan: 'Fukuoka', outside: ['Seoul'] }],
+    [{ japan: '   ', outside: [' 成都 '] }, { japan: null, outside: ['成都'] }],
+    [{ japan: null, outside: [] }, { japan: null, outside: [] }],
+  ])('locates a destination with the dedicated prompt and normalises %j', async (output, expected) => {
+    model.classify.mockResolvedValue(output);
+    const abort = signal();
+    expect(await new ModelTripLlm().locate('Seoul then Fukuoka', abort)).toEqual(expected);
+    const [sent, options] = model.classify.mock.calls[0] as [BaseMessage[], { signal: AbortSignal }];
+    expect(sent.map((message) => message.text)).toEqual([LOCATE_PROMPT, 'Seoul then Fukuoka']);
+    expect(options).toEqual({ signal: abort, runName: 'trip.locate' });
+    expect(createChatModel).toHaveBeenCalledWith({ operation: 'trip.locate', callbacks: undefined });
+  });
+
+  it('limits suggested destinations and answers to Japan', async () => {
+    expect(CLASSIFY_PROMPT).toContain('Suggested destinations (clarify options only) are places in Japan');
+    expect(await respond(new ModelTripLlm(), 'answer')).toContain('Hilda covers travel in Japan only. If the user asks about visiting a place outside Japan, say briefly that Hilda only plans trips in Japan, and call no tools.');
+  });
+
+  it('uses the injected date in the system prompt sent by respond', async () => {
+    expect(await respond(new ModelTripLlm(undefined, [], { today: '2026-01-15' }), 'answer'))
+      .toContain('Today is 2026-01-15.');
+  });
+
+  it('passes callbacks to classify, respond and extractDays', async () => {
+    class ExtraHandler extends BaseCallbackHandler { name = 'extra'; }
+    const callbacks = [new ExtraHandler()];
+    const llm = new ModelTripLlm(undefined, [], { callbacks });
+    const input = { text: 'next', state: initialState(), history: [] };
+    vi.mocked(createChatModel).mockClear();
+    await llm.classify(input, signal());
+    await respond(llm, 'answer');
+    model.classify.mockResolvedValue({ days: [] });
+    await llm.extractDays('Day 1', null, 'zh', signal());
+    expect(vi.mocked(createChatModel).mock.calls).toEqual([
+      [{ operation: 'trip.classify', callbacks }],
+      [{ operation: 'trip.respond', callbacks }],
+      [{ operation: 'trip.extract_days', callbacks }],
+    ]);
+  });
+
+  it('names each generation for the Langfuse trace', async () => {
+    const llm = new ModelTripLlm();
+    await llm.classify({ text: 'next', state: initialState(), history: [] }, signal());
+    expect(model.classify.mock.calls.at(-1)?.[1]).toMatchObject({ runName: 'trip.classify' });
+    model.classify.mockResolvedValue({ japan: 'Kyoto', outside: [] });
+    await llm.locate('Kyoto', signal());
+    expect(model.classify.mock.calls.at(-1)?.[1]).toMatchObject({ runName: 'trip.locate' });
+    await respond(llm, 'answer');
+    expect(model.streamOptions.at(-1)).toMatchObject({ runName: 'trip.respond' });
+    model.classify.mockResolvedValue({ days: [] });
+    await llm.extractDays('Day 1', null, 'en', signal());
+    expect(model.classify.mock.calls.at(-1)?.[1]).toMatchObject({ runName: 'trip.extract_days' });
   });
 
   it('answers with every message of the context, not only the last 20', async () => {
     const input = { text: 'next', state: initialState(), history };
     for await (const _ of new ModelTripLlm().respond('answer', input, new AbortController().signal));
     expect(model.seen[0].slice(1, 31)).toEqual(history);
+  });
+
+  it('keeps the first clarify options when the model returns too many', async () => {
+    model.classify.mockResolvedValue({ ...chatted, clarify: { field: 'destination', question: '去哪？', options: ['北京', '上海', '广州', '深圳', '成都', '杭州'] } });
+    const classified = await new ModelTripLlm().classify({ text: '想出去玩', state: initialState(), history: [] }, signal());
+    expect(classified.clarify?.options).toEqual(['北京', '上海', '广州', '深圳', '成都']);
+  });
+
+  it('gives classify the date to resolve relative dates', async () => {
+    await new ModelTripLlm(undefined, [], { today: '2026-10-30' }).classify({ text: '12月1号出发', state: initialState(), history: [] }, signal());
+    const [sent] = model.classify.mock.calls[0] as [BaseMessage[]];
+    expect(systemText(sent)).toContain('Today is 2026-10-30.');
   });
 
   it('classifies with every message of the context', async () => {
@@ -120,8 +191,11 @@ describe('extractDays', () => {
     await new ModelTripLlm().extractDays('Day 1', null, 'en', new AbortController().signal);
     const [sent] = model.classify.mock.calls[0] as [BaseMessage[]];
     expect(sent[0].text).toContain('Travel legs');
-    // Lines like "Narita Airport → Ueno (Skyliner)" were extracted as stops in live runs.
-    expect(sent[0].text).toContain('name the stop after where the leg ends');
+    // Lines like "Narita Airport → Ueno (Skyliner)" were extracted as stops in live runs, and eval drafts
+    // had hotels and transfer stations extracted as stops.
+    expect(sent[0].text).toContain('never a route or an arrow');
+    expect(sent[0].text).toContain('The hotel is never a stop');
+    expect(sent[0].text).toContain('A station is a stop only where');
     // ...and walks like "清水寺 → 三年坂 → 八坂神社" became one stop.
     expect(sent[0].text).toContain('make each place its own stop');
   });

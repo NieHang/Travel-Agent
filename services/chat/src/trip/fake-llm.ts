@@ -1,7 +1,7 @@
 import type { BaseMessage } from '@langchain/core/messages';
 import type { ResultGroup } from '@autix/contracts';
 import { FAKE_REPLY_CHUNKS } from '../llm/chat-reply/fakes.js';
-import type { Classified } from './commands.js';
+import type { Classified, Place } from './commands.js';
 import type { LlmTask, TripLlm } from './llm.js';
 import type { Locale, TripDay, TripState } from './state.js';
 import type { LoopEvent } from './tool-loop.js';
@@ -14,6 +14,11 @@ const NULL_PATCH: Classified['patch'] = {
 
 /** Deterministic stand-in for LLM_FAKE (dev, e2e). Never used in production (loadAuthConfig enforces it). */
 export class FakeTripLlm implements TripLlm {
+  // Treat every destination as Japan so existing dev/e2e flows with 杭州 / 里斯本 keep working.
+  async locate(destination: string, _signal?: AbortSignal): Promise<Place> {
+    return { japan: destination, outside: [] };
+  }
+
   async classify(
     input: { text: string; state: TripState; history: BaseMessage[] },
     _signal?: AbortSignal,

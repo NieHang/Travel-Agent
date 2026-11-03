@@ -1,4 +1,4 @@
-import { estimateCost } from './cost-tracker.js';
+import { costFromUsage, estimateCost } from './cost-tracker.js';
 import { getModelPricing } from './token-estimator.js';
 
 const SEARCH_HOTELS = {
@@ -6,6 +6,18 @@ const SEARCH_HOTELS = {
   description: 'Search hotels by city and dates',
   parameters: { type: 'object', properties: { city: { type: 'string' }, checkIn: { type: 'string' } } },
 };
+
+describe('costFromUsage', () => {
+  it.each([
+    { model: 'gpt-5.4', inputTokens: 1_000_000, outputTokens: 0, expected: 2.5 },
+    { model: 'gpt-5.4', inputTokens: 1_000_000, cachedInputTokens: 1_000_000, outputTokens: 0, expected: 0.25 },
+    { model: 'gpt-5.4', inputTokens: 0, outputTokens: 1_000_000, expected: 15 },
+    { model: 'gpt-5.4', inputTokens: 100, cachedInputTokens: 500, outputTokens: 0, expected: 0.000025 },
+    { model: 'deepseek-flash', inputTokens: 1_000_000, cachedInputTokens: 500_000, outputTokens: 1_000_000, expected: 1.353 },
+  ])('prices usage including cache hits ($model, $expected)', ({ expected, ...usage }) => {
+    expect(costFromUsage(usage)).toBeCloseTo(expected, 10);
+  });
+});
 
 describe('estimateCost', () => {
   it('returns zero for an empty call', () => {

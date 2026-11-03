@@ -1,6 +1,6 @@
 import type { Command } from '@autix/contracts';
 import { initialState, type TripState } from './state.js';
-import { CommandError, assertAllowed, merge, nextStage, reduce, type Classified } from './commands.js';
+import { CommandError, PlaceSchema, assertAllowed, merge, nextStage, reduce, uncheckedDestination, type Classified } from './commands.js';
 
 const empty: Classified['patch'] = {
   destination: null, tripType: null, departureDate: null, returnDate: null,
@@ -12,6 +12,83 @@ const plan = (patch: Partial<Classified['patch']>, clarify: Classified['clarify'
 const chat: Classified = { intent: 'chat', locale: 'zh', patch: empty, clarify: null };
 const full = { destination: '杭州', tripType: 'family' as const, departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4 };
 const at = (patch: Partial<TripState>): TripState => ({ ...initialState(5), ...patch });
+
+describe('Japan destinations', () => {
+  const command = { type: 'message', text: 'plan' } as const;
+  it.each(['Lisbon', '成都'])('refuses %s while keeping the other requirements', (destination) => {
+    const result = reduce(initialState(), command, plan({ ...full, destination, travelers: 3 }), { destination, japan: null, outside: [destination] });
+    expect(result.effect).toBeNull();
+    expect(result.state.requirements).toEqual({ tripType: 'family', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 3 });
+    expect(result.state).toMatchObject({ stage: 'requirements', outsideJapan: { places: [destination], japan: null }, checkedDestination: null, clarify: null });
+  });
+  it('offers the Japan part of a mixed destination', () => {
+    const result = reduce(initialState(), command, plan({ destination: 'Seoul then Fukuoka' }), { destination: 'Seoul then Fukuoka', japan: 'Fukuoka', outside: ['Seoul'] });
+    expect(result.effect).toBeNull();
+    expect(result.state.outsideJapan).toEqual({ places: ['Seoul'], japan: 'Fukuoka' });
+  });
+  it('refuses an unlocatable destination by its original name', () => {
+    const result = reduce(initialState(), command, plan({ destination: 'somewhere imaginary' }), { destination: 'somewhere imaginary', japan: null, outside: [] });
+    expect(result.effect).toBeNull();
+    expect(result.state.outsideJapan).toEqual({ places: ['somewhere imaginary'], japan: null });
+  });
+  it('records a checked Kyoto destination and generates the completed trip', () => {
+    const result = reduce(initialState(), command, plan({ ...full, destination: 'Kyoto' }), { destination: 'Kyoto', japan: 'Kyoto', outside: [] });
+    expect(result.effect).toBe('itinerary');
+    expect(result.state.checkedDestination).toBe('Kyoto');
+    expect(result.state.requirements.destination).toBe('Kyoto');
+  });
+  it('keeps a checked confirmed Kyoto itinerary after refusing Paris', () => {
+    const before = at({ stage: 'confirmed', checkedDestination: 'Kyoto', requirements: { ...full, destination: 'Kyoto' }, itinerary: '# Kyoto', days: [{ title: 'Day 1', stops: [], stayRef: null }], stays: { panel: 'hotels', items: [] } });
+    const result = reduce(before, command, plan({ destination: 'Paris' }), { destination: 'Paris', japan: null, outside: ['Paris'] });
+    expect(result.effect).toBeNull();
+    expect(result.state).toMatchObject({ stage: 'confirmed', requirements: { destination: 'Kyoto' }, itinerary: '# Kyoto', days: [{ title: 'Day 1', stops: [], stayRef: null }], stays: { panel: 'hotels', items: [] }, checkedDestination: 'Kyoto' });
+  });
+  it('clears an unchecked legacy Lisbon trip even on a chat turn', () => {
+    const before = at({ stage: 'review', requirements: { ...full, destination: 'Lisbon' }, itinerary: '# Lisbon', days: [{ title: 'Day 1', stops: [], stayRef: null }], stays: { panel: 'hotels', items: [] } });
+    const result = reduce(before, command, chat, { destination: 'Lisbon', japan: null, outside: ['Lisbon'] });
+    expect(result.effect).toBeNull();
+    expect(result.state.requirements.destination).toBeUndefined();
+    expect(result.state).toMatchObject({ stage: 'requirements', itinerary: null, days: [], stays: null });
+  });
+  it('keeps a trip type picked while a legacy destination is refused', () => {
+    const before = at({ stage: 'trip_type', requirements: { destination: 'Lisbon' } });
+    const result = reduce(before, { type: 'set_trip_type', value: 'solo' }, undefined, { destination: 'Lisbon', japan: null, outside: ['Lisbon'] });
+    expect(result.effect).toBeNull();
+    expect(result.state.requirements).toEqual({ tripType: 'solo' });
+    expect(result.state.stage).toBe('requirements');
+  });
+  it('keeps refused form values and removes explicit empty preferences', () => {
+    const result = reduce(at({ stage: 'requirements', requirements: { tripType: 'family', preferences: 'food' } }), { type: 'submit_requirements', values: { destination: 'Paris', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 3, preferences: '' } }, undefined, { destination: 'Paris', japan: null, outside: ['Paris'] });
+    expect(result.effect).toBeNull();
+    expect(result.state.requirements).toEqual({ tripType: 'family', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 3 });
+  });
+  it('allows destination buttons after refusal and resets the refusal next turn', () => {
+    const refused = reduce(initialState(), command, plan({ destination: 'Paris' }), { destination: 'Paris', japan: null, outside: ['Paris'] }).state;
+    const next = reduce(refused, { type: 'set_destination', value: 'Kyoto' }, undefined, { destination: 'Kyoto', japan: 'Kyoto', outside: [] });
+    expect(next.state.outsideJapan).toBeNull();
+    expect(next.state.requirements.destination).toBe('Kyoto');
+    expect(reduce(refused, command, chat).state.outsideJapan).toBeNull();
+    expect(() => assertAllowed(initialState(), { type: 'set_destination', value: 'Kyoto' })).toThrow(CommandError);
+  });
+  it('caps place strings and rejects unknown keys without limiting the place count', () => {
+    expect(PlaceSchema.safeParse({ japan: 'a'.repeat(201), outside: [] }).success).toBe(false);
+    expect(PlaceSchema.safeParse({ japan: null, outside: ['a'.repeat(201)] }).success).toBe(false);
+    expect(PlaceSchema.safeParse({ japan: null, outside: [], extra: true }).success).toBe(false);
+    expect(PlaceSchema.parse({ japan: 'Japan', outside: Array.from({ length: 20 }, () => 'Paris') }).outside).toHaveLength(20);
+  });
+  it('selects only a new or unchecked destination, ignoring chat patches and blank inputs', () => {
+    const stored = at({ requirements: { destination: 'Lisbon' } });
+    expect(uncheckedDestination(initialState(), command, plan({ destination: ' Kyoto ' }))).toBe('Kyoto');
+    expect(uncheckedDestination(stored, command, { ...chat, patch: { ...empty, destination: 'Paris' } })).toBe('Lisbon');
+    expect(uncheckedDestination(initialState(), { type: 'set_destination', value: ' Kyoto ' })).toBe('Kyoto');
+    expect(uncheckedDestination(initialState(), { type: 'submit_requirements', values: { destination: ' Kyoto ' } })).toBe('Kyoto');
+    expect(uncheckedDestination(stored, { type: 'resume' })).toBe('Lisbon');
+    expect(uncheckedDestination(at({ requirements: { destination: 'Kyoto' }, checkedDestination: 'Kyoto' }), command, chat)).toBeNull();
+    expect(uncheckedDestination(at({ requirements: { destination: 'Kyoto' }, checkedDestination: 'Kyoto' }), command, plan({ destination: 'Paris' }))).toBe('Paris');
+    expect(uncheckedDestination(stored, command, plan({ destination: '  ' }))).toBe('Lisbon');
+    expect(uncheckedDestination(initialState(), command, chat)).toBeNull();
+  });
+});
 
 describe('merge', () => {
   it('drops invalid fields instead of failing', () => {

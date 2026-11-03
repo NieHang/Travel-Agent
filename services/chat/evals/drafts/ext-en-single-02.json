@@ -1,0 +1,202 @@
+{
+  "id": "ext-en-single-02",
+  "category": "single_city",
+  "locale": "en",
+  "text": "Solo food trip to Tokyo, 2026-12-10 to 2026-12-13, 1 person, budget 6000 CNY",
+  "today": "2026-10-30",
+  "draft": "I'll load the Tokyo skill and search hotels for your dates.# Tokyo Food Trip — Draft Itinerary (10–13 Dec 2026)\n\n**Overview**: Tokyo 3 nights, one base, no hotel changes | light · standard · standard · light\nSolo, food-focused, 6000 CNY total. Hotel prices below are for 3 nights; the rest of the budget covers food, transport and incidentals — please check current rates before booking.\n\n**Before you go**\n- Get an IC card (Suica/PASMO) at the airport — covers JR, Metro, Toei and buses.\n- Book any timed-entry or reservation-only places a few weeks ahead (popular sushi counters and small counters often need reservations; please check).\n- December is cold but dry; pack layers. Many restaurants close one weekday — check before going.\n- Decide your airport: Haneda is closer to the city (Keikyu to Shinagawa approx. 15–20 min); Narita is approx. 45 min to Ueno by Skyliner.\n\n**Day 1 | Arrival · Shinjuku (light)**\n- 14:00 Haneda Airport → Keikyu Line to Shinagawa, approx. 20 min, no transfer; then JR Yamanote to Shinjuku, approx. 20 min, no transfer (if Narita: Keisei Skyliner to Ueno then JR, approx. 70 min total, 1 transfer)\n- 15:30 Check in at Shinjuku Washington Hotel Main, rest\n- 17:30 Walk approx. 15 min to the west-side food alleys: Omoide Yokocho for yakitori — evening visit, lit up and atmospheric\n- 19:30 Dinner in Golden Gai or a ramen shop near the station; early night\n- Tonight: Shinjuku Washington Hotel Main (新宿华盛顿主酒店)\n\n**Day 2 | Tsukiji · Ginza · Tokyo Station (standard)**\n- 07:30 Shinjuku → Shinjuku Line to Tsukiji, approx. 20 min, no transfer — early morning is calmest at the outer market\n- 08:00 Tsukiji Outer Market: tamagoyaki, grilled seafood, sushi breakfast\n- 10:30 Walk approx. 15 min to Ginza; depachika food halls and a coffee stop\n- 12:30 Lunch in Ginza (tempura or unagi)\n- 14:30 Walk approx. 10 min to Tokyo Station / Marunouchi; character street and sweets shopping\n- 17:00 Rest at the hotel or a café\n- 19:00 Dinner in Ginza or Shimbashi izakaya; Ginza Line back to Shinjuku approx. 25 min, no transfer\n- Alternatives: if rain, spend the afternoon in the Ginza depachika food halls and the Tokyo Station underground mall instead of walking Marunouchi; if tired, drop the Tokyo Station stop\n- Tonight: Shinjuku Washington Hotel Main (新宿华盛顿主酒店)\n\n**Day 3 | Shibuya · Harajuku · Shinjuku (standard)**\n- 08:30 JR Yamanote to Harajuku, approx. 10 min, no transfer\n- 09:00 Meiji Jingu — calmest early morning\n- 10:30 Takeshita Street and Omotesando: crepes, sweets, coffee\n- 12:30 Lunch in Harajuku or Omotesando\n- 14:00 Walk approx. 15 min to Shibuya; Shibuya Sky or a rooftop café (timed entry — book ahead, please check)\n- 17:00 Shibuya crossing at dusk, then depachika at Shibuya Station\n- 19:00 Dinner in Shibuya (yakitori, sushi or a standing bar); JR Yamanote back to Shinjuku approx. 10 min\n- Alternatives: if rain, swap Meiji Jingu for the Nezu Museum or a Shibuya department-store food hall; if tired, drop Shibuya Sky and keep the crossing at dusk\n- Tonight: Shinjuku Washington Hotel Main (新宿华盛顿主酒店)\n\n**Day 4 | Departure (light)**\n- 08:30 Breakfast near the hotel; last-minute souvenirs at Shinjuku Station\n- 10:30 Shinjuku → JR Yamanote to Shinagawa, approx. 20 min, no transfer; Keikyu to Haneda, approx. 20 min — leave plenty of time for check-in (if Narita: Narita Express from Shinjuku, approx. 80–90 min)\n\n**Hotel notes**: Shinjuku Washington Hotel Main is the cheapest of the three at 918 CNY for the stay and puts you next to Shinjuku's food alleys. Mitsui Garden Hotel Shiodome Italia-gai (1191 CNY) is more central for Tsukiji and Ginza mornings; Mitsui Garden Hotel Gotanda (1124.67 CNY) is a quieter base near Shinagawa. All prices and availability should be re-checked before booking.",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "537",
+        "title": {
+          "original": "新宿华盛顿主酒店",
+          "translation": "Shinjuku Washington Hotel Main"
+        },
+        "address": {
+          "original": "3-2-9 Nishishinjuku, Shinjuku-ku",
+          "translation": null
+        },
+        "price": {
+          "amount": 918,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=537&checkInDate=2026-12-10&checkOutDate=2026-12-13&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/537/hotel/250716172130/0/image/34022875.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "咖啡厅",
+            "translation": "Cafe"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "洗衣设施",
+            "translation": "Laundry facilities"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          },
+          {
+            "original": "微波炉",
+            "translation": "Microwave"
+          }
+        ],
+        "summary": "Cheapest option, in Shinjuku — handy for Omoide Yokocho and Golden Gai food alleys."
+      },
+      {
+        "ref": "h2",
+        "id": "5293",
+        "title": {
+          "original": "三井花园酒店汐留意大利街",
+          "translation": "Mitsui Garden Hotel Shiodome Italia-gai"
+        },
+        "address": {
+          "original": "2-14-24 Higashi-Shimbashi, Minato-ku",
+          "translation": null
+        },
+        "price": {
+          "amount": 1191,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=5293&checkInDate=2026-12-10&checkOutDate=2026-12-13&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/JP/5293/b1168fa5_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "洗衣设施",
+            "translation": "Laundry facilities"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          },
+          {
+            "original": "自动售货机",
+            "translation": "Vending machine"
+          },
+          {
+            "original": "商务中心",
+            "translation": "Business centre"
+          }
+        ],
+        "summary": "Central, walkable to Tsukiji and Ginza — good for early-morning market food."
+      },
+      {
+        "ref": "h3",
+        "id": "617191",
+        "title": {
+          "original": "三井花园酒店五反田",
+          "translation": "Mitsui Garden Hotel Gotanda"
+        },
+        "address": {
+          "original": "东京品川区Higashi Gotanda 2-2-6",
+          "translation": null
+        },
+        "price": {
+          "amount": 1124.67,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=617191&checkInDate=2026-12-10&checkOutDate=2026-12-13&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/617191/hotel/default/14/image/1mc6x12000h0pote18D0D_R_960_660_R5_D.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "露台",
+            "translation": "Terrace"
+          },
+          {
+            "original": "客房WIFI（免费",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "洗衣设施",
+            "translation": "Laundry facilities"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          },
+          {
+            "original": "自动售货机",
+            "translation": "Vending machine"
+          }
+        ],
+        "summary": "Quiet Gotanda base, easy access to Shinagawa and the Yamanote Line."
+      }
+    ]
+  }
+}

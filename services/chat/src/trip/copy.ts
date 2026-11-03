@@ -1,11 +1,17 @@
 import type { TripType } from '@autix/contracts';
 
 const en = {
+  japanDestinationTitle: 'Choose a destination in Japan',
+  japanCities: ['Tokyo', 'Kyoto', 'Osaka', 'Nara'],
+  outsideJapan: (places: string[], japan: string | null): string =>
+    `Hilda only plans trips within Japan, so I can't plan ${places.join(', ')}.` +
+    (japan ? ` I can plan just ${japan}, or you can choose another destination in Japan.` : ' Please choose a destination in Japan.'),
   tripTypes: {
     business: { label: 'Business travel', description: 'Combine work with short visits' },
     family: { label: 'Family travel', description: 'A pace suitable for families' },
     solo: { label: 'Solo travel', description: 'Travel around your interests' },
     couple: { label: 'Couple travel', description: 'Travel together as a couple' },
+    friends: { label: 'Friends trip', description: 'Travel together with friends' },
   } satisfies Record<TripType, { label: string; description: string }>,
   tripTypeTitle: 'What kind of trip is this?',
   chooseType: 'Please choose a trip type.',
@@ -29,11 +35,17 @@ const en = {
 export type Copy = typeof en;
 
 const zh: Copy = {
+  japanDestinationTitle: '选择日本的目的地',
+  japanCities: ['东京', '京都', '大阪', '奈良'],
+  outsideJapan: (places: string[], japan: string | null): string =>
+    `Hilda 目前只规划日本境内的旅行，暂时无法安排${places.join('、')}。` +
+    (japan ? `可以只规划${japan}，或换一个日本的目的地。` : '请换一个日本的目的地。'),
   tripTypes: {
     business: { label: '商务出差', description: '兼顾工作安排与短途游览' },
     family: { label: '亲子游', description: '适合家庭出行的节奏' },
     solo: { label: '个人游', description: '按个人兴趣安排行程' },
     couple: { label: '情侣游', description: '适合两人出行' },
+    friends: { label: '朋友结伴', description: '适合朋友一起出行' },
   },
   tripTypeTitle: '这次是什么类型的出行？',
   chooseType: '请选择旅游类型。',

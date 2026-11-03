@@ -40,7 +40,7 @@ describe('maybeCompact', () => {
 
     expect(await maybeCompact(messages, signal)).toBe(true);
 
-    expect(model.create).toHaveBeenCalledWith({ model: 'deepseek-flash' });
+    expect(model.create).toHaveBeenCalledWith({ model: 'deepseek-flash', operation: 'compact' });
     const [prompt, options] = model.invoke.mock.calls[0] as [BaseMessage[], unknown];
     expect(prompt[1].text).toBe(buildSummaryContent(old));
     expect(options).toEqual({ signal });

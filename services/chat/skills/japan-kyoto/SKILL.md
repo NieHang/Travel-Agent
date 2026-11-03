@@ -1,40 +1,51 @@
 ---
 name: japan-kyoto
-description: "Kyoto (京都): areas that go together, getting in, getting around, day trips, reservations, seasons."
+description: "Kyoto (京都): unchecked ideas for sights, food, crowds, reservations and seasons."
 ---
 # Kyoto
 
-Only what is specific to Kyoto; the japan-travel rules still apply. Times are approximate; mark them "约" / "approx." in the draft.
+Suggestions only, not checked facts. The japan-travel rules decide the plan; the traveller should check anything they rely on.
 
-## Areas that go together
-- **Higashiyama**: Kiyomizu-dera, Sannenzaka / Ninenzaka, Yasaka Shrine, Gion. Walk downhill from Kiyomizu-dera; Gion is best in the evening.
-- **Northern Higashiyama**: Ginkaku-ji, Philosopher's Path, Nanzen-ji, Eikan-do. A calm half day.
-- **Arashiyama**: bamboo grove, Tenryu-ji, Togetsukyo Bridge. Go very early; crowds build quickly. Sagano scenic train is an option (reserve ahead).
-- **Fushimi Inari + Tofuku-ji**: one JR Nara Line stop from Kyoto Station to Inari, approx. 5 min. The full torii hike takes approx. 2–3 h; turning back halfway is fine.
-- **Northwest**: Kinkaku-ji, Ryoan-ji, Ninna-ji; linked by bus or taxi.
-- **Central**: Nishiki Market, Kawaramachi, Pontocho; rainy-day and evening area.
+## Sights
+- Kiyomizu-dera: hillside temple with a wooden stage and city views.
+- Sannenzaka and Ninenzaka: old stone-paved lanes with small shops.
+- Yasaka Shrine.
+- Gion: old wooden townhouses and teahouses.
+- Pontocho: a narrow lane of restaurants.
+- Fushimi Inari Taisha: thousands of vermilion torii gates up a mountain; turning back partway is fine.
+- Tofuku-ji: Zen temple known for autumn leaves.
+- Arashiyama bamboo grove.
+- Tenryu-ji: Zen temple and garden.
+- Togetsukyo Bridge.
+- Kinkaku-ji: the Golden Pavilion.
+- Ryoan-ji: rock garden.
+- Ginkaku-ji: the Silver Pavilion.
+- Philosopher's Path: a walking path along a canal.
+- Nanzen-ji: large Zen temple.
+- Nijo Castle.
+- Nishiki Market: covered food market.
 
-## Getting in and out
-- From Tokyo: Shinkansen Nozomi, approx. 2 h 15 min.
-- From Kansai Airport: JR Haruka, approx. 75 min.
-- From Osaka: JR Special Rapid from Osaka / Umeda, approx. 30 min; Hankyu or Keihan to central Kyoto, approx. 45 min.
+## Food
+- Yudofu (simmered tofu), kaiseki, obanzai (home-style dishes), matcha sweets, yatsuhashi.
+- Nishiki Market for snacks.
 
-## Getting around
-- City buses are slow and very crowded at peak times; prefer subway, JR, Keihan or Hankyu plus walking, and taxis for 3–4 people over short distances.
-- An IC card (ICOCA, or any Suica / PASMO) works on trains, subway and buses.
-- Stay near Kyoto Station for easy arrivals and day trips, or near Kawaramachi / Gion for evenings.
+## Crowds and timing
+- Fushimi Inari, Arashiyama and Kiyomizu-dera are far calmer early in the morning.
+- Gion and Pontocho are at their best in the evening.
+- Many temples close in the late afternoon; please check each one.
+
+## Rainy days
+- Nishiki Market (covered), Kyoto National Museum, Kyoto Railway Museum.
+
+## Reservations
+- Some sites accept visitors only with advance reservations (e.g. Katsura Imperial Villa, Saiho-ji moss temple). Put them in Before you go.
+- The Sagano scenic train sells reserved seats; suggest booking ahead.
 
 ## Day trips
-- **Nara**: Kintetsu from Kyoto Station, approx. 45 min (limited express faster). Load the japan-nara skill.
-- **Uji**: approx. 20–30 min by JR or Keihan; Byodo-in and matcha.
-- **Osaka**: approx. 30 min; better as its own stay for food and nightlife.
-
-## Reservations and crowds
-- Some sites accept visitors only with advance reservations (e.g. Katsura Imperial Villa, Saiho-ji moss temple). Put them in Before you go.
-- Fushimi Inari, Arashiyama and Kiyomizu-dera: early morning is far calmer.
-- Many temples close around 16:30–17:00; plan temple visits for morning and early afternoon, please check each one.
+- Nara: load the japan-nara skill.
+- Uji: Byodo-in and matcha.
 
 ## Seasons
 - Cherry blossom and autumn leaves (usually mid to late November) are the busiest weeks of the year: book hotels early, start days early.
-- Gion Matsuri in July: big crowds in central Kyoto, hotels fill up.
+- Gion Matsuri in July: big crowds, hotels fill up.
 - Summers are hot and humid; winter is quiet with fewer crowds.

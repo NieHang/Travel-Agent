@@ -1,0 +1,223 @@
+{
+  "id": "ext-en-single-01",
+  "category": "single_city",
+  "locale": "en",
+  "text": "Plan a family trip to Osaka, 2026-12-01 to 2026-12-03, 4 people",
+  "today": "2026-10-30",
+  "draft": "I'll load the Osaka skill and search family accommodation for those two nights.# Osaka Family Trip — Draft (2026-12-01 → 2026-12-03, 4 travellers)\n\n**Overview**: Osaka 2 nights, one base, no hotel change | light · standard · light\nA short family break, so I've kept everything in one base and used the bay area (Kaiyukan) as the big family day. All times are approximate — please check opening hours and any timed tickets before you go.\n\n**Before you go**\n- Get IC cards (ICOCA, or any Suica/PASMO) at Kansai Airport — they work on Metro, JR and private lines.\n- Osaka Aquarium Kaiyukan: buy tickets online a few weeks ahead if you want a fixed entry slot (please check current rules).\n- Many museums close on Mondays; temples and shrines usually close around 17:00 — please check.\n- Early December evenings are cold and the Midosuji/Umeda winter illuminations are usually on — worth an evening stroll.\n- Pack light layers; rain is possible, so keep one indoor option per day.\n\n**Day 1 | Arrival · Namba / Dotonbori (light)**\n- 13:00 Kansai Airport → Nankai rapi:t to Namba, approx. 40 min, no transfer\n- 14:00 Check in at the hotel, rest and unpack\n- 16:00 Walk approx. 10 min to Dotonbori: riverside stroll and street food for the family\n- 18:00 Early dinner in Namba (kushikatsu or okonomiyaki), back to the hotel by approx. 20:00\n- Tonight: Hotel Hankyu Respire Osaka [阪急大阪龙仕柏酒店]\n\n**Day 2 | Bay area · Kaiyukan (standard)**\n- 09:00 Midosuji Line to Hommachi, change to Chuo Line to Osakako, approx. 30 min, 1 transfer\n- 09:45 Osaka Aquarium Kaiyukan — go early, it gets busy from late morning\n- 12:30 Lunch at Tempozan Marketplace next door\n- 14:00 Tempozan Ferris Wheel and harbour walk (optional, weather permitting)\n- 16:30 Return to the hotel, rest\n- 18:30 Dinner near Umeda; Umeda Sky Building observatory at sunset if the family still has energy\n- Alternatives: if rain, swap the Ferris Wheel for the Kaiyukan's indoor exhibits plus the marketplace; if tired, drop the Umeda Sky Building and eat near the hotel\n- Tonight: Hotel Hankyu Respire Osaka [阪急大阪龙仕柏酒店]\n\n**Day 3 | Osaka Castle · departure (light)**\n- 09:00 Check out, leave luggage at the hotel\n- 09:30 JR Osaka Loop Line to Osakajokoen, approx. 15 min, no transfer — castle park and outer moat walk (keep the castle interior optional)\n- 11:30 Back to the hotel, collect luggage, lunch nearby\n- 13:00 Osaka Station → JR Haruka from Tennoji or the airport bus from Umeda to Kansai Airport, approx. 60–70 min; leave plenty of time for check-in (please check the exact departure point and times)\n\n**Hotel notes**: I recommended the Umeda hotel because it sits on the main transit hub with quad rooms, which keeps transfers short with a family. If you'd rather be next to Universal Studios Japan, the Oriental Hotel Universal City has family rooms and kids' facilities at a lower price — say the word and I'll rebuild the days around it.",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "1086204",
+        "title": {
+          "original": "阪急大阪龙仕柏酒店",
+          "translation": "Hotel Hankyu Respire Osaka"
+        },
+        "address": {
+          "original": "1-1 Ofukacho, Kita",
+          "translation": null
+        },
+        "price": {
+          "amount": 2485,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=1086204&checkInDate=2026-12-01&checkOutDate=2026-12-03&roomCount=1&adultCount=4&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/1086204/hotel/default/6/image/3d3c1221_z.jpg-t",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "359",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "提供四人间",
+            "translation": "Quad rooms"
+          },
+          {
+            "original": "提供三人间",
+            "translation": "Triple rooms"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "洗衣设施",
+            "translation": "Laundry facilities"
+          },
+          {
+            "original": "健身中心",
+            "translation": "Fitness centre"
+          },
+          {
+            "original": "停车场",
+            "translation": "Parking"
+          }
+        ],
+        "summary": "Umeda (Kita) base right by Osaka Station — the easiest hub for a short family trip; quad rooms available."
+      },
+      {
+        "ref": "h2",
+        "id": "1434059",
+        "title": {
+          "original": "东方酒店 环球・城",
+          "translation": "Oriental Hotel Universal City"
+        },
+        "address": {
+          "original": "大阪此花区Shimaya 6-2-78",
+          "translation": null
+        },
+        "price": {
+          "amount": 1020,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=1434059&checkInDate=2026-12-01&checkOutDate=2026-12-03&roomCount=1&adultCount=4&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/1434059/hotel/default/3/image/020071200090q56yj532D.jpg-t",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "6623",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "儿童玩乐设施",
+            "translation": "Kids' play facilities"
+          },
+          {
+            "original": "提供家庭房",
+            "translation": "Family rooms"
+          },
+          {
+            "original": "可提供婴儿床或围栏",
+            "translation": "Cribs or bed rails on request"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "洗衣设施",
+            "translation": "Laundry facilities"
+          },
+          {
+            "original": "停车场",
+            "translation": "Parking"
+          }
+        ],
+        "summary": "Next to Universal Studios Japan in the bay area; family rooms and kids' facilities, cheapest of the family-friendly picks."
+      },
+      {
+        "ref": "h3",
+        "id": "1579740",
+        "title": {
+          "original": "星野集团 OMO7 大阪",
+          "translation": "Hoshino Resorts OMO7 Osaka"
+        },
+        "address": {
+          "original": "大阪府大阪浪速区3-16-30 Ebisu-nishi, 556-0003",
+          "translation": null
+        },
+        "price": {
+          "amount": 1607.5,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=1579740&checkInDate=2026-12-01&checkOutDate=2026-12-03&roomCount=1&adultCount=4&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/1579740/hotel/default/3/image/0202k120009dnwj3gC9F6.jpg-t",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "5",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "5691",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "提供四人间",
+            "translation": "Quad rooms"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          },
+          {
+            "original": "班车服务",
+            "translation": "Shuttle service"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "洗衣设施",
+            "translation": "Laundry facilities"
+          },
+          {
+            "original": "停车场",
+            "translation": "Parking"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          }
+        ],
+        "summary": "Shinsekai / Tennoji side, near Shin-Imamiya; quad rooms and a shuttle, good value for a 5-star."
+      }
+    ]
+  }
+}

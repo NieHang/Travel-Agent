@@ -1,0 +1,215 @@
+{
+  "tools": [
+    {
+      "name": "mcp_rollingGo_getHotelDetail",
+      "description": "查询单个酒店实时房型与价格明细（房型、价税、可售状态、退改规则等）。用于用户已选定具体酒店后的二次查价",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dateParam": {
+            "type": "object",
+            "properties": {
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式 YYYY-MM-DD。建议传合法未来日期"
+              },
+              "checkOutDate": {
+                "type": "string",
+                "description": "离店日期，格式 YYYY-MM-DD，必须晚于 checkInDate"
+              }
+            },
+            "description": "入离店日期对象"
+          },
+          "filter": {
+            "type": "object",
+            "properties": {
+              "cancelPolicy": {
+                "type": "string",
+                "enum": [
+                  "CANCELABLE",
+                  "NON_CANCELABLE"
+                ],
+                "description": "取消政策筛选。CANCELABLE：仅可免费取消房型；NON_CANCELABLE：仅不可取消房型。非法值忽略。"
+              },
+              "mealType": {
+                "type": "string",
+                "enum": [
+                  "WITH_BREAKFAST",
+                  "SINGLE_BREAKFAST",
+                  "DOUBLE_BREAKFAST",
+                  "NO_MEAL"
+                ],
+                "description": "餐食类别枚举。WITH_BREAKFAST（含早餐，mealAmount>0）/ SINGLE_BREAKFAST（单份早餐，mealAmount=1）/ DOUBLE_BREAKFAST（双份早餐，mealAmount=2）/ NO_MEAL（不含餐食，mealAmount=0）。非法值忽略。"
+              }
+            },
+            "description": "房型筛选条件对象。未传或为空时返回全部房型；多条件 AND 组合。"
+          },
+          "hotelId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "酒店唯一ID。与 name 二选一；若同时传入，优先使用 hotelId（从searchHotels工具获取）"
+          },
+          "name": {
+            "type": "string",
+            "description": "酒店名称（模糊匹配）。仅在没有 hotelId 时使用"
+          },
+          "occupancyParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房成人数，整数，>=1，默认2"
+              },
+              "childAgeDetails": {
+                "description": "儿童年龄数组，如 [3,5]；长度应与 childCount 一致",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "childCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房儿童数，整数，>=0，默认0"
+              },
+              "roomCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "房间数，整数，>=1，默认1"
+              }
+            },
+            "description": "入住人数与房间数量对象"
+          }
+        }
+      }
+    },
+    {
+      "name": "mcp_rollingGo_getHotelSearchTags",
+      "description": "获取酒店搜索元数据（AI Cache），包含可用的标签列表（以当前启用数据为准）。",
+      "schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "mcp_rollingGo_searchHotels",
+      "description": "该工具用于查询全球酒店。根据地点及结构化筛选条件（日期、入住晚数、人数、星级、距离、标签、品牌、预算）返回符合条件的酒店候选列表与最低价格，用于酒店初筛与比选。",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "checkInParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房入住的成人数量，默认两成人"
+              },
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式：YYYY-MM-DD，例如：2026-02-01。可不传；未传或早于今天时，自动使用明天；格式错误会返回参数错误"
+              },
+              "stayNights": {
+                "type": "integer",
+                "format": "int32",
+                "description": "入住天数（晚数），可不传，默认 1 晚。最多 28 晚，超出限制将返回参数错误。"
+              }
+            },
+            "description": "入住信息参数，包括入住日期、入住天数和每间房成人数量"
+          },
+          "filterOptions": {
+            "type": "object",
+            "properties": {
+              "distanceInMeter": {
+                "type": "integer",
+                "format": "int32",
+                "description": "直线距离，单位（米），当地点是一个POI位置时生效，生效时默认设定值为2000"
+              },
+              "starRatings": {
+                "description": "酒店星级(0.0-5.0, 梯度为0.5)，默认[0.0, 5.0]以上，例如 [4.5, 5.0]，[0.0, 2.0]",
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                }
+              }
+            },
+            "description": "酒店筛选选项，例如酒店星级、每间房成人数、距离等"
+          },
+          "hotelTags": {
+            "type": "object",
+            "properties": {
+              "maxPricePerNight": {
+                "type": "number",
+                "format": "double",
+                "description": "每晚价格上限（人民币，数值）"
+              },
+              "preferredBrands": {
+                "description": "偏好品牌",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requiredTags": {
+                "description": "必须命中标签（硬约束，未命中应被过滤）",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "酒店筛选标签参数（可选）。当传入此参数时，将直接使用这些标签进行筛选和排序，无需服务端额外解析。包含字段：requiredTags（必须标签）、preferredBrands（偏好品牌）、maxPricePerNight（每晚最高预算）"
+          },
+          "nextPageToken": {
+            "type": "string",
+            "description": "分页游标。仅当获取下一页(换一批)时,原样回传上一页返回的 nextPageToken;首页查询不传。传入有效 Token 时,核心检索条件以 Token 内快照为准。"
+          },
+          "originQuery": {
+            "type": "string",
+            "description": "综合多轮对话，归纳用户的完整住宿/预订意图。"
+          },
+          "place": {
+            "type": "string",
+            "description": "搜索地点关键词/酒店名称。具体酒店直接填入酒店名称；位置或区县需用空格补齐城市，填入 位置 城市；仅查询城市需补齐国家，填入 城市 国家。"
+          },
+          "placeType": {
+            "type": "string",
+            "description": "place 的类型，必须与 place 的实际内容一致。可选值：城市、机场、景点、火车站、地铁站、酒店、区/县、详细地址。"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "返回酒店结果数量，默认5个酒店，最大不超过10个"
+          }
+        },
+        "required": [
+          "originQuery",
+          "place",
+          "placeType"
+        ]
+      }
+    }
+  ],
+  "calls": [
+    {
+      "tool": "mcp_rollingGo_searchHotels",
+      "args": {
+        "originQuery": "Lisbon long weekend for a couple, 2026-11-13 to 2026-11-16, 2 adults, 3 nights",
+        "place": "Lisbon Portugal",
+        "placeType": "城市",
+        "checkInParam": {
+          "checkInDate": "2026-11-13",
+          "stayNights": 3,
+          "adultCount": 2
+        },
+        "size": 8
+      },
+      "result": {
+        "content": "{\"success\":true,\"code\":2000,\"message\":\"酒店搜索成功\",\"nextPageToken\":\"PtrnLmrCQ3RQJCen00TFWWNU6VEUaaxxv7YuRKTQ-5pEzaN80wmVmcz6gVxZUWusY1p0rfv4z_8bZexuxEbei2pF0I91gLaj-Zcfa22zR25hVvA56E8UK-Ick-QbM7_sVidNbwQrTS3ZvE5KUIqsvGr8RRPLTasgi2rWb3FOfa3Y7PonguYdRM5SKHH1uDsqhSKgRMLYemNm6SbYoS0\",\"hotelInformationList\":[{\"hotelId\":30049,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=30049&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"里斯本广场遗产酒店 - 大道\",\"nameEn\":\"Heritage Lisboa Plaza Hotel - Avenida\",\"brand\":\"里斯本传承酒店\",\"address\":\"里斯本Tv. Salitre / Avd. Liberdade, 葡萄牙\",\"destinationId\":\"2080\",\"latitude\":38.718745,\"longitude\":-9.145518,\"distanceInMeters\":950,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。3晚总价：3,552CNY（约1,184CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":1184.0},\"areaCode\":\"PT\",\"description\":\"<p><b>酒店位置</b><br/>里斯本广场遗产酒店 - 大道坐落于里斯本中心地段，步行前往罗西奥广场只需 10 分钟、前往圣胡斯塔升降机需 12 分钟。  此豪华酒店距离里斯本大教堂 1.2 英里（2 公里），距离圣乔治城堡 1.4 英里（2.3 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>耶稣圣心 - 0.2 公里 / 0.1 英里 <br /> 自由大道 - 0.2 公里 / 0.1 英里 <br /> 植物花园 - 0.3 公里 / 0.2 英里 <br /> Principe Real (普林西比雷尔)广场 - 0.4 公里 / 0.3 英里 <br /> 托雷尔花园 - 0.5 公里 / 0.3 英里 <br /> 复兴者广场 - 0.6 公里 / 0.3 英里 <br /> 休闲剧院 - 0.7 公里 / 0.4 英里 <br /> 葡萄牙电影博物馆 - 0.7 公里 / 0.4 英里 <br /> 国立自然历史博物馆 - 0.7 公里 / 0.4 英里 <br /> 弗洛雷斯广场 - 0.8 公里 / 0.5 英里 <br /> 阿尔坎塔拉圣佩德罗米拉多若 - 0.8 公里 / 0.5 英里 <br /> 罗西奥广场 - 0.8 公里 / 0.5 英里 <br /> 庞巴尔侯爵广场 - 1 公里 / 0.6 英里 <br /> 希亚多法朵剧场 - 1 公里 / 0.6 英里 <br /> 奥古斯塔街 - 1 公里 / 0.6 英里 <br /> </p><p>附近的机场有：<br />温贝托·德尔加多机场 (LIS) - 11.7 公里 / 7.3 英里<br /> 卡斯凯什机场 (CAT) - 21 公里 / 13 英里<br /> </p><p>里斯本广场遗产酒店 - 大道的主要机场是温贝托·德尔加多机场 (LIS)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>享受健身中心等度假设施，或者到屋顶露台欣赏美景。此酒店还提供免费 WiFi、礼宾服务和保姆服务（收费）。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、24 小时商务中心和干洗/洗衣服务。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/PT/30049/Featured%20Image/658037_61_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"会议厅\",\"咖啡厅\",\"酒吧\",\"宴会厅\",\"前台服务语言\",\"自行车租赁服务\",\"健身设施\",\"洗衣设施\",\"图书室\",\"儿童看护（收费）\",\"客房WIFI（免费）\",\"专职门童\",\"旅游票务专柜\",\"公共区域禁烟\",\"电脑\",\"露台\",\"沙滩毛巾\",\"大堂电视\",\"咖啡壶/茶壶\",\"小吃吧\",\"踏板车/轻便摩托车\",\"停车场\",\"充电车位\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"宠物友好\",\"健身房\",\"备有拖鞋\",\"客房备有吹风机\",\"自行车租赁\",\"客房点餐\",\"提供家庭房\",\"提供三人间\",\"提供双床房\"]},{\"hotelId\":30059,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=30059&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"姆达酒店\",\"nameEn\":\"Hotel Mundial\",\"brand\":\"PHC酒店\",\"address\":\"Praça Martim Moniz, 2\",\"destinationId\":\"2080\",\"latitude\":38.715057,\"longitude\":-9.136945,\"distanceInMeters\":329,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。3晚总价：2,783.01CNY（约927.67CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":927.67},\"areaCode\":\"PT\",\"description\":\"<p><b>酒店位置</b><br/>姆达酒店坐落于里斯本中心地段，步行前往罗西奥广场只需 4 分钟、前往自由大道需 7 分钟。 此酒店距离圣胡斯塔升降机 0.4 英里（0.6 公里），距离里斯本大教堂 0.5 英里（0.8 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>菲盖拉广场 - 0.2 公里 / 0.1 英里 <br /> 圣何塞医院 - 0.3 公里 / 0.2 英里 <br /> 马丁·莫尼士广场 - 0.3 公里 / 0.2 英里 <br /> 罗西奥广场 - 0.3 公里 / 0.2 英里 <br /> 奥古斯塔街 - 0.4 公里 / 0.2 英里 <br /> 休闲剧院 - 0.5 公里 / 0.3 英里 <br /> 复兴者广场 - 0.5 公里 / 0.3 英里 <br /> 圣胡斯塔升降机 - 0.6 公里 / 0.4 英里 <br /> 雷斯海军上将大道 - 0.6 公里 / 0.4 英里 <br /> 自由大道 - 0.6 公里 / 0.4 英里 <br /> 卡尔莫修道院 - 0.6 公里 / 0.4 英里 <br /> 希亚多百货商场 - 0.7 公里 / 0.4 英里 <br /> 格拉卡观景点 - 0.8 公里 / 0.5 英里 <br /> 里斯本大教堂 - 0.8 公里 / 0.5 英里 <br /> 贸易广场 - 0.9 公里 / 0.5 英里 <br /> </p><p>附近的机场有：<br />温贝托·德尔加多机场 (LIS) - 8.3 公里 / 5.1 英里<br /> 卡斯凯什机场 (CAT) - 22.2 公里 / 13.8 英里<br /> </p><p>姆达酒店的主要机场是温贝托·德尔加多机场 (LIS)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>享受附设酒庄等度假设施，或者到屋顶露台欣赏美景。此酒店还提供免费 WiFi、礼宾服务和酒店内购物。如果想抽一天去购物，可以搭乘收费班车前往。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括干洗/洗衣服务、24 小时前台服务和多语言服务。计划在里斯本举办活动？这家酒店拥有 9 平方米（100 平方英尺）的空间，包括会议场地和5 间会议室。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/PT/30059/Featured%20Image/527390_144_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"班车服务\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"会议厅\",\"自动取款机\",\"咖啡厅\",\"酒吧\",\"无障碍通道\",\"宴会厅\",\"前台服务语言\",\"洗衣设施\",\"车库\",\"酒店内购物\",\"图书室\",\"客房WIFI（免费）\",\"专职门童\",\"旅游票务专柜\",\"公共区域禁烟\",\"露台\",\"餐厅\",\"房东接待服务\",\"停车场\",\"充电车位\",\"附设酒庄\"],\"tags\":[\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"备有热水壶\",\"客房备有吹风机\",\"客房点餐\",\"提供家庭房\",\"提供双床房\",\"提供三人间\"]},{\"hotelId\":1631798,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=1631798&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"Moov酒店里斯本东方\",\"nameEn\":\"Moov Hotel Lisboa Oriente\",\"brand\":\"Moov酒店\",\"address\":\"341 Avenida Infante Dom Henrique\",\"destinationId\":\"2080\",\"latitude\":38.76555,\"longitude\":-9.104469,\"distanceInMeters\":6609,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。3晚总价：1,575CNY（约525CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":525.0},\"areaCode\":\"PT\",\"description\":\"<p><b>酒店位置</b><br/>Moov酒店里斯本东方位于里斯本，可直达会议中心，距离自由大道和罗西奥广场不到 10 分钟车程。 此酒店距离庞巴尔侯爵广场 5.4 英里（8.6 公里），距离里斯本大教堂 4.9 英里（7.8 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>达加玛购物中心 - 0.9 公里 / 0.6 英里 <br /> 里斯本赌场 - 1.2 公里 / 0.8 英里 <br /> MEO竞技场 - 1.4 公里 / 0.9 英里 <br /> 里斯本海洋馆 - 1.4 公里 / 0.9 英里 <br /> 里斯本国际展览交易会 - 1.7 公里 / 1 英里 <br /> 里斯本缆车 - 1.7 公里 / 1.1 英里 <br /> 纳科伊斯码头公园 - 1.7 公里 / 1.1 英里 <br /> 东方车站 - 1.9 公里 / 1.2 英里 <br /> 里斯本单索缆车 - 2 公里 / 1.2 英里 <br /> 瓦斯科达伽马塔 - 2.2 公里 / 1.3 英里 <br /> 贝拉维斯塔公园 - 3.2 公里 / 2 英里 <br /> 瓦斯科达伽马桥 - 4.5 公里 / 2.8 英里 <br /> 国家瓷砖博物馆 - 5.4 公里 / 3.4 英里 <br /> 雷斯海军上将大道 - 5.7 公里 / 3.6 英里 <br /> 约瑟阿尔瓦拉德体育场 - 6.3 公里 / 3.9 英里 <br /> </p><p>附近的机场有：<br />温贝托·德尔加多机场 (LIS) - 3.3 公里 / 2 英里<br /> 卡斯凯什机场 (CAT) - 28.1 公里 / 17.5 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可到花园欣赏美景，还可利用免费 WiFi和自动售货机等服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括24 小时前台服务、电梯和自动售货机。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/1631798/hotel/default/14/image/0221r12000gcejyla02D7_R_960_660_R5_D.jpg\",\"hotelAmenities\":[\"24小时前台\",\"电梯\",\"无障碍通道\",\"非经营性客人休息区\",\"毛巾更换\",\"车库\",\"入口坡道\",\"客房WIFI（免费）\",\"赌场\",\"公共区域禁烟\",\"被单更换：1客1换\",\"自动售货机\",\"无障碍通道\",\"花园\",\"无障碍卫生间\",\"走廊的视觉警报\",\"停车场\",\"提供早餐\"],\"tags\":[\"当地连锁\",\"客房备有吹风机\",\"无障碍停车位\",\"提供双床房\"]},{\"hotelId\":1904895,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=1904895&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"复合式魅力精品酒店\",\"nameEn\":\"Duplo Charme Boutique Hotel\",\"brand\":\"Chaves及Guedes\",\"address\":\"José Estevão 20\",\"destinationId\":\"2080\",\"latitude\":38.728333,\"longitude\":-9.137409,\"distanceInMeters\":1785,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。3晚总价：1,998CNY（约666CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":666.0},\"areaCode\":\"PT\",\"description\":\"<p><b>酒店位置</b><br/>复合式魅力精品酒店位于里斯本里斯本市中心，距离自由大道和罗西奥广场不到 5 分钟车程。 此酒店距离庞巴尔侯爵广场 1 英里（1.5 公里），距离圣胡斯塔升降机 1.5 英里（2.4 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>雷斯海军上将大道 - 0.5 公里 / 0.3 英里 <br /> 萨尔达尼亚广场 - 1.1 公里 / 0.7 英里 <br /> 耶稣圣心 - 1.1 公里 / 0.7 英里 <br /> 托雷尔花园 - 1.2 公里 / 0.7 英里 <br /> 圣母山观景点 - 1.3 公里 / 0.8 英里 <br /> 马丁·莫尼士广场 - 1.3 公里 / 0.8 英里 <br /> 圣何塞医院 - 1.3 公里 / 0.8 英里 <br /> 爱德华七世公园 - 1.4 公里 / 0.9 英里 <br /> 庞巴尔侯爵广场 - 1.5 公里 / 0.9 英里 <br /> 自由大道 - 1.6 公里 / 1 英里 <br /> 休闲剧院 - 1.6 公里 / 1 英里 <br /> 葡萄牙电影博物馆 - 1.7 公里 / 1.1 英里 <br /> 圣乔治城堡 - 1.7 公里 / 1.1 英里 <br /> 罗西奥广场 - 1.8 公里 / 1.1 英里 <br /> 菲盖拉广场 - 1.8 公里 / 1.1 英里 <br /> </p><p>附近的机场有：<br />温贝托·德尔加多机场 (LIS) - 5.7 公里 / 3.5 英里<br /> 卡斯凯什机场 (CAT) - 21.3 公里 / 13.2 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可到露台欣赏美景。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括24 小时前台服务、行李寄存和电梯。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/6/Image/1904895/f62b3dc0.jpg\",\"hotelAmenities\":[\"行李寄存\",\"24小时前台\",\"电梯\",\"酒吧\",\"公共区域禁烟\",\"露台\",\"提供早餐\"],\"tags\":[\"客房备有吹风机\",\"提供双床房\",\"提供三人间\"]},{\"hotelId\":186256,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=186256&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"里斯本 HF 菲尼克斯酒店\",\"nameEn\":\"HF Fénix Lisboa\",\"brand\":\"HF酒店Fenix\",\"address\":\"里斯本Praça Marquês de Pombal, 8, 葡萄牙\",\"destinationId\":\"2080\",\"latitude\":38.72499,\"longitude\":-9.15102,\"distanceInMeters\":1790,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。3晚总价：2,492.01CNY（约830.67CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":830.67},\"areaCode\":\"PT\",\"description\":\"<p><b>酒店位置</b><br/>里斯本 HF 菲尼克斯酒店地处里斯本中心，距离自由大道和庞巴尔侯爵广场仅咫尺之遥。 此酒店距离罗西奥广场 1.2 英里（2 公里），距离圣胡斯塔升降机 1.1 英里（1.8 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>耶稣圣心 - 0.1 公里 / 0.1 英里 <br /> 爱德华七世公园 - 0.1 公里 / 0.1 英里 <br /> 庞巴尔侯爵广场 - 0.1 公里 / 0.1 英里 <br /> 自由大道 - 0.1 公里 / 0.1 英里 <br /> 葡萄牙电影博物馆 - 0.6 公里 / 0.4 英里 <br /> 冷温室 - 0.7 公里 / 0.4 英里 <br /> 植物花园 - 0.7 公里 / 0.5 英里 <br /> 埃尔克尔特英格莱斯购物中心 - 1 公里 / 0.6 英里 <br /> 阿莫雷拉斯购物中心 - 1.1 公里 / 0.7 英里 <br /> 国立自然历史博物馆 - 1.1 公里 / 0.7 英里 <br /> 萨尔达尼亚广场 - 1.2 公里 / 0.7 英里 <br /> Principe Real (普林西比雷尔)广场 - 1.3 公里 / 0.8 英里 <br /> 托雷尔花园 - 1.3 公里 / 0.8 英里 <br /> 复兴者广场 - 1.3 公里 / 0.8 英里 <br /> 弗洛雷斯广场 - 1.4 公里 / 0.9 英里 <br /> </p><p>附近的机场有：<br />温贝托·德尔加多机场 (LIS) - 8.1 公里 / 5 英里<br /> 卡斯凯什机场 (CAT) - 20.2 公里 / 12.6 英里<br /> </p><p>里斯本 HF 菲尼克斯酒店的主要机场是温贝托·德尔加多机场 (LIS)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可到露台和花园欣赏美景，还可利用免费 WiFi等服务和设施。此酒店还提供礼宾服务、宴会厅和自动售货机。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括24 小时商务中心、干洗/洗衣服务和24 小时前台服务。这家酒店的活动设施包括会议场地和7 间会议室。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/PT/186256/Featured%20Image/46579_267_b.jpg-t\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"会议厅\",\"咖啡厅\",\"酒吧\",\"无障碍通道\",\"宴会厅\",\"洗衣设施\",\"客房WIFI（免费）\",\"旅游票务专柜\",\"公共区域禁烟\",\"电脑\",\"露台\",\"餐厅\",\"自动售货机\",\"花园\",\"停车场\",\"充电车位\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"客房备有吹风机\",\"客房点餐\",\"提供大床房\",\"提供双床房\"]},{\"hotelId\":28388,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=28388&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"太加斯我的故事酒店\",\"nameEn\":\"My Story Hotel Tejo\",\"brand\":\"斯特罗尔伊酒店\",\"address\":\"Rua dos Condes de Monsanto 2\",\"destinationId\":\"2080\",\"latitude\":38.713646,\"longitude\":-9.136715,\"distanceInMeters\":205,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。3晚总价：2,238CNY（约746CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":746.0},\"areaCode\":\"PT\",\"description\":\"<p><b>酒店位置</b><br/>太加斯我的故事酒店坐落于里斯本中心地段，距离罗西奥广场和圣胡斯塔升降机不到 5 分钟步行路程。 此酒店距离自由大道 0.4 英里（0.7 公里），距离里斯本大教堂 0.4 英里（0.6 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>菲盖拉广场 - 0.1 公里 / 0.1 英里 <br /> 奥古斯塔街 - 0.2 公里 / 0.1 英里 <br /> 罗西奥广场 - 0.2 公里 / 0.1 英里 <br /> 圣胡斯塔升降机 - 0.4 公里 / 0.2 英里 <br /> 卡尔莫修道院 - 0.4 公里 / 0.3 英里 <br /> 马丁·莫尼士广场 - 0.4 公里 / 0.3 英里 <br /> 希亚多百货商场 - 0.5 公里 / 0.3 英里 <br /> 圣何塞医院 - 0.5 公里 / 0.3 英里 <br /> 休闲剧院 - 0.6 公里 / 0.3 英里 <br /> 里斯本大教堂 - 0.6 公里 / 0.4 英里 <br /> 复兴者广场 - 0.7 公里 / 0.4 英里 <br /> 贸易广场 - 0.7 公里 / 0.4 英里 <br /> 自由大道 - 0.7 公里 / 0.4 英里 <br /> 奥古斯塔街拱门 - 0.7 公里 / 0.4 英里 <br /> 费尔南多·佩索阿塑像 - 0.7 公里 / 0.5 英里 <br /> </p><p>附近的机场有：<br />温贝托·德尔加多机场 (LIS) - 6.8 公里 / 4.2 英里<br /> 卡斯凯什机场 (CAT) - 22.3 公里 / 13.8 英里<br /> </p><p>太加斯我的故事酒店的主要机场是温贝托·德尔加多机场 (LIS)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、礼宾服务和接待大厅等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括干洗/洗衣服务、24 小时前台服务和多语言服务。设有收费的24 小时往返机场班车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/PT/28388/Featured%20Image/dc3e2e13_b.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"咖啡厅\",\"酒吧\",\"无障碍通道\",\"前台服务语言\",\"自行车租赁服务\",\"接待大厅\",\"洗衣设施\",\"客房WIFI（免费）\",\"旅游票务专柜\",\"公共区域禁烟\",\"餐厅\",\"无障碍通道\",\"收费机场接送\",\"提供早餐\"],\"tags\":[\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"客房备有吹风机\",\"自行车租赁\",\"提供家庭房\",\"提供双床房\"]},{\"hotelId\":846193,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=846193&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"科波桑托里斯本历史酒店\",\"nameEn\":\"Corpo Santo Lisbon Historical Hotel\",\"brand\":\"Corpo Santo酒店\",\"address\":\"Largo Corpo Santo 25, Misericordia, 1200-129 里斯本, 里斯本区, 葡萄牙\",\"destinationId\":\"2080\",\"latitude\":38.707364,\"longitude\":-9.141849,\"distanceInMeters\":628,\"starRating\":5.0,\"price\":{\"message\":\"查价成功。3晚总价：7,560CNY（约2,520CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":2520.0},\"areaCode\":\"PT\",\"description\":\"<p><b>酒店位置</b><br/>科波桑托里斯本历史酒店地处里斯本中心，步行到贸易广场和里贝拉市场不超过 5 分钟。 此豪华酒店距离罗西奥广场 1.1 英里（1.8 公里），距离圣胡斯塔升降机 1.2 英里（1.9 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>里贝拉达斯诺斯 - 0.2 公里 / 0.1 英里 <br /> 粉红街 - 0.2 公里 / 0.1 英里 <br /> 里斯本市政厅 - 0.3 公里 / 0.2 英里 <br /> 贸易广场 - 0.4 公里 / 0.2 英里 <br /> 里贝拉市场 - 0.4 公里 / 0.2 英里 <br /> 费尔南多·佩索阿塑像 - 0.4 公里 / 0.3 英里 <br /> 奥古斯塔街拱门 - 0.5 公里 / 0.3 英里 <br /> 奥古斯塔街 - 0.5 公里 / 0.3 英里 <br /> 希亚多百货商场 - 0.6 公里 / 0.4 英里 <br /> 贾梅士广场 - 0.6 公里 / 0.4 英里 <br /> 卡尔莫修道院 - 0.6 公里 / 0.4 英里 <br /> 希亚多法朵剧场 - 0.6 公里 / 0.4 英里 <br /> 里斯本故事中心 - 0.6 公里 / 0.4 英里 <br /> 圣胡斯塔升降机 - 0.7 公里 / 0.5 英里 <br /> 圣卡塔琳娜观景点 - 0.8 公里 / 0.5 英里 <br /> </p><p>附近的机场有：<br />温贝托·德尔加多机场 (LIS) - 15 公里 / 9.4 英里<br /> 卡斯凯什机场 (CAT) - 21.9 公里 / 13.6 英里<br /> </p><p>科波桑托里斯本历史酒店的主要机场是温贝托·德尔加多机场 (LIS)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可到 SPA 慰劳一下自己，这里提供按摩。此酒店还提供免费 WiFi、礼宾服务和保姆服务（收费）。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括商务中心、干洗/洗衣服务和24 小时前台服务。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/PT/846193/27dbaf1b_b.jpg-t\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"酒吧\",\"宴会厅\",\"前台服务语言\",\"自行车租赁服务\",\"健身设施\",\"节能开关\",\"综合回收政策\",\"所有窗户均为双层玻璃\",\"洗衣设施\",\"不提供一次性塑料吸管\",\"毛巾更换\",\"仅提供可重复使用的餐具\",\"仅使用节水淋浴\",\"提供素食菜单\",\"仅使用节水厕所\",\"仅提供可重复使用的杯子\",\"LED 灯泡\",\"资源回收\",\"儿童看护（收费）\",\"客房WIFI（免费）\",\"专职门童\",\"旅游票务专柜\",\"公共区域禁烟\",\"电脑\",\"餐厅\",\"被单更换：1客1换\",\"无障碍通道\",\"小吃吧\",\"全方位服务水疗中心\",\"停车场\",\"可再生能源\",\"咖啡/茶过滤器\",\"旅游服务\",\"提供早餐\"],\"tags\":[\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"健身房\",\"备有拖鞋\",\"客房备有吹风机\",\"自行车租赁\",\"客房点餐\",\"提供家庭房\",\"提供双床房\",\"SPA服务\",\"亲子酒店\",\"度假酒店\"]},{\"hotelId\":30056,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=30056&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"罗马酒店\",\"nameEn\":\"Hotel Roma\",\"address\":\"Avenida de Roma 33\",\"destinationId\":\"2080\",\"latitude\":38.74572,\"longitude\":-9.14009,\"distanceInMeters\":3719,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。3晚总价：1,653CNY（约551CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":551.0},\"areaCode\":\"PT\",\"description\":\"<p><b>酒店位置</b><br/>罗马酒店坐落于里斯本中心地段，距离自由大道和罗西奥广场不到 5 分钟车程。 此酒店距离庞巴尔侯爵广场 2 英里（3.3 公里），距离圣胡斯塔升降机 2.7 英里（4.4 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>雷斯海军上将大道 - 1 公里 / 0.6 英里 <br /> 里斯本大学 - 1.5 公里 / 0.9 英里 <br /> Hospital Curry Cabral (库里卡布拉尔医院) - 1.6 公里 / 1 英里 <br /> 萨尔达尼亚广场 - 1.9 公里 / 1.2 英里 <br /> 古尔本基安博物馆 - 1.9 公里 / 1.2 英里 <br /> 贝拉维斯塔公园 - 1.9 公里 / 1.2 英里 <br /> 埃尔克尔特英格莱斯购物中心 - 2.5 公里 / 1.5 英里 <br /> 圣玛丽亚医院 - 2.5 公里 / 1.5 英里 <br /> 耶稣圣心 - 2.5 公里 / 1.6 英里 <br /> 爱德华七世公园 - 2.6 公里 / 1.6 英里 <br /> 冷温室 - 2.9 公里 / 1.8 英里 <br /> 庞巴尔侯爵广场 - 2.9 公里 / 1.8 英里 <br /> 自由大道 - 3 公里 / 1.9 英里 <br /> 约瑟阿尔瓦拉德体育场 - 3.1 公里 / 2 英里 <br /> 托雷尔花园 - 3.3 公里 / 2 英里 <br /> </p><p>附近的机场有：<br />温贝托·德尔加多机场 (LIS) - 5.4 公里 / 3.4 英里<br /> 卡斯凯什机场 (CAT) - 23.7 公里 / 14.7 英里<br /> </p><p>罗马酒店的主要机场是温贝托·德尔加多机场 (LIS)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、礼宾服务和礼品店/报摊等便利服务和设施。此酒店的其他特色包括公共区电视和宴会厅。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括24 小时前台服务、多语言服务和行李寄存。计划在里斯本举办活动？这家酒店拥有 326 平方米（3509 平方英尺）的空间，包括会议场地和会议室。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/30056/hotel/default/14/image/0581e12000cukpopv2A7E_R_960_660_R5_D.jpg-t\",\"hotelAmenities\":[\"专职行李员\",\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"会议厅\",\"酒吧\",\"无障碍通道\",\"非经营性客人休息区\",\"宴会厅\",\"前台服务语言\",\"公共区可上网\",\"客房WIFI（免费）\",\"专职门童\",\"旅游票务专柜\",\"礼品廊\",\"餐厅\",\"无障碍通道\",\"大堂电视\",\"停车场\",\"充电车位\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"客房备有吹风机\",\"客房点餐\",\"提供家庭房\",\"提供双床房\",\"提供三人间\"]}]}",
+        "isError": false
+      }
+    }
+  ]
+}

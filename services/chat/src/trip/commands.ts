@@ -24,6 +24,25 @@ export const ClassifiedSchema = z
   .strict();
 export type Classified = z.infer<typeof ClassifiedSchema>;
 
+export const PlaceSchema = z.object({
+  japan: z.string().max(200).nullable(),
+  outside: z.array(z.string().max(200)),
+}).strict();
+export type Place = z.infer<typeof PlaceSchema>;
+
+/** The destination locate() must check before this turn: a new one from the command, or a stored one saved before the Japan check. */
+export function uncheckedDestination(state: TripState, command: Command, classified?: Classified): string | null {
+  const given = command.type === 'message' && classified?.intent === 'plan'
+    ? classified.patch.destination
+    : command.type === 'set_destination'
+      ? command.value
+      : command.type === 'submit_requirements'
+        ? command.values.destination
+        : undefined;
+  const destination = given?.trim() || state.requirements.destination?.trim();
+  return !destination || destination === state.checkedDestination ? null : destination;
+}
+
 export type Effect = 'answer' | 'itinerary' | null;
 
 export class CommandError extends Error {
@@ -86,7 +105,7 @@ export function assertAllowed(state: TripState, command: Command): void {
       if (state.stage !== 'trip_type' && state.clarify?.field !== 'tripType') deny('Trip type is not being asked');
       return;
     case 'set_destination':
-      if (state.clarify?.field !== 'destination') deny('Destination is not being asked');
+      if (state.clarify?.field !== 'destination' && !state.outsideJapan) deny('Destination is not being asked');
       return;
     case 'submit_requirements':
       if (state.stage !== 'requirements') deny('Requirements are not being collected');
@@ -122,9 +141,31 @@ export function reduce(
   state: TripState,
   command: Command,
   classified?: Classified,
+  place?: { destination: string } & Place,
 ): { state: TripState; effect: Effect } {
   assertAllowed(state, command);
-  const s: TripState = { ...structuredClone(state), revision: state.revision + 1, results: [] };
+  const s: TripState = { ...structuredClone(state), revision: state.revision + 1, results: [], outsideJapan: null };
+  // Outside Japan: the turn applies as if the destination had not been given, and nothing reaches the LLM.
+  if (place && (place.japan === null || place.outside.length > 0)) {
+    const patch = command.type === 'message' && classified?.intent === 'plan'
+      ? classified.patch
+      : command.type === 'submit_requirements'
+        ? command.values
+        : command.type === 'set_trip_type' ? { tripType: command.value } : {};
+    // A destination saved before the Japan check is dropped with everything planned for it.
+    if (s.requirements.destination !== undefined && s.requirements.destination !== s.checkedDestination) {
+      delete s.requirements.destination;
+      s.itinerary = null;
+      s.days = [];
+      s.stays = null;
+      s.stage = nextStage(s.requirements);
+    }
+    plan(s, { ...patch, destination: null }, null);
+    if (command.type === 'submit_requirements' && command.values.preferences === '') delete s.requirements.preferences;
+    s.outsideJapan = { places: place.outside.length ? place.outside : [place.destination], japan: place.japan };
+    return { state: s, effect: null };
+  }
+  if (place) s.checkedDestination = place.destination;
   switch (command.type) {
     case 'message':
       if (!classified) throw new Error('A message command needs a classification');

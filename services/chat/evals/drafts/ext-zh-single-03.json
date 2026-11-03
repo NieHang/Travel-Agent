@@ -1,0 +1,223 @@
+{
+  "id": "ext-zh-single-03",
+  "category": "single_city",
+  "locale": "zh",
+  "text": "东京三天两晚，2026-12-18 到 2026-12-20，2 个人，情侣游，想逛街购物",
+  "today": "2026-10-30",
+  "draft": "# 东京 3 天 2 晚购物行程草稿（2026-12-18 – 12-20）\n\n## 总览\n- 东京 2 晚（全程住新宿，不换酒店）｜0 次换酒店\n- 节奏：轻松 · 标准 · 轻松\n- 主题：以涩谷、原宿、表参道和新宿为主，最后一天在银座、东京站收尾\n- 说明：12 月是圣诞灯饰季，傍晚后商圈人多，热门餐厅建议提前订位\n\n## 出发前要办\n- 提前几周预约需要定时入场的项目（如涩谷 Sky 观景台、teamLab 类数字艺术馆），请以官网为准\n- 抵达机场后办一张 IC 卡（Suica / PASMO），地铁、JR、公交都能刷\n- 12 月东京夜间偏冷，带一件保暖外套和舒适步行鞋（每天步行约 1.5 万步以上）\n- 圣诞季热门餐厅、百货餐厅楼层建议提前订位；百货多在 20:00 前后关门，请以官网为准\n- 本次不涉及换酒店，无需宅急便；回程行李多可考虑机场宅急便，请提前确认\n\n## Day 1 | 抵达 · 新宿（轻松）\n- 上午/中午 抵达机场 → 市区：成田机场乘 Keisei Skyliner 到上野约 45 分钟（无换乘），再转 JR 山手线到新宿约 25 分钟（1 次换乘）；羽田机场乘京急线到品川约 15–20 分钟，再转 JR 山手线到新宿约 20 分钟（1 次换乘）\n- 15:00 酒店办理入住、放行李、休息\n- 16:30 新宿站东口一带逛街：Lumine、伊势丹等百货（步行约 10 分钟）\n- 18:00 新宿御苑前或歌舞伎町附近晚餐，早点回酒店\n- 今晚：新宿格拉斯丽酒店（新宿格拉斯丽酒店）\n\n## Day 2 | 涩谷 · 原宿 · 表参道（标准）\n- 09:00 新宿站 → JR 山手线到原宿，约 5 分钟，无换乘\n- 09:15 明治神宫散步（早上去人少、林荫安静）\n- 10:30 竹下通 → 表参道：沿一条线往涩谷方向走，逛潮牌与买手店（步行约 15 分钟）\n- 12:30 表参道午餐 + 咖啡休息\n- 14:00 表参道 Hills、青山一带继续逛（步行约 10 分钟）\n- 16:00 表参道 → 涩谷，地铁半藏门线/银座线约 5 分钟，无换乘\n- 16:30 涩谷中心街、SHIBUYA109、Scramble Square 逛街；傍晚看十字路口和灯饰（亮灯后人更多，想拍照可早点到）\n- 19:00 涩谷晚餐\n- 20:30 涩谷 → 新宿，JR 山手线约 7 分钟，无换乘\n- 备选：雨天改逛涩谷 Scramble Square、SHIBUYA109 和表参道 Hills 室内商场；太累可砍掉明治神宫或表参道 Hills\n- 今晚：新宿格拉斯丽酒店（新宿格拉斯丽酒店）\n\n## Day 3 | 银座 · 东京站 · 返程（轻松）\n- 09:30 退房、行李寄存前台\n- 10:00 新宿 → 银座，JR 山手线到新桥转地铁银座线约 20 分钟（1 次换乘）\n- 10:20 银座中央通逛街：百货、旗舰店（周末中午后部分路段为步行街，请现场确认）\n- 12:30 银座午餐\n- 14:00 银座 → 东京站，步行约 15 分钟或地铁 1 站约 3 分钟；丸之内一带逛伴手礼\n- 15:30 回酒店取行李（约 20 分钟，1 次换乘）\n- 16:30 出发去机场：成田方向乘 Narita Express 约 60–90 分钟，羽田方向乘 JR 到品川转京急线约 40 分钟；请预留充足值机时间\n- 备选：雨天把银座换成东京站丸之内地下街和大丸东京店；太累可砍掉东京站一段，直接从银座回酒店取行李\n\n以上时间、车程均为约数，营业时间与预约情况请出发前再确认。",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "3912",
+        "title": {
+          "original": "新宿格拉斯丽酒店",
+          "translation": null
+        },
+        "address": {
+          "original": "1-19-1 Kabukicho, Shinjuku-ku",
+          "translation": "新宿区歌舞伎町1-19-1"
+        },
+        "price": {
+          "amount": 1317.5,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=3912&checkInDate=2026-12-18&checkOutDate=2026-12-20&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/3912/hotel/250630143445/1/image/9104481_12_b.jpg",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低价（2晚，含税以页面为准）",
+            "value": {
+              "original": "1317.5 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "商场",
+            "translation": null
+          },
+          {
+            "original": "咖啡厅",
+            "translation": null
+          },
+          {
+            "original": "酒吧",
+            "translation": null
+          },
+          {
+            "original": "行李寄存",
+            "translation": null
+          },
+          {
+            "original": "24小时前台",
+            "translation": null
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": null
+          },
+          {
+            "original": "旅游票务专柜",
+            "translation": null
+          },
+          {
+            "original": "提供早餐",
+            "translation": null
+          }
+        ],
+        "summary": "位于新宿歌舞伎町，逛街、餐饮和夜间活动都在步行范围内，适合购物为主的情侣。"
+      },
+      {
+        "ref": "h2",
+        "id": "537",
+        "title": {
+          "original": "新宿华盛顿主酒店",
+          "translation": null
+        },
+        "address": {
+          "original": "3-2-9 Nishishinjuku, Shinjuku-ku",
+          "translation": "新宿区西新宿3-2-9"
+        },
+        "price": {
+          "amount": 918,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=537&checkInDate=2026-12-18&checkOutDate=2026-12-20&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/537/hotel/250716172130/0/image/34022875.jpg",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低价（2晚，含税以页面为准）",
+            "value": {
+              "original": "918 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "商场",
+            "translation": null
+          },
+          {
+            "original": "餐厅",
+            "translation": null
+          },
+          {
+            "original": "咖啡厅",
+            "translation": null
+          },
+          {
+            "original": "行李寄存",
+            "translation": null
+          },
+          {
+            "original": "24小时前台",
+            "translation": null
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": null
+          },
+          {
+            "original": "提供早餐",
+            "translation": null
+          },
+          {
+            "original": "停车场",
+            "translation": null
+          }
+        ],
+        "summary": "西新宿，价格更低，靠近新宿站西口一带，去涩谷、原宿方向方便。"
+      },
+      {
+        "ref": "h3",
+        "id": "529",
+        "title": {
+          "original": "新宿灿路都广场大酒店",
+          "translation": null
+        },
+        "address": {
+          "original": "日本，东京，涩谷区，Shibuya-ku, Yoyogi 2-3-1",
+          "translation": "涩谷区代代木2-3-1"
+        },
+        "price": {
+          "amount": 1333,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=529&checkInDate=2026-12-18&checkOutDate=2026-12-20&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/JP/529/4985268a_b.jpg",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "3.5",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低价（2晚，含税以页面为准）",
+            "value": {
+              "original": "1333 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "酒吧",
+            "translation": null
+          },
+          {
+            "original": "全方位服务水疗中心",
+            "translation": null
+          },
+          {
+            "original": "餐厅",
+            "translation": null
+          },
+          {
+            "original": "行李寄存",
+            "translation": null
+          },
+          {
+            "original": "24小时前台",
+            "translation": null
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": null
+          },
+          {
+            "original": "提供早餐",
+            "translation": null
+          },
+          {
+            "original": "停车场",
+            "translation": null
+          }
+        ],
+        "summary": "新宿站南口旁，交通最顺，去涩谷原宿和银座都方便；带水疗，适合逛累了回来放松。"
+      }
+    ]
+  }
+}

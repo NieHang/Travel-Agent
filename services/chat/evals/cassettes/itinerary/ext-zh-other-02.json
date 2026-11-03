@@ -1,0 +1,215 @@
+{
+  "tools": [
+    {
+      "name": "mcp_rollingGo_getHotelDetail",
+      "description": "查询单个酒店实时房型与价格明细（房型、价税、可售状态、退改规则等）。用于用户已选定具体酒店后的二次查价",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dateParam": {
+            "type": "object",
+            "properties": {
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式 YYYY-MM-DD。建议传合法未来日期"
+              },
+              "checkOutDate": {
+                "type": "string",
+                "description": "离店日期，格式 YYYY-MM-DD，必须晚于 checkInDate"
+              }
+            },
+            "description": "入离店日期对象"
+          },
+          "filter": {
+            "type": "object",
+            "properties": {
+              "cancelPolicy": {
+                "type": "string",
+                "enum": [
+                  "CANCELABLE",
+                  "NON_CANCELABLE"
+                ],
+                "description": "取消政策筛选。CANCELABLE：仅可免费取消房型；NON_CANCELABLE：仅不可取消房型。非法值忽略。"
+              },
+              "mealType": {
+                "type": "string",
+                "enum": [
+                  "WITH_BREAKFAST",
+                  "SINGLE_BREAKFAST",
+                  "DOUBLE_BREAKFAST",
+                  "NO_MEAL"
+                ],
+                "description": "餐食类别枚举。WITH_BREAKFAST（含早餐，mealAmount>0）/ SINGLE_BREAKFAST（单份早餐，mealAmount=1）/ DOUBLE_BREAKFAST（双份早餐，mealAmount=2）/ NO_MEAL（不含餐食，mealAmount=0）。非法值忽略。"
+              }
+            },
+            "description": "房型筛选条件对象。未传或为空时返回全部房型；多条件 AND 组合。"
+          },
+          "hotelId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "酒店唯一ID。与 name 二选一；若同时传入，优先使用 hotelId（从searchHotels工具获取）"
+          },
+          "name": {
+            "type": "string",
+            "description": "酒店名称（模糊匹配）。仅在没有 hotelId 时使用"
+          },
+          "occupancyParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房成人数，整数，>=1，默认2"
+              },
+              "childAgeDetails": {
+                "description": "儿童年龄数组，如 [3,5]；长度应与 childCount 一致",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "childCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房儿童数，整数，>=0，默认0"
+              },
+              "roomCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "房间数，整数，>=1，默认1"
+              }
+            },
+            "description": "入住人数与房间数量对象"
+          }
+        }
+      }
+    },
+    {
+      "name": "mcp_rollingGo_getHotelSearchTags",
+      "description": "获取酒店搜索元数据（AI Cache），包含可用的标签列表（以当前启用数据为准）。",
+      "schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "mcp_rollingGo_searchHotels",
+      "description": "该工具用于查询全球酒店。根据地点及结构化筛选条件（日期、入住晚数、人数、星级、距离、标签、品牌、预算）返回符合条件的酒店候选列表与最低价格，用于酒店初筛与比选。",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "checkInParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房入住的成人数量，默认两成人"
+              },
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式：YYYY-MM-DD，例如：2026-02-01。可不传；未传或早于今天时，自动使用明天；格式错误会返回参数错误"
+              },
+              "stayNights": {
+                "type": "integer",
+                "format": "int32",
+                "description": "入住天数（晚数），可不传，默认 1 晚。最多 28 晚，超出限制将返回参数错误。"
+              }
+            },
+            "description": "入住信息参数，包括入住日期、入住天数和每间房成人数量"
+          },
+          "filterOptions": {
+            "type": "object",
+            "properties": {
+              "distanceInMeter": {
+                "type": "integer",
+                "format": "int32",
+                "description": "直线距离，单位（米），当地点是一个POI位置时生效，生效时默认设定值为2000"
+              },
+              "starRatings": {
+                "description": "酒店星级(0.0-5.0, 梯度为0.5)，默认[0.0, 5.0]以上，例如 [4.5, 5.0]，[0.0, 2.0]",
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                }
+              }
+            },
+            "description": "酒店筛选选项，例如酒店星级、每间房成人数、距离等"
+          },
+          "hotelTags": {
+            "type": "object",
+            "properties": {
+              "maxPricePerNight": {
+                "type": "number",
+                "format": "double",
+                "description": "每晚价格上限（人民币，数值）"
+              },
+              "preferredBrands": {
+                "description": "偏好品牌",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requiredTags": {
+                "description": "必须命中标签（硬约束，未命中应被过滤）",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "酒店筛选标签参数（可选）。当传入此参数时，将直接使用这些标签进行筛选和排序，无需服务端额外解析。包含字段：requiredTags（必须标签）、preferredBrands（偏好品牌）、maxPricePerNight（每晚最高预算）"
+          },
+          "nextPageToken": {
+            "type": "string",
+            "description": "分页游标。仅当获取下一页(换一批)时,原样回传上一页返回的 nextPageToken;首页查询不传。传入有效 Token 时,核心检索条件以 Token 内快照为准。"
+          },
+          "originQuery": {
+            "type": "string",
+            "description": "综合多轮对话，归纳用户的完整住宿/预订意图。"
+          },
+          "place": {
+            "type": "string",
+            "description": "搜索地点关键词/酒店名称。具体酒店直接填入酒店名称；位置或区县需用空格补齐城市，填入 位置 城市；仅查询城市需补齐国家，填入 城市 国家。"
+          },
+          "placeType": {
+            "type": "string",
+            "description": "place 的类型，必须与 place 的实际内容一致。可选值：城市、机场、景点、火车站、地铁站、酒店、区/县、详细地址。"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "返回酒店结果数量，默认5个酒店，最大不超过10个"
+          }
+        },
+        "required": [
+          "originQuery",
+          "place",
+          "placeType"
+        ]
+      }
+    }
+  ],
+  "calls": [
+    {
+      "tool": "mcp_rollingGo_searchHotels",
+      "args": {
+        "originQuery": "杭州亲子游 2026-11-14 至 2026-11-16，3 人（2 大 1 小），2 晚，适合家庭的酒店",
+        "place": "杭州 中国",
+        "placeType": "城市",
+        "checkInParam": {
+          "checkInDate": "2026-11-14",
+          "stayNights": 2,
+          "adultCount": 2
+        },
+        "size": 8
+      },
+      "result": {
+        "content": "{\"success\":true,\"code\":2000,\"message\":\"酒店搜索成功\",\"nextPageToken\":\"q74eOG1jlRdehYS7wNCtv85OZxAz_stiSEalo2o-MIB8gN5KJS_JHU1TlN_pexcZUFRqZxrhSDhlxwPKpLvxg5QxlUiWlIg0vRi8muA3m70Aqsk91pg6WP6XmxjowDW_fWMvd0RKY0E1SGixVPo18meIw4JO_-IpnMiu97LTaRemumd5y2sYUOFDwj7jdicxwbuPhIW1DdMQ2kB8qDy_hY5nF5On1g\",\"hotelInformationList\":[{\"hotelId\":500458,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=500458&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"杭州丁桥开元颐居酒店(丁兰广场店)\",\"nameEn\":\"Hangzhou Dingqiao Kaiyuan Yiju Hotel\",\"brand\":\"新世纪\",\"address\":\"丁桥明珠街271-273号\",\"destinationId\":\"6084457\",\"latitude\":30.352191,\"longitude\":120.232272,\"distanceInMeters\":12806,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。2晚总价：410CNY（约205CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":205.0},\"areaCode\":\"CN\",\"description\":\"<p><b>酒店简介描述</b><br/>酒店坐落在杭州市北部区域繁华商贸中心--杭州市上城区丁桥明珠街，毗邻丁兰广场、半山国家森林公园、虎山公园、皋山公园、周边汇集知名餐饮、大型棋牌娱乐会所、健身会所等等。<br>酒店集客房，会务，棋牌等设施于一体，拥有各种类型的客房一百余间，各款房间内舒适温馨，设备一应俱全。国际国内直拨电话、宽带互联网、wifi为高品味客人量身定作，先进完善的服务设施和“宾至如归”的优质服务，让你感受到诚挚与温馨的快捷和便利，仿佛回到现代化的家。“以客为尊，宾客至上”，让每一位客人都成为酒店的朋友。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/500458/hotel/default/14/image/1mc6s12000sqnqopa3BEF_R_960_660_R5_D.jpg\",\"hotelAmenities\":[\"叫醒服务\",\"行李寄存\",\"快速入住退房\",\"24小时前台\",\"公共音响系统\",\"棋牌室\",\"健身室\",\"KTV\",\"电梯\",\"前台贵重物品保险柜\",\"会议厅\",\"商场\",\"公共区域监控\",\"无障碍客房\",\"无烟楼层\",\"快递服务\",\"叫车服务\",\"前台服务语言\",\"旅游票务服务\",\"外送洗衣服务\",\"商务服务\",\"多媒体演示系统\",\"空调\",\"传真/复印\",\"吸烟区\",\"公共区域禁烟\",\"餐厅\",\"儿童牙刷\",\"公用区wifi\",\"干衣机\",\"急救包\",\"净水机\",\"火灾报警器\",\"门禁系统\",\"新风系统\",\"灭火器\",\"洗涤用具\",\"熨斗/挂烫机\",\"自动售货机\",\"储物柜\",\"洗衣房\",\"机器人服务\",\"无障碍通道\",\"烟雾报警器\",\"安全报警器\",\"安保人员\",\"儿童拖鞋\",\"一氧化碳报警器\",\"电子身份证入住\",\"干衣机\",\"无障碍客房\",\"楼梯扶手\",\"售货亭/便利店\",\"停车场\",\"充电车位\",\"WIFI\"],\"tags\":[\"当地连锁\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供大床房\",\"提供双床房\"]},{\"hotelId\":479839,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=479839&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"布丁酒店(杭州萧山博奥地铁站店)\",\"nameEn\":\"Pod Inn Hotel (Hangzhou Xiaoshan Bo'ao Subway Station)\",\"brand\":\"podinn\",\"address\":\"金城路83号中冠置地大厦1楼\",\"destinationId\":\"6084457\",\"latitude\":30.183071,\"longitude\":120.241574,\"distanceInMeters\":14180,\"starRating\":2.0,\"price\":{\"message\":\"查价成功。2晚总价：164CNY（约82CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":82.0},\"areaCode\":\"CN\",\"description\":\"<p><b>酒店简介描述</b><br/>布丁酒店（杭州金城路杭州乐园店）座落于主干道风情大道与金城路交界处东面，与滨江区一路之隔，左邻杭州地铁一号线滨康路站（杭州新汽车南站），毗邻萧山区最繁华的商业行政中心，休博园、杭州乐园、极地海洋世界、湘湖风景区、滨康城市综合体等地标建筑近在咫尺，公交直达武林商圈、吴山广场、杭州火车站等地，酒店东面为家乐福大型购物中心，吃、行、购、游十分便利。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/479839/hotel/default/3/image/2005080000002ufmj609B.jpg\",\"hotelAmenities\":[\"叫醒服务\",\"24小时前台\",\"电梯\",\"公共区域监控\",\"公用区wifi\",\"停车场\"],\"tags\":[\"当地连锁\",\"备有拖鞋\",\"备有热水壶\",\"免费停车场\",\"提供大床房\",\"提供双床房\"]},{\"hotelId\":570677,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=570677&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"Zsmart智尚酒店(杭州浙大紫金港城西银泰店)\",\"nameEn\":\"Zsmart Hotel\",\"brand\":\"Z智选\",\"address\":\"政苑街8号\",\"destinationId\":\"6084457\",\"latitude\":30.29732,\"longitude\":120.105604,\"distanceInMeters\":4041,\"starRating\":2.0,\"price\":{\"message\":\"查价成功。2晚总价：235CNY（约117.5CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":117.5},\"areaCode\":\"CN\",\"description\":\"<p><b>酒店简介描述</b><br/>位于丰潭路和政苑街的交叉路口处，附近多条公交线路，交通便利。<br><br>酒店毗邻城西银泰城，周边餐饮、购物、娱乐配套齐全，商业景点众多。酒店距离国家5A级风景名胜区（国家湿地公园）——西溪国家湿地公园约5公里左右，车程约15分钟。<br><br>酒店距离浙江大学紫金港校区约2.2公里，车程约7分钟；往南约8.5公里可到达西湖风景区，杭州西湖文化景观是中国世界遗产中一个湖泊类文化遗产，车程约25分钟。<br><br>这里是以时尚、科技、健康为主的新概念酒店品牌，隶属于住友酒店集团旗下，国内知名设计师及数码达人联袂打造，专为年轻、睿智、充满活力的城市商旅者及新体验探索者提供时尚潮流且富有科技感的休息体验。 <br><br>酒店拥有usb充电插座、200M无线宽带、360度自由睡天然乳胶床垫、营养师精心搭配的健康早餐。<br><br>客房内照明、温度、窗帘控制、电视娱乐中心均可由Zontro手机APP控制，带给你不一样的时尚、健康和科技新体验。<br></p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/570677/hotel/default/3/image/200n090000003xphb0A14.jpg\",\"hotelAmenities\":[\"叫醒服务\",\"行李寄存\",\"快速入住退房\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"大堂吧\",\"公共区域监控\",\"无烟楼层\",\"快递服务\",\"旅游票务服务\",\"行政楼层\",\"吸烟区\",\"公共区域禁烟\",\"公用区wifi\",\"火灾报警器\",\"灭火器\",\"安保人员\",\"售货亭/便利店\",\"无停车场\",\"WIFI\"],\"tags\":[\"当地连锁\",\"提供会议设施\",\"商务中心\",\"免费WiFi\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"24小时前台\",\"客房点餐\",\"支持银联卡\",\"提供大床房\",\"提供双床房\"]},{\"hotelId\":2152020,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=2152020&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"杭州萧山国际机场柏纳酒店\",\"nameEn\":\"Hangzhou Xiaoshan International Airport Urba Hotel\",\"brand\":\"Urba\",\"address\":\"翔飞路92号3幢\",\"destinationId\":\"6084457\",\"latitude\":30.223805,\"longitude\":120.415816,\"distanceInMeters\":27400,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。2晚总价：494CNY（约247CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":247.0},\"areaCode\":\"CN\",\"description\":\"<p><b>酒店简介描述</b><br/>座落于浙江省杭州市萧山区翔飞路92号3幢，杭州萧山机场P8停车区内，距离机场T3出发层约8分钟车程；距离机场T4出发层约6分钟车程；距离机场内免费接驳车1号线新公安大楼站步行可达。酒店提供免费的接送机服务，方便您乘坐飞机旅行。作为旅悦集团中高档品牌，酒店大堂为您提供免费现磨咖啡、商务休息区、全楼无线覆盖。客房内选用梦百合床垫，高端品质，贴心舒适；小度语音智能客控，让您感受智慧生活；超大液晶电视和巨幕投影，给您带来视觉盛宴。智慧、科技、有趣的我们，期待您的光临。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/2152020/hotel/default/14/image/1mc4112000bl6uk8vB703_R_960_660_R5_D.jpg\",\"hotelAmenities\":[\"叫醒服务\",\"专职行李员\",\"行李寄存\",\"快速入住退房\",\"代客泊车\",\"24小时前台\",\"公共音响系统\",\"健身室\",\"电梯\",\"前台贵重物品保险柜\",\"会议厅\",\"大堂吧\",\"公共区域监控\",\"无障碍客房\",\"咖啡厅\",\"无烟楼层\",\"快递服务\",\"叫车服务\",\"前台服务语言\",\"婚宴服务\",\"接机服务\",\"穿梭机场班车\",\"商务服务\",\"多媒体演示系统\",\"传真/复印\",\"翻译服务\",\"吸烟区\",\"公共区域禁烟\",\"餐厅\",\"儿童牙刷\",\"徒步旅行\",\"公用区wifi\",\"干衣机\",\"急救包\",\"火灾报警器\",\"门禁系统\",\"新风系统\",\"灭火器\",\"加湿器\",\"洗涤用具\",\"熨斗/挂烫机\",\"家庭影院\",\"自动售货机\",\"送机服务\",\"洗衣房\",\"无障碍通道\",\"烟雾报警器\",\"安全报警器\",\"安保人员\",\"花园\",\"儿童拖鞋\",\"一氧化碳报警器\",\"自助入住机\",\"电子身份证入住\",\"干衣机\",\"无障碍客房\",\"走廊扶手\",\"楼梯扶手\",\"走廊的视觉警报\",\"共享办公空间\",\"售货亭/便利店\",\"停车场\",\"WIFI\"],\"tags\":[\"当地连锁\",\"提供大床房\",\"提供双床房\"]},{\"hotelId\":1090005,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=1090005&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"杭州富阳东方茂开元名都大酒店\",\"nameEn\":\"Grand New Century Hotel Fuyang\",\"brand\":\"新世纪\",\"address\":\"富春街道金桥北路61号\",\"destinationId\":\"6084457\",\"latitude\":30.049471,\"longitude\":119.933616,\"distanceInMeters\":31515,\"starRating\":5.0,\"price\":{\"message\":\"查价成功。2晚总价：630CNY（约315CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":315.0},\"areaCode\":\"CN\",\"description\":\"<p><b>酒店简介描述</b><br/>杭州富阳东方茂开元名都大酒店地处既具山城之美，又赋江城之秀的富阳，区域位置独特，位于富阳区CBD东方茂购物中心北侧，酒店旁边地铁口，距杭新景高速公路富阳出口约10分钟车程，至杭州主城约30分钟车程。<br>酒店建筑面积逾4.5万平方米，楼高22层，拥有不同风格的客房三百余间(套)，同时酒店拥有国风堂包厢群、四季轩中餐厅、咖啡厅、大堂吧等餐饮区域，总计餐位数1200余座。800平方米豪华无柱宴会厅，以及11间不同规格的会议室，可满足您不同会议需求。另配备行政酒廊、室内恒温泳池、健身房、棋牌等康乐休闲设施。<br>酒店秉承“为宾客提供东方文化和国际标准完美融合的服务”之经营宗旨，让宾客能体验始终如一的开元品质，尽享殷切贴心的开元关怀。在富阳，开元酒店，享你所想!</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/1090005/hotel/default/3/image/0221d1200084a0cdf79B1.jpg\",\"hotelAmenities\":[\"叫醒服务\",\"洗衣服务\",\"送餐服务\",\"租车服务\",\"专职行李员\",\"行李寄存\",\"外币兑换服务\",\"快速入住退房\",\"代客泊车\",\"24小时前台\",\"公共音响系统\",\"健身室\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"会议厅\",\"自动取款机\",\"大堂吧\",\"公共区域监控\",\"无障碍客房\",\"咖啡厅\",\"无烟楼层\",\"快递服务\",\"叫车服务\",\"前台服务语言\",\"婚宴服务\",\"儿童书籍/影音\",\"旅游票务服务\",\"外送洗衣服务\",\"多功能厅\",\"多媒体演示系统\",\"行政楼层\",\"干洗服务\",\"熨衣服务\",\"传真/复印\",\"公共区域禁烟\",\"餐厅\",\"儿童牙刷\",\"儿童浴袍\",\"公用区wifi\",\"儿童餐\",\"火灾报警器\",\"门禁系统\",\"新风系统\",\"灭火器\",\"洗涤用具\",\"熨斗/挂烫机\",\"自动售货机\",\"洗衣房\",\"无障碍通道\",\"烟雾报警器\",\"安全报警器\",\"安保人员\",\"儿童拖鞋\",\"电子身份证入住\",\"无障碍客房\",\"提供轮椅\",\"售货亭/便利店\",\"停车场\",\"充电车位\",\"WIFI\"],\"tags\":[\"当地连锁\",\"乐园酒店\",\"提供会议设施\",\"商务中心\",\"儿童乐园\",\"儿童玩乐设施\",\"室内恒温泳池\",\"健身房\",\"免费WiFi\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"免费停车场\",\"24小时前台\",\"客房点餐\",\"私人管家\",\"快速办理入住/退房\",\"支持银联卡\",\"提供家庭房\",\"提供大床房\",\"提供双床房\",\"运动友好酒店\"]},{\"hotelId\":478250,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=478250&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"忆泊酒店(杭州西湖店)\",\"nameEn\":\"EBO Hotel (Hangzhou West Lake)\",\"address\":\"凤起路435号 (地铁1、2号线凤起路站D3出口旁)\",\"destinationId\":\"6084457\",\"latitude\":30.263669,\"longitude\":120.164306,\"distanceInMeters\":2870,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。2晚总价：1,311CNY（约655.5CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":655.5},\"areaCode\":\"CN\",\"description\":\"<p><b>酒店简介描述</b><br/>忆泊酒店（杭州西湖店）位于杭州市中心---凤起路繁华商圈，与地铁出入口（1/2号线交汇），出门即达，乘地铁1站瞬抵西湖龙翔桥，5站到达杭州东站，步行7分钟至武林夜市，骑行8分钟至西湖音乐喷泉，武林商圈、杭州大厦.武林银泰、嘉里中心近在咫尺，独享“离尘不离城”的黄金区位。 酒店拥有智能客房，以科技赋能旅居体验，配备精梳棉的床品和鸭绒被芯+三层隔音玻璃，筑就深睡堡垒  5F天际社交层 24h自助洗衣房（洗衣、烘干） 全景台球室·竞技乒乓球室（免费使用）  元气早餐 早餐种类丰富，中西式餐点开启活力清晨   居停场景 商务客：地铁2号线15分钟直达钱江新城，高效会议后回房一键入睡； 度假客：白天漫游西湖，下午台球、乒乓球激战，洗衣房随时焕新行装； “住凤起路C位，智能生活+西湖诗意双核驱动” 以一站地铁的距离，兑换湖光山色与都市繁华的自由切换</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/478250/hotel/default/14/image/0204x120008ccif4h0031_R_960_660_R5_D.jpg\",\"hotelAmenities\":[\"行李寄存\",\"快速入住退房\",\"班车服务\",\"24小时前台\",\"电梯\",\"会议厅\",\"公共区域监控\",\"无烟楼层\",\"快递服务\",\"叫车服务\",\"接站服务\",\"接机服务\",\"商务服务\",\"多功能厅\",\"传真/复印\",\"翻译服务\",\"吸烟区\",\"公共区域禁烟\",\"电脑\",\"餐厅\",\"公用区wifi\",\"干衣机\",\"急救包\",\"门禁系统\",\"新风系统\",\"灭火器\",\"熨斗/挂烫机\",\"送机服务\",\"洗衣房\",\"机器人服务\",\"烟雾报警器\",\"安全报警器\",\"安保人员\",\"花园\",\"送站服务\",\"儿童拖鞋\",\"干衣机\",\"停车场\",\"WIFI\"],\"tags\":[\"临近商场\",\"提供会议设施\",\"免费WiFi\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"免费停车场\",\"24小时前台\",\"客房点餐\",\"快速办理入住/退房\",\"支持支付宝/微信\",\"支持银联卡\",\"提供大床房\",\"提供双床房\"]},{\"hotelId\":2865632,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=2865632&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"杭州城东文澜大酒店\",\"nameEn\":\"Eastern Wenlan Hotel\",\"address\":\"绍兴路95号\",\"destinationId\":\"6084457\",\"latitude\":30.285939,\"longitude\":120.178266,\"distanceInMeters\":4318,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。2晚总价：767CNY（约383.5CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":383.5},\"areaCode\":\"CN\",\"description\":\"<p><b>酒店简介描述</b><br/>杭州城东文澜大酒店位于杭州市拱墅区文晖街道绍兴路95号水务大厦2幢，本店是一座融合杭城在地文化的文化主题精选酒店，以 “熙朝乐事” 为核心主题，串联宋明杭城生活方式、运河流转、打铁关匠心等文化元素，为宾客打造 “可游可憩的立体画卷” 体验。 酒店地理位置优越，交通四通八达，10分钟直达杭州东站，15分钟覆盖西湖文化广场、武林广场等核心地标，距离西湖约20分钟车程。杭州城东文澜大酒店聚焦高品质商旅服务与产业配套服务，让宾客 “循潮入画，共绘乐事”，体验盛世杭城的雅趣生活。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/2865632/hotel/default/14/image/1mc3w12000qqkbagtE9D9_R_960_660_R5_D.jpg\",\"hotelAmenities\":[\"叫醒服务\",\"行李寄存\",\"24小时前台\",\"公共音响系统\",\"健身室\",\"电梯\",\"前台贵重物品保险柜\",\"会议厅\",\"大堂吧\",\"公共区域监控\",\"无烟楼层\",\"快递服务\",\"前台服务语言\",\"婚宴服务\",\"商务服务\",\"多功能厅\",\"多媒体演示系统\",\"行政楼层\",\"传真/复印\",\"翻译服务\",\"吸烟区\",\"公共区域禁烟\",\"餐厅\",\"儿童牙刷\",\"公用区wifi\",\"火灾报警器\",\"门禁系统\",\"新风系统\",\"灭火器\",\"熨斗/挂烫机\",\"自动售货机\",\"储物柜\",\"洗衣房\",\"机器人服务\",\"无障碍通道\",\"烟雾报警器\",\"安全报警器\",\"安保人员\",\"儿童拖鞋\",\"电子身份证入住\",\"停车场\",\"WIFI\"],\"tags\":[\"提供大床房\",\"提供双床房\"]},{\"hotelId\":2365447,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=2365447&checkInDate=2026-11-14&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"柏纳酒店(西湖文化广场地铁站店)\",\"nameEn\":\"Urba Hotel (WestLake Cultural Square Subway Station)\",\"brand\":\"CN Lvyue\",\"address\":\"文晖路271号越都商务大厦4层\",\"destinationId\":\"6084457\",\"latitude\":30.280851364135742,\"longitude\":120.1661605834961,\"distanceInMeters\":3034,\"starRating\":2.0,\"price\":{\"message\":\"查价成功。2晚总价：365CNY（约182.5CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":182.5},\"areaCode\":\"CN\",\"description\":\"<p><b>酒店简介描述</b><br/></p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/v2/2365447/hotel/default/14/image/1mc1k12000jb31j547F9C_R_960_660_R5_D.jpg\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"快速入住退房\",\"电热水壶\",\"拖鞋\",\"书桌\",\"吹风机\",\"110V电压插座\",\"冰箱\",\"瓶装水\",\"雨伞\",\"针线包\",\"沙发\",\"厨房\",\"阳台\",\"会议厅\",\"咖啡厅\",\"无烟楼层\",\"无障碍通道\",\"前台服务语言\",\"管家服务\",\"淋浴\",\"图书室\",\"雨淋花洒喷头\",\"祈祷用具\",\"电热毯\",\"暖气\",\"房内保险箱\",\"空调\",\"有线频道\",\"液晶电视机\",\"独立卫浴\",\"传真/复印\",\"吸烟区\",\"公共区域禁烟\",\"洗衣机\",\"炉灶\",\"厨房用具\",\"微波炉\",\"电脑\",\"单一规格电源插座\",\"自动窗帘\",\"备用床具\",\"床具:鸭绒被\",\"床具:毯子或被子\",\"衣柜/衣橱\",\"电风扇\",\"电话\",\"游戏机\",\"iPad\",\"烤面包机\",\"烤箱\",\"洗碗机\",\"24小时热水\",\"洗浴间电视\",\"露台\",\"唤醒服务\",\"欢迎礼品\",\"220V电压插座\",\"餐厅\",\"公用区wifi\",\"净水机\",\"火灾报警器\",\"打扫工具\",\"灭火器\",\"加湿器\",\"洗涤用具\",\"自动售货机\",\"洗衣房\",\"餐桌\",\"地暖\",\"淋浴座椅\",\"牙刷\",\"洗发水\",\"香皂\",\"浴帽\",\"烟雾报警器\",\"梳子\",\"沐浴露\",\"牙膏\",\"地毯\",\"AR互动玩具\",\"桌游\",\"婴儿浴盆\",\"儿童餐椅\",\"儿童餐具\",\"洗浴玩具\",\"跳跳球\",\"磁吸飞镖\",\"棋牌桌\",\"挂墙装饰画/字画\",\"休闲椅\",\"茶几\",\"桌角防护\",\"餐具\",\"儿童玩具\",\"儿童浴袍\",\"儿童拖鞋\",\"毛巾\",\"浴巾\",\"供氧设施\",\"电竞舱\",\"电竞椅\",\"机械键盘\",\"电竞鼠标\",\"电竞显卡\",\"投影仪\",\"儿童牙刷\",\"电饭煲\",\"厨房清洁用品\",\"便携式婴儿床/婴儿床\",\"小吃吧\",\"客房有线宽带\",\"停车场\",\"浴袍\",\"WIFI\"],\"tags\":[\"当地连锁\",\"洗衣服务\",\"备有拖鞋\",\"备有热水壶\",\"无障碍通道\",\"24小时前台\",\"私人管家\",\"提供无障碍客房\",\"提供家庭房\",\"提供大床房\",\"提供双床房\",\"无障碍友好酒店\"]}]}",
+        "isError": false
+      }
+    }
+  ]
+}

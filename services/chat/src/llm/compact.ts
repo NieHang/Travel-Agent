@@ -61,7 +61,7 @@ export async function maybeCompact(messages: BaseMessage[], signal?: AbortSignal
 
   const content = buildSummaryContent(messages.slice(head, start));
   const { llm } = loadLangChainConfig();
-  const reply = await createChatModel({ model: llm.compactModel ?? llm.model }).invoke(
+  const reply = await createChatModel({ model: llm.compactModel ?? llm.model, operation: 'compact' }).invoke(
     [new SystemMessage(SUMMARY_PROMPT), new HumanMessage(content)],
     { signal },
   );

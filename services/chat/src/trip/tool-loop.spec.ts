@@ -1,20 +1,25 @@
 import { AIMessage, AIMessageChunk, HumanMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
+import type { Serialized } from '@langchain/core/load/serializable';
 import { MAX_TOOL_ROUNDS, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
 
 const textChunks = (...parts: string[]) => parts.map((content) => new AIMessageChunk({ content }));
 const callChunk = (id: string, name: string, args: unknown, raw = JSON.stringify(args)) =>
   new AIMessageChunk({ content: '', tool_call_chunks: [{ id, name, args: raw, index: 0, type: 'tool_call_chunk' }] });
 
-/** Each invocation streams the next scripted round and records the conversation it saw. */
-function scripted(rounds: AIMessageChunk[][]): StreamingModel & { seen: BaseMessage[][] } {
+/** Each invocation streams the next scripted round and records the conversation and options it saw. */
+function scripted(rounds: AIMessageChunk[][]): StreamingModel & { seen: BaseMessage[][]; toolChoices: (string | undefined)[] } {
   const seen: BaseMessage[][] = [];
+  const toolChoices: (string | undefined)[] = [];
   let i = 0;
   return {
     seen,
-    async stream(messages) {
+    toolChoices,
+    async stream(messages, options) {
       seen.push([...messages]);
+      toolChoices.push(options.tool_choice);
       const round = rounds[Math.min(i++, rounds.length - 1)];
       return (async function* () {
         yield* round;
@@ -55,6 +60,32 @@ const validItem = {
 };
 
 describe('streamToolLoop', () => {
+  it('traces skill loading, MCP search and show_results once each through the supplied callbacks', async () => {
+    const started: string[] = [];
+    const finished: unknown[] = [];
+    class TraceHandler extends BaseCallbackHandler {
+      name = 'trip-test';
+      handleToolStart(serialized: Serialized, _input: string, _runId: string, _parentRunId?: string, _tags?: string[], _metadata?: Record<string, unknown>, runName?: string) {
+        started.push(runName ?? serialized.id.at(-1)!);
+      }
+      handleToolEnd(output: unknown) { finished.push(output); }
+    }
+    const model = scripted([
+      [callChunk('k1', 'load_skill', { names: ['japan-tokyo'] })],
+      [callChunk('c1', 'searchHotels', { city: 'Tokyo' })],
+      [callChunk('s1', 'show_results', { panel: 'hotels', items: [validItem] })],
+      textChunks('done'),
+    ]);
+    const events: LoopEvent[] = [];
+    const handler = new TraceHandler();
+    const tracedSearch = tool(async () => '{"hotels":[]}', { name: 'searchHotels', description: 'search', schema: z.object({ city: z.string() }), callbacks: [handler] });
+    for await (const e of streamToolLoop(model, [tracedSearch, rawTool('TOKYO-NOTES')], [new HumanMessage('hi')], new AbortController().signal, MAX_TOOL_ROUNDS, new Set(['load_skill']), [handler])) events.push(e);
+    expect(started).toEqual(['load_skill', 'searchHotels', 'show_results']);
+    expect(finished).toHaveLength(3);
+    expect(events.filter((e) => e.type === 'show_results')).toHaveLength(1);
+    expect(events.at(-1)).toEqual({ type: 'text', delta: 'done' });
+  });
+
   it('asks the model to retry a tool call whose arguments are not valid JSON', async () => {
     const model = scripted([
       [callChunk('c1', 'show_results', null, '{"panel": "hotels", "items": [{"source": "c1"}}, "x"]}')],
@@ -134,10 +165,29 @@ describe('streamToolLoop', () => {
     expect(events.at(-1)).toEqual({ type: 'text', delta: 'ok' });
   });
 
-  it('stops after MAX_TOOL_ROUNDS', async () => {
+  it('writes the reply in a text-only round once every tool round is used', async () => {
+    // A live zh Tokyo→Osaka→Kyoto→Nara draft spent all rounds like this and ended without any text.
+    const model = scripted([
+      [callChunk('k1', 'load_skill', { names: ['japan-tokyo', 'japan-osaka', 'japan-kyoto', 'japan-nara'] })],
+      [callChunk('c1', 'searchHotels', { city: '东京' })],
+      [callChunk('c2', 'searchHotels', { city: '大阪' })],
+      [callChunk('c3', 'searchHotels', { city: '京都' })],
+      [callChunk('c4', 'searchHotels', { city: '奈良' })],
+      textChunks('## 第1天'),
+    ]);
+    const events = await collectUnrecorded(model, 'NOTES');
+    expect(model.toolChoices).toEqual([undefined, undefined, undefined, undefined, undefined, 'none']);
+    expect(model.seen[MAX_TOOL_ROUNDS].at(-1)).toBeInstanceOf(HumanMessage);
+    expect(model.seen[MAX_TOOL_ROUNDS].at(-1)?.text).toContain('No more tool calls');
+    expect(events.filter((e) => e.type === 'tool_call')).toHaveLength(MAX_TOOL_ROUNDS);
+    expect(events.at(-1)).toEqual({ type: 'text', delta: '## 第1天' });
+  });
+
+  it('does not run tool calls from the text-only round', async () => {
     const model = scripted([[callChunk('c1', 'searchHotels', { city: 'x' })]]);
-    await collect(model);
-    expect(model.seen).toHaveLength(MAX_TOOL_ROUNDS);
+    const events = await collect(model);
+    expect(model.seen).toHaveLength(MAX_TOOL_ROUNDS + 1);
+    expect(events.filter((e) => e.type === 'tool_call')).toHaveLength(MAX_TOOL_ROUNDS);
   });
 
   it('stops when aborted', async () => {

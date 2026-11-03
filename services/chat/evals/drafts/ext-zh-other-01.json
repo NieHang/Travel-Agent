@@ -1,0 +1,244 @@
+{
+  "id": "ext-zh-other-01",
+  "category": "non_japan",
+  "locale": "zh",
+  "text": "成都三天美食之旅，2026-11-27 到 2026-11-29，2 个人，朋友",
+  "today": "2026-10-30",
+  "draft": "# 成都美食之旅（草稿）\n\n## 总览\n- 行程：成都 2 晚（2026-11-27 入住 → 2026-11-29 离店），全程住同一家酒店，**0 次换酒店**\n- 节奏：轻松 · 标准 · 轻松\n- 主题：以吃为主，景点只作为“消食散步”的搭配；每天安排一个主要美食片区，避免来回跑\n\n## 出发前要办\n- 需要预约或限流的餐厅、火锅店（尤其是周末晚市）建议提前几周订位，具体以店家当前规则为准，请出发前再确认\n- 到成都后办一张交通卡或用手机乘车码，地铁出行最省事\n- 11 月底成都湿冷、多阴雨，带一件防风外套和一把伞\n- 肠胃敏感的话，把“重辣”安排在中午，晚上吃清淡些\n\n## Day 1 | 抵达 · 春熙路 / 太古里（轻松）\n- 中午前后抵达，从机场或火车站进城：地铁约 40–60 分钟（视机场而定），约 1 次换乘；打车约 40–60 分钟，视路况而定\n- 14:00 酒店寄存行李、稍作休息\n- 15:30 春熙路—太古里一带散步，先来一碗甜水面或钟水饺垫垫肚子（步行约 10 分钟）\n- 17:30 大慈寺周边逛逛，傍晚人少、光线好\n- 19:00 第一顿火锅或串串，选酒店步行范围内的店，吃完直接回房\n- 备选：雨天改逛太古里室内商场与地下美食层；太累可砍掉大慈寺，只留春熙路散步\n- 今晚：美豪酒店(成都春熙路太古里店)\n\n## Day 2 | 宽窄巷子 · 人民公园 · 玉林（标准）\n- 08:30 酒店出发，地铁约 20 分钟、约 1 次换乘到宽窄巷子一带\n- 09:00 宽窄巷子早逛（早去人少），顺路吃蛋烘糕、三大炮当早餐\n- 11:30 步行约 15 分钟到人民公园，鹤鸣茶社喝盖碗茶、掏耳朵，歇脚约 1 小时\n- 13:00 附近吃川菜家常菜（回锅肉、麻婆豆腐），中午吃重口更稳妥\n- 15:00 地铁约 25 分钟、约 1 次换乘到玉林片区，逛小酒馆街区与菜市场\n- 18:30 玉林吃串串或冷淡杯，晚上氛围最好\n- 21:00 地铁约 25 分钟、约 1 次换乘回酒店\n- 备选：雨天把人民公园换成四川博物院或成都博物馆（多数博物馆周一闭馆，请确认当天开放）；太累可砍掉玉林，改在酒店附近吃\n- 今晚：美豪酒店(成都春熙路太古里店)\n\n## Day 3 | 文殊院 · 返程（轻松）\n- 08:30 退房、寄存行李，地铁约 15 分钟、约 1 次换乘到文殊院\n- 09:00 文殊院周边吃甜水面、凉粉，逛香园与老街区\n- 11:00 回酒店取行李（地铁约 15 分钟）\n- 12:00 前往机场或火车站，地铁约 40–60 分钟；国内航班建议提前约 2 小时到机场，请按实际航班再核对\n- 备选：雨天把文殊院换成酒店附近的商场美食层；太累可砍掉文殊院，直接吃早午餐后返程\n\n> 以上时间为估算（约），餐厅营业时间与预约规则请出发前再确认。",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "99926",
+        "title": {
+          "original": "美豪酒店(成都春熙路太古里店)",
+          "translation": null
+        },
+        "address": {
+          "original": "红星路2段20号",
+          "translation": null
+        },
+        "price": {
+          "amount": 190,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=99926&checkInDate=2026-11-27&checkOutDate=2026-11-29&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/CN/99926/Featured%20Image/5531562_26_b.jpg",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "3",
+              "translation": null
+            }
+          },
+          {
+            "label": "距市中心（米）",
+            "value": {
+              "original": "1781",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低价（每晚，CNY）",
+            "value": {
+              "original": "190 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "24小时前台",
+            "translation": null
+          },
+          {
+            "original": "行李寄存",
+            "translation": null
+          },
+          {
+            "original": "餐厅",
+            "translation": null
+          },
+          {
+            "original": "公用区wifi",
+            "translation": null
+          },
+          {
+            "original": "健身室",
+            "translation": null
+          },
+          {
+            "original": "洗衣房",
+            "translation": null
+          },
+          {
+            "original": "提供双床房",
+            "translation": null
+          },
+          {
+            "original": "停车场",
+            "translation": null
+          }
+        ],
+        "summary": "春熙路太古里商圈，步行即可到小吃与火锅聚集区，适合以美食为主的朋友出行。"
+      },
+      {
+        "ref": "h2",
+        "id": "2253739",
+        "title": {
+          "original": "美豪R酒店(成都春熙路太古里店)",
+          "translation": null
+        },
+        "address": {
+          "original": "上东大街318号7楼",
+          "translation": null
+        },
+        "price": {
+          "amount": 251,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=2253739&checkInDate=2026-11-27&checkOutDate=2026-11-29&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/2253739/hotel/default/14/image/1mc0g12000cz9ubbk1132_R_960_660_R5_D.jpg",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "距市中心（米）",
+            "value": {
+              "original": "1371",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低价（每晚，CNY）",
+            "value": {
+              "original": "251 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "24小时前台",
+            "translation": null
+          },
+          {
+            "original": "行李寄存",
+            "translation": null
+          },
+          {
+            "original": "餐厅",
+            "translation": null
+          },
+          {
+            "original": "公用区wifi",
+            "translation": null
+          },
+          {
+            "original": "健身室",
+            "translation": null
+          },
+          {
+            "original": "提供双床房",
+            "translation": null
+          },
+          {
+            "original": "停车场",
+            "translation": null
+          },
+          {
+            "original": "小吃吧",
+            "translation": null
+          }
+        ],
+        "summary": "同在春熙路太古里一带，四星、位置更靠上东大街，楼下即商圈，适合晚上觅食后步行回房。"
+      },
+      {
+        "ref": "h3",
+        "id": "99897",
+        "title": {
+          "original": "成都帝盛酒店(春熙路文殊院店)",
+          "translation": null
+        },
+        "address": {
+          "original": "西玉龙街168号",
+          "translation": null
+        },
+        "price": {
+          "amount": 279,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=99897&checkInDate=2026-11-27&checkOutDate=2026-11-29&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/v2/99897/hotel/default/14/image/200c15000000yqw9a26A3_R_960_660_R5_D.jpg",
+        "details": [
+          {
+            "label": "星级",
+            "value": {
+              "original": "5",
+              "translation": null
+            }
+          },
+          {
+            "label": "距市中心（米）",
+            "value": {
+              "original": "837",
+              "translation": null
+            }
+          },
+          {
+            "label": "最低价（每晚，CNY）",
+            "value": {
+              "original": "279 CNY",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "24小时前台",
+            "translation": null
+          },
+          {
+            "original": "行李寄存",
+            "translation": null
+          },
+          {
+            "original": "餐厅",
+            "translation": null
+          },
+          {
+            "original": "公用区wifi",
+            "translation": null
+          },
+          {
+            "original": "健身室",
+            "translation": null
+          },
+          {
+            "original": "提供双床房",
+            "translation": null
+          },
+          {
+            "original": "停车场",
+            "translation": null
+          },
+          {
+            "original": "足浴",
+            "translation": null
+          }
+        ],
+        "summary": "五星、离市中心最近，靠近文殊院一带，适合想兼顾老城小吃与舒适度的组合。"
+      }
+    ]
+  }
+}

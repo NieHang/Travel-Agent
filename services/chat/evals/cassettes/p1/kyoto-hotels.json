@@ -1,0 +1,213 @@
+{
+  "tools": [
+    {
+      "name": "mcp_rollingGo_getHotelDetail",
+      "description": "查询单个酒店实时房型与价格明细（房型、价税、可售状态、退改规则等）。用于用户已选定具体酒店后的二次查价",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dateParam": {
+            "type": "object",
+            "properties": {
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式 YYYY-MM-DD。建议传合法未来日期"
+              },
+              "checkOutDate": {
+                "type": "string",
+                "description": "离店日期，格式 YYYY-MM-DD，必须晚于 checkInDate"
+              }
+            },
+            "description": "入离店日期对象"
+          },
+          "filter": {
+            "type": "object",
+            "properties": {
+              "cancelPolicy": {
+                "type": "string",
+                "enum": [
+                  "CANCELABLE",
+                  "NON_CANCELABLE"
+                ],
+                "description": "取消政策筛选。CANCELABLE：仅可免费取消房型；NON_CANCELABLE：仅不可取消房型。非法值忽略。"
+              },
+              "mealType": {
+                "type": "string",
+                "enum": [
+                  "WITH_BREAKFAST",
+                  "SINGLE_BREAKFAST",
+                  "DOUBLE_BREAKFAST",
+                  "NO_MEAL"
+                ],
+                "description": "餐食类别枚举。WITH_BREAKFAST（含早餐，mealAmount>0）/ SINGLE_BREAKFAST（单份早餐，mealAmount=1）/ DOUBLE_BREAKFAST（双份早餐，mealAmount=2）/ NO_MEAL（不含餐食，mealAmount=0）。非法值忽略。"
+              }
+            },
+            "description": "房型筛选条件对象。未传或为空时返回全部房型；多条件 AND 组合。"
+          },
+          "hotelId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "酒店唯一ID。与 name 二选一；若同时传入，优先使用 hotelId（从searchHotels工具获取）"
+          },
+          "name": {
+            "type": "string",
+            "description": "酒店名称（模糊匹配）。仅在没有 hotelId 时使用"
+          },
+          "occupancyParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房成人数，整数，>=1，默认2"
+              },
+              "childAgeDetails": {
+                "description": "儿童年龄数组，如 [3,5]；长度应与 childCount 一致",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "childCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房儿童数，整数，>=0，默认0"
+              },
+              "roomCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "房间数，整数，>=1，默认1"
+              }
+            },
+            "description": "入住人数与房间数量对象"
+          }
+        }
+      }
+    },
+    {
+      "name": "mcp_rollingGo_getHotelSearchTags",
+      "description": "获取酒店搜索元数据（AI Cache），包含可用的标签列表（以当前启用数据为准）。",
+      "schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "mcp_rollingGo_searchHotels",
+      "description": "该工具用于查询全球酒店。根据地点及结构化筛选条件（日期、入住晚数、人数、星级、距离、标签、品牌、预算）返回符合条件的酒店候选列表与最低价格，用于酒店初筛与比选。",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "checkInParam": {
+            "type": "object",
+            "properties": {
+              "adultCount": {
+                "type": "integer",
+                "format": "int32",
+                "description": "每间房入住的成人数量，默认两成人"
+              },
+              "checkInDate": {
+                "type": "string",
+                "description": "入住日期，格式：YYYY-MM-DD，例如：2026-02-01。可不传；未传或早于今天时，自动使用明天；格式错误会返回参数错误"
+              },
+              "stayNights": {
+                "type": "integer",
+                "format": "int32",
+                "description": "入住天数（晚数），可不传，默认 1 晚。最多 28 晚，超出限制将返回参数错误。"
+              }
+            },
+            "description": "入住信息参数，包括入住日期、入住天数和每间房成人数量"
+          },
+          "filterOptions": {
+            "type": "object",
+            "properties": {
+              "distanceInMeter": {
+                "type": "integer",
+                "format": "int32",
+                "description": "直线距离，单位（米），当地点是一个POI位置时生效，生效时默认设定值为2000"
+              },
+              "starRatings": {
+                "description": "酒店星级(0.0-5.0, 梯度为0.5)，默认[0.0, 5.0]以上，例如 [4.5, 5.0]，[0.0, 2.0]",
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                }
+              }
+            },
+            "description": "酒店筛选选项，例如酒店星级、每间房成人数、距离等"
+          },
+          "hotelTags": {
+            "type": "object",
+            "properties": {
+              "maxPricePerNight": {
+                "type": "number",
+                "format": "double",
+                "description": "每晚价格上限（人民币，数值）"
+              },
+              "preferredBrands": {
+                "description": "偏好品牌",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requiredTags": {
+                "description": "必须命中标签（硬约束，未命中应被过滤）",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "酒店筛选标签参数（可选）。当传入此参数时，将直接使用这些标签进行筛选和排序，无需服务端额外解析。包含字段：requiredTags（必须标签）、preferredBrands（偏好品牌）、maxPricePerNight（每晚最高预算）"
+          },
+          "nextPageToken": {
+            "type": "string",
+            "description": "分页游标。仅当获取下一页(换一批)时,原样回传上一页返回的 nextPageToken;首页查询不传。传入有效 Token 时,核心检索条件以 Token 内快照为准。"
+          },
+          "originQuery": {
+            "type": "string",
+            "description": "综合多轮对话，归纳用户的完整住宿/预订意图。"
+          },
+          "place": {
+            "type": "string",
+            "description": "搜索地点关键词/酒店名称。具体酒店直接填入酒店名称；位置或区县需用空格补齐城市，填入 位置 城市；仅查询城市需补齐国家，填入 城市 国家。"
+          },
+          "placeType": {
+            "type": "string",
+            "description": "place 的类型，必须与 place 的实际内容一致。可选值：城市、机场、景点、火车站、地铁站、酒店、区/县、详细地址。"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "返回酒店结果数量，默认5个酒店，最大不超过10个"
+          }
+        },
+        "required": [
+          "originQuery",
+          "place",
+          "placeType"
+        ]
+      }
+    }
+  ],
+  "calls": [
+    {
+      "tool": "mcp_rollingGo_searchHotels",
+      "args": {
+        "originQuery": "京都站附近 1000 元以内的酒店",
+        "place": "京都站 京都",
+        "placeType": "火车站",
+        "size": 10,
+        "hotelTags": {
+          "maxPricePerNight": 1000
+        }
+      },
+      "result": {
+        "content": "{\"success\":true,\"code\":2000,\"message\":\"酒店搜索成功\",\"nextPageToken\":\"wlC-etwYzi_upxPAolqPJ1DWA1kFyUQzuSbO1ckIYPvJkA-11-kyNX8xef6TY0Z_IEk7N9PbD2gYI5V4d_IBk_OFIdC5H_ZpMA6grL4qo2iGaZ8m8ksCJIthJAN9vfFAFt03ac6PjGaILNxXHH6FkmuU4H7Ycp1-nPuMBglx4J-bpl_lpVIiqhbUIvaDW-VyMsCJT7wPiYx96iz5kaelMGxrCrjDz8QM0QjWiX4x-2Z_CaEcL6iazbdp6A\",\"hotelInformationList\":[{\"hotelId\":13242,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=13242&checkInDate=2026-11-12&checkOutDate=2026-11-13&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"京都丽嘉皇家酒店\",\"nameEn\":\"RIHGA Royal Hotel Kyoto\",\"brand\":\"RIHGA皇家酒店\",\"address\":\"Taimatsuchō, 1番地\",\"destinationId\":\"10323\",\"latitude\":34.986487,\"longitude\":135.753088,\"distanceInMeters\":523,\"starRating\":4.0,\"price\":{\"message\":\"查价成功。1晚总价：941CNY（约941CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":941.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>京都丽嘉皇家酒店坐落于京都市中心地段，步行到京都水族馆和京都塔不超过 10 分钟。 此酒店距离河原町通 0.7 英里（1.2 公里），距离京都铁路博物馆 0.9 英里（1.4 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>京都站大楼 - 0.3 公里 / 0.2 英里 <br /> 梅小路公园 - 0.4 公里 / 0.3 英里 <br /> 京都水族馆 - 0.6 公里 / 0.3 英里 <br /> 京都塔 - 0.7 公里 / 0.5 英里 <br /> 西本愿寺 - 0.8 公里 / 0.5 英里 <br /> 东寺 - 1 公里 / 0.6 英里 <br /> 京都铁路博物馆 - 1.1 公里 / 0.7 英里 <br /> 河原町通 - 1.2 公里 / 0.7 英里 <br /> 东本愿寺 - 1.2 公里 / 0.8 英里 <br /> 贺茂川 - 1.5 公里 / 0.9 英里 <br /> 琵琶湖疏水道 - 1.6 公里 / 1 英里 <br /> 三十三间堂 - 1.8 公里 / 1.1 英里 <br /> 京都国立博物馆 - 2 公里 / 1.2 英里 <br /> 四条通 - 2 公里 / 1.3 英里 <br /> 智积院 - 2.3 公里 / 1.4 英里 <br /> </p><p>附近的机场有：<br />伊丹机场 (ITM) - 47.4 公里 / 29.5 英里<br /> 关西国际机场 (KIX) - 94.7 公里 / 58.8 英里<br /> </p><p>京都丽嘉皇家酒店的主要机场是关西国际机场 (KIX)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、礼宾服务和礼品店/报摊等便利服务和设施。此酒店的其他特色包括美发沙龙、舞厅和自动售货机。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、24 小时商务中心和干洗/洗衣服务。酒店提供收费自助停车。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/13242/6d982743_b.jpg-t\",\"hotelAmenities\":[\"洗衣服务\",\"专职行李员\",\"行李寄存\",\"24小时前台\",\"舞厅\",\"电梯\",\"前台贵重物品保险柜\",\"商务中心\",\"咖啡厅\",\"酒吧\",\"无障碍通道\",\"非经营性客人休息区\",\"宴会厅\",\"前台服务语言\",\"自行车租赁服务\",\"洗衣设施\",\"美发廊\",\"客房WIFI（免费）\",\"专职门童\",\"礼品廊\",\"吸烟区\",\"餐厅\",\"自动售货机\",\"无障碍通道\",\"饮水机\",\"盲文标牌\",\"无障碍卫生间\",\"提供轮椅\",\"停车场\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"商务中心\",\"宴会厅\",\"儿童玩乐设施\",\"可提供婴儿床或围栏\",\"室内恒温泳池\",\"户外泳池\",\"健身房\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"自行车租赁\",\"客房点餐\",\"提供家庭房\",\"提供双床房\",\"提供三人间\",\"运动友好酒店\",\"提供大床房\"]},{\"hotelId\":835705,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=835705&checkInDate=2026-11-12&checkOutDate=2026-11-13&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"近铁京都站都城市酒店\",\"nameEn\":\"Miyako City Kintetsu Kyoto Station\",\"address\":\"1-9, Kamadono-cho, Higashi Shiokoji, Shimogyo-ku\",\"destinationId\":\"10323\",\"latitude\":34.984877,\"longitude\":135.757569,\"distanceInMeters\":154,\"starRating\":3.5,\"price\":{\"message\":\"查价成功。1晚总价：810CNY（约810CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":810.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>近铁京都站都城市酒店地处京都市中心，距离河原町通和京都塔不到 10 分钟步行路程。 此酒店距离伏见稻荷大社 2.1 英里（3.4 公里），距离清水寺 2.2 英里（3.6 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>河原町通 - 0.7 公里 / 0.4 英里 <br /> 京都塔 - 0.7 公里 / 0.4 英里 <br /> 京都站大楼 - 0.9 公里 / 0.6 英里 <br /> 梅小路公园 - 0.9 公里 / 0.6 英里 <br /> 东寺 - 1 公里 / 0.6 英里 <br /> 京都水族馆 - 1.1 公里 / 0.7 英里 <br /> 东本愿寺 - 1.2 公里 / 0.7 英里 <br /> 贺茂川 - 1.3 公里 / 0.8 英里 <br /> 琵琶湖疏水道 - 1.3 公里 / 0.8 英里 <br /> 西本愿寺 - 1.4 公里 / 0.8 英里 <br /> 三十三间堂 - 1.5 公里 / 1 英里 <br /> 京都国立博物馆 - 1.7 公里 / 1.1 英里 <br /> 任天堂世界总部 - 1.9 公里 / 1.2 英里 <br /> 东福寺 - 2 公里 / 1.3 英里 <br /> 京都铁路博物馆 - 2.1 公里 / 1.3 英里 <br /> </p><p>附近的机场有：<br />伊丹机场 (ITM) - 43.4 公里 / 27 英里<br /> 关西国际机场 (KIX) - 94.7 公里 / 58.9 英里<br /> </p><p>近铁京都站都城市酒店的主要机场是关西国际机场 (KIX)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi和自动售货机等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、大堂免费报纸和干洗/洗衣服务。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/835705/fb0a3959_b.jpg-t\",\"hotelAmenities\":[\"洗衣服务\",\"行李寄存\",\"24小时前台\",\"电梯\",\"大堂报纸\",\"客房清洁服务\",\"客房WIFI（免费）\",\"公共区域禁烟\",\"餐厅\",\"自动售货机\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"备有拖鞋\",\"客房备有吹风机\",\"提供双床房\",\"提供三人间\",\"提供四人间\",\"性价比酒店\",\"提供大床房\"]},{\"hotelId\":943657,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=943657&checkInDate=2026-11-12&checkOutDate=2026-11-13&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"京都站南エムズ酒店\",\"nameEn\":\"HOTEL M’s EST KYOTO STATION SOUTH\",\"brand\":\"埃姆斯酒店\",\"address\":\"京都府京都南区7-7-5 Higashikujo Kitakarasumacho, 601-8017\",\"destinationId\":\"10323\",\"latitude\":34.98172,\"longitude\":135.759538,\"distanceInMeters\":465,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。1晚总价：752CNY（约752CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":752.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>京都站南エムズ酒店位于京都市美波区，步行到京都塔和东寺不超过 15 分钟。 此酒店距离东福寺 1 英里（1.7 公里），距离西本愿寺 1.1 英里（1.8 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>河原町通 - 0.5 公里 / 0.3 英里 <br /> 京都站大楼 - 0.8 公里 / 0.5 英里 <br /> 京都塔 - 0.8 公里 / 0.5 英里 <br /> 东寺 - 1.1 公里 / 0.7 英里 <br /> 贺茂川 - 1.2 公里 / 0.7 英里 <br /> 东本愿寺 - 1.3 公里 / 0.8 英里 <br /> 梅小路公园 - 1.4 公里 / 0.9 英里 <br /> 京都水族馆 - 1.6 公里 / 1 英里 <br /> 任天堂世界总部 - 1.6 公里 / 1 英里 <br /> 东福寺 - 1.6 公里 / 1 英里 <br /> 三十三间堂 - 1.7 公里 / 1 英里 <br /> 琵琶湖疏水道 - 1.7 公里 / 1.1 英里 <br /> 西本愿寺 - 1.8 公里 / 1.1 英里 <br /> 京都国立博物馆 - 1.9 公里 / 1.2 英里 <br /> 智积院 - 2.2 公里 / 1.4 英里 <br /> </p><p>附近的机场有：<br />伊丹机场 (ITM) - 43.4 公里 / 27 英里<br /> 神户机场 (UKB) - 77.3 公里 / 48 英里<br /> 关西国际机场 (KIX) - 94.7 公里 / 58.9 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、礼宾服务和自动售货机等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括快速退房、24 小时前台服务和多语言服务。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/2/Image/943657/cb0f5224c53023222ffce997387452e0.jpg-t\",\"hotelAmenities\":[\"专职行李员\",\"行李寄存\",\"快速入住退房\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"无障碍通道\",\"前台服务语言\",\"洗衣设施\",\"客房WIFI（免费）\",\"吸烟区\",\"微波炉\",\"自动售货机\",\"无障碍卫生间\"],\"tags\":[\"当地连锁\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供无障碍客房\",\"提供大床房\",\"提供双床房\"]},{\"hotelId\":1552872,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=1552872&checkInDate=2026-11-12&checkOutDate=2026-11-13&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"酒店SUI京都清水\",\"nameEn\":\"Hotel SUI Kyoto Kiyomizu\",\"brand\":\"Independent\",\"address\":\"京都府京都东山区Sujyakucho 423, 605-0901\",\"destinationId\":\"10323\",\"latitude\":34.99515,\"longitude\":135.768881,\"distanceInMeters\":1387,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。1晚总价：996CNY（约996CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":996.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>酒店SUI京都清水坐落于京都市中心地段，距离五条大桥仅咫尺之遥，步行到河原町通也不超过 5 分钟。 此酒店距离清水寺 0.9 英里（1.4 公里），距离京都塔 1.2 英里（1.9 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>琵琶湖疏水道 - 0.1 公里 / 0.1 英里 <br /> 贺茂川 - 0.1 公里 / 0.1 英里 <br /> 五条大桥 - 0.2 公里 / 0.1 英里 <br /> 河原町通 - 0.3 公里 / 0.2 英里 <br /> 京都国立博物馆 - 0.7 公里 / 0.4 英里 <br /> 建仁寺 - 0.8 公里 / 0.5 英里 <br /> 三十三间堂 - 0.9 公里 / 0.6 英里 <br /> 南座 - 1 公里 / 0.6 英里 <br /> 先斗町 - 1.1 公里 / 0.7 英里 <br /> 木屋町通 - 1.1 公里 / 0.7 英里 <br /> 花见小路通 - 1.1 公里 / 0.7 英里 <br /> 新京极商店街 - 1.1 公里 / 0.7 英里 <br /> 四条通 - 1.2 公里 / 0.7 英里 <br /> 祇园白川区 - 1.2 公里 / 0.7 英里 <br /> 祗园角 - 1.2 公里 / 0.8 英里 <br /> </p><p>附近的机场有：<br />伊丹机场 (ITM) - 45.1 公里 / 28 英里<br /> 神户机场 (UKB) - 78.9 公里 / 49.1 英里<br /> 关西国际机场 (KIX) - 96.6 公里 / 60 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可充分利用自行车租赁等度假设施，此外还有免费 WiFi和自动售货机等。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括24 小时前台服务、行李寄存和前台保管箱。免费提供火车站送站服务。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/6/Image/1552872/e24b4625_b.jpg-t\",\"hotelAmenities\":[\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"无障碍通道\",\"非经营性客人休息区\",\"自行车租赁服务\",\"毛巾更换\",\"入口坡道\",\"客房WIFI（免费）\",\"接站服务\",\"公共区域禁烟\",\"自动售货机\",\"无障碍通道\",\"茶道体验\",\"提供早餐\"],\"tags\":[\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"自行车租赁\",\"提供大床房\",\"提供双床房\"]},{\"hotelId\":1549702,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=1549702&checkInDate=2026-11-12&checkOutDate=2026-11-13&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"The M's 京都酒店\",\"nameEn\":\"Hotel The M's Kyoto\",\"brand\":\"埃姆斯酒店\",\"address\":\"京都南区Higashikujo Higashisannocho 6\",\"destinationId\":\"10323\",\"latitude\":34.98272,\"longitude\":135.76129,\"distanceInMeters\":418,\"starRating\":3.0,\"price\":{\"message\":\"查价成功。1晚总价：915CNY（约915CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":915.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>The M's 京都酒店位于京都市美波区，步行前往河原町通只需 4 分钟、前往京都塔需 9 分钟。  此酒店距离伏见稻荷大社 1.7 英里（2.8 公里），距离清水寺 2.2 英里（3.5 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>河原町通 - 0.3 公里 / 0.2 英里 <br /> 京都站大楼 - 0.7 公里 / 0.4 英里 <br /> 京都塔 - 0.7 公里 / 0.5 英里 <br /> 贺茂川 - 0.9 公里 / 0.5 英里 <br /> 东寺 - 1.2 公里 / 0.8 英里 <br /> 东本愿寺 - 1.3 公里 / 0.8 英里 <br /> 三十三间堂 - 1.4 公里 / 0.9 英里 <br /> 梅小路公园 - 1.5 公里 / 0.9 英里 <br /> 东福寺 - 1.5 公里 / 0.9 英里 <br /> 京都水族馆 - 1.6 公里 / 1 英里 <br /> 京都国立博物馆 - 1.7 公里 / 1 英里 <br /> 琵琶湖疏水道 - 1.7 公里 / 1 英里 <br /> 任天堂世界总部 - 1.8 公里 / 1.1 英里 <br /> 西本愿寺 - 1.8 公里 / 1.1 英里 <br /> 智积院 - 1.9 公里 / 1.2 英里 <br /> </p><p>附近的机场有：<br />伊丹机场 (ITM) - 47.5 公里 / 29.5 英里<br /> 神户机场 (UKB) - 75.6 公里 / 47 英里<br /> 关西国际机场 (KIX) - 95 公里 / 59.1 英里<br /> </p><p></p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi和自动售货机等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括24 小时前台服务、多语言服务和洗衣设施。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/6/Image/1549702/45ef4ba2.jpg\",\"hotelAmenities\":[\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"无障碍通道\",\"前台服务语言\",\"洗衣设施\",\"客房WIFI（免费）\",\"吸烟区\",\"微波炉\",\"自动售货机\",\"无障碍卫生间\"],\"tags\":[\"当地连锁\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供双床房\",\"提供三人间\",\"性价比酒店\"]},{\"hotelId\":13255,\"bookingUrl\":\"https://rollinggo.cn/pages/hotel/detail/index?id=13255&checkInDate=2026-11-12&checkOutDate=2026-11-13&roomCount=1&adultCount=1&childCount=0&childAgeDetails=&utm_source=0A0N93\",\"name\":\"京都京阪大酒店\",\"nameEn\":\"Hotel Keihan Kyoto GRANDE\",\"brand\":\"Keihan\",\"address\":\"31 Higashikujyo-nishisannou-cho, Minami\",\"destinationId\":\"10323\",\"latitude\":34.983632,\"longitude\":135.760917,\"distanceInMeters\":316,\"starRating\":3.5,\"price\":{\"message\":\"查价成功。1晚总价：899CNY（约899CNY/晚）\",\"hasPrice\":true,\"currency\":\"CNY\",\"lowestPrice\":899.0},\"areaCode\":\"JP\",\"description\":\"<p><b>酒店位置</b><br/>京都京阪大酒店坐落于京都市中心地段，距离京都塔和伏见稻荷大社不到 5 分钟车程。 此酒店距离锦市场 1.9 英里（3 公里），距离清水寺 2 英里（3.3 公里）。</p><p><b>景点</b><br/>显示的距离精确至 0.1 英里或公里。<br /> <p>河原町通 - 0.4 公里 / 0.3 英里 <br /> 京都站大楼 - 0.6 公里 / 0.4 英里 <br /> 京都塔 - 0.6 公里 / 0.4 英里 <br /> 贺茂川 - 0.7 公里 / 0.5 英里 <br /> 东本愿寺 - 1.1 公里 / 0.7 英里 <br /> 琵琶湖疏水道 - 1.1 公里 / 0.7 英里 <br /> 三十三间堂 - 1.3 公里 / 0.8 英里 <br /> 梅小路公园 - 1.3 公里 / 0.8 英里 <br /> 东寺 - 1.4 公里 / 0.9 英里 <br /> 京都水族馆 - 1.5 公里 / 0.9 英里 <br /> 京都国立博物馆 - 1.5 公里 / 1 英里 <br /> 东福寺 - 1.6 公里 / 1 英里 <br /> 西本愿寺 - 1.7 公里 / 1.1 英里 <br /> 智积院 - 1.9 公里 / 1.2 英里 <br /> 任天堂世界总部 - 1.9 公里 / 1.2 英里 <br /> </p><p>附近的机场有：<br />伊丹机场 (ITM) - 43.7 公里 / 27.1 英里<br /> 关西国际机场 (KIX) - 95.2 公里 / 59.1 英里<br /> </p><p>京都京阪大酒店的主要机场是关西国际机场 (KIX)。</p></p><p><b>休闲、SPA、高端服务设施</b><br/>您可利用免费 WiFi、旅游/票务服务和宴会厅等便利服务和设施。</p><p><b>商务及其他服务设施</b><br/>特色服务/设施包括免费高速有线上网、24 小时前台服务和行李寄存。</p>\",\"imageUrl\":\"https://image-cdn.rollinggo.cn/Image/JP/13255/Featured%20Image/748b1887_b.jpg\",\"hotelAmenities\":[\"行李寄存\",\"24小时前台\",\"电梯\",\"前台贵重物品保险柜\",\"无障碍通道\",\"宴会厅\",\"洗衣设施\",\"客房清洁服务\",\"客房WIFI（免费）\",\"旅游票务专柜\",\"吸烟区\",\"餐厅\",\"自动售货机\",\"洗衣房\",\"免费有线高速上网\",\"提供早餐\"],\"tags\":[\"单体酒店\",\"宴会厅\",\"备有拖鞋\",\"备有热水壶\",\"客房备有吹风机\",\"提供家庭房\",\"提供可吸烟房\",\"提供大床房\",\"提供双床房\",\"提供三人间\",\"提供四人间\"]}]}",
+        "isError": false
+      }
+    }
+  ]
+}

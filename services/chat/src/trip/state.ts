@@ -14,10 +14,11 @@ export type Stage = (typeof STAGES)[number];
 
 export const REQUIRED = ['destination', 'tripType', 'departureDate', 'returnDate', 'travelers'] as const;
 
+export const MAX_CLARIFY_OPTIONS = 5;
 export const ClarifySchema = z.object({
   field: z.enum(['destination', 'tripType', 'dates', 'other']),
   question: z.string().min(1).max(300),
-  options: z.array(z.string().min(1).max(100)).max(5),
+  options: z.array(z.string().min(1).max(100)).max(MAX_CLARIFY_OPTIONS),
 });
 export type Clarify = z.infer<typeof ClarifySchema>;
 
@@ -42,6 +43,11 @@ export const TripStateSchema = z.object({
   stage: z.enum(STAGES),
   requirements: RequirementsSchema,
   clarify: ClarifySchema.nullable(),
+  checkedDestination: z.string().nullable().default(null),
+  outsideJapan: z.object({
+    places: z.array(z.string().min(1).max(200)),
+    japan: z.string().min(1).max(200).nullable(),
+  }).strict().nullable().default(null),
   itinerary: z.string().nullable(),
   days: z.array(TripDaySchema).max(60),
   stays: ResultGroupSchema.nullable(),
@@ -58,6 +64,8 @@ export function initialState(revision = 0, locale: Locale = 'zh'): TripState {
     stage: 'idle',
     requirements: {},
     clarify: null,
+    checkedDestination: null,
+    outsideJapan: null,
     itinerary: null,
     days: [],
     stays: null,

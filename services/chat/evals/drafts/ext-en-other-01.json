@@ -1,0 +1,289 @@
+{
+  "id": "ext-en-other-01",
+  "category": "non_japan",
+  "locale": "en",
+  "text": "Lisbon for a long weekend, 2026-11-13 to 2026-11-16, 2 people, couple",
+  "today": "2026-10-30",
+  "draft": "I'll search hotels in Lisbon for those dates and load the relevant city skills.# Lisbon Long Weekend — Draft Itinerary (13–16 Nov 2026)\n\n**Overview**: Lisbon 3 nights, one base, no hotel changes | light · standard · standard · light\n(Note: this is a Lisbon trip, so the Japan-specific city skills don't apply; the plan below follows general city-break pacing.)\n\n**Before you go**\n- Mid-November is cool and can be showery — pack a light rain layer and comfortable walking shoes for the hills and cobbles.\n- Book any timed-entry or popular dinner spots a few weeks ahead (please check current availability).\n- Get a Viva Viagem / contactless transit card at the airport or a metro station for trams, metro and buses.\n- Ask the hotel about airport transfer or taxi options if you land late.\n\n**Day 1 | Arrival · Baixa / Chiado (light)**\n- Afternoon: Lisbon Airport → city centre by metro (red line toward Saldanha/São Sebastião, approx. 20–25 min, 1 transfer to Baixa-Chiado) or taxi, approx. 20 min\n- Check in and rest\n- 17:30 Short walk in Baixa and Praça do Comércio — riverside square is calmest in the evening light\n- 19:30 Dinner near Chiado, early night\n- Tonight: My Story Hotel Tejo (太加斯我的故事酒店)\n\n**Day 2 | Alfama · Castelo · Mouraria (standard)**\n- 09:00 Tram 28 or walk up to Castelo de São Jorge area — go early, queues build later (approx. 15 min by tram)\n- 11:00 Wander Alfama lanes and viewpoints (Miradouro de Santa Luzia), approx. 10 min walk between stops\n- 13:00 Lunch in Alfama\n- 15:00 Rest at the hotel, approx. 15 min walk back\n- 17:00 Mouraria and Martim Moniz for an evening stroll; dinner nearby\n- Alternatives: if rain, swap the castle walk for the Tile Museum (Museu Nacional do Azulejo) indoors; if tired, drop the Mouraria loop\n- Tonight: My Story Hotel Tejo (太加斯我的故事酒店)\n\n**Day 3 | Belém (standard)**\n- 09:00 Baixa → Belém by tram 15E, approx. 25 min, no transfer\n- 09:45 Jerónimos Monastery and Belém Tower exteriors — arrive early, both get crowded (approx. 10 min walk apart)\n- 12:30 Lunch and pastéis de Belém\n- 14:30 Riverside walk or MAAT museum\n- 17:00 Return by tram, approx. 25 min\n- Alternatives: if rain, spend the afternoon inside the Maritime Museum or MAAT; if tired, drop the riverside walk\n- Tonight: My Story Hotel Tejo (太加斯我的故事酒店)\n\n**Day 4 | Departure (light)**\n- Morning: breakfast and a last stroll near the hotel only\n- Check-out and head to Lisbon Airport by metro or taxi, approx. 20–25 min; leave plenty of time for check-in\n\nHotel options I recommend are shown in the cards above — My Story Hotel Tejo is the closest to the historic centre and best value, Hotel Mundial is a comfortable 4-star alternative, and Corpo Santo is the splurge. Prices and availability should be re-checked before booking.",
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": "30059",
+        "title": {
+          "original": "姆达酒店",
+          "translation": "Hotel Mundial"
+        },
+        "address": {
+          "original": "Praça Martim Moniz, 2",
+          "translation": null
+        },
+        "price": {
+          "amount": 927.67,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=30059&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/PT/30059/Featured%20Image/527390_144_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "329",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "酒吧",
+            "translation": "Bar"
+          },
+          {
+            "original": "露台",
+            "translation": "Terrace"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "停车场",
+            "translation": "Parking"
+          }
+        ],
+        "summary": "Central 4-star by Martim Moniz square, walkable to Alfama and Baixa; lowest price of the central options."
+      },
+      {
+        "ref": "h2",
+        "id": "28388",
+        "title": {
+          "original": "太加斯我的故事酒店",
+          "translation": "My Story Hotel Tejo"
+        },
+        "address": {
+          "original": "Rua dos Condes de Monsanto 2",
+          "translation": null
+        },
+        "price": {
+          "amount": 746,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=28388&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": null,
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "3",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "205",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "酒吧",
+            "translation": "Bar"
+          },
+          {
+            "original": "咖啡厅",
+            "translation": "Cafe"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "自行车租赁服务",
+            "translation": "Bicycle rental"
+          },
+          {
+            "original": "收费机场接送",
+            "translation": "Paid airport transfer"
+          }
+        ],
+        "summary": "Closest to the historic centre (approx. 205 m), good value for a couple's long weekend."
+      },
+      {
+        "ref": "h3",
+        "id": "30049",
+        "title": {
+          "original": "里斯本广场遗产酒店 - 大道",
+          "translation": "Heritage Lisbon Plaza Hotel - Avenida"
+        },
+        "address": {
+          "original": "里斯本Tv. Salitre / Avd. Liberdade, 葡萄牙",
+          "translation": null
+        },
+        "price": {
+          "amount": 1184,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=30049&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/PT/30049/Featured%20Image/658037_61_b.jpg",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "4",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "950",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "酒吧",
+            "translation": "Bar"
+          },
+          {
+            "original": "咖啡厅",
+            "translation": "Cafe"
+          },
+          {
+            "original": "健身设施",
+            "translation": "Fitness facilities"
+          },
+          {
+            "original": "露台",
+            "translation": "Terrace"
+          },
+          {
+            "original": "图书室",
+            "translation": "Library"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "4-star near Avenida da Liberdade, with terrace and library; a step up in comfort."
+      },
+      {
+        "ref": "h4",
+        "id": "846193",
+        "title": {
+          "original": "科波桑托里斯本历史酒店",
+          "translation": "Corpo Santo Lisbon Historical Hotel"
+        },
+        "address": {
+          "original": "Largo Corpo Santo 25, Misericordia, 1200-129 里斯本, 里斯本区, 葡萄牙",
+          "translation": null
+        },
+        "price": {
+          "amount": 2520,
+          "currency": "CNY"
+        },
+        "rating": null,
+        "url": "https://rollinggo.cn/pages/hotel/detail/index?id=846193&checkInDate=2026-11-13&checkOutDate=2026-11-16&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+        "image": "https://image-cdn.rollinggo.cn/Image/PT/846193/27dbaf1b_b.jpg-t",
+        "details": [
+          {
+            "label": "Star rating",
+            "value": {
+              "original": "5",
+              "translation": null
+            }
+          },
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "628",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "全方位服务水疗中心",
+            "translation": "Full-service spa"
+          },
+          {
+            "original": "健身设施",
+            "translation": "Fitness facilities"
+          },
+          {
+            "original": "餐厅",
+            "translation": "Restaurant"
+          },
+          {
+            "original": "酒吧",
+            "translation": "Bar"
+          },
+          {
+            "original": "客房WIFI（免费）",
+            "translation": "Free in-room Wi-Fi"
+          },
+          {
+            "original": "24小时前台",
+            "translation": "24-hour front desk"
+          },
+          {
+            "original": "行李寄存",
+            "translation": "Luggage storage"
+          },
+          {
+            "original": "提供早餐",
+            "translation": "Breakfast available"
+          }
+        ],
+        "summary": "5-star in Cais do Sodré / Baixa with spa; the splurge option."
+      }
+    ]
+  }
+}
