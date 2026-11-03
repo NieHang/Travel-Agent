@@ -152,3 +152,6 @@ vite.config.ts.timestamp-*
 
 # archify
 .archify
+
+# Old live-test reports, kept locally only
+docs/superpowers/reports/

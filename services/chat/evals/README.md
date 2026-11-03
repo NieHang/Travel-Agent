@@ -50,6 +50,22 @@ The spike checks that, under Bun:
 
 It prints PASS/FAIL per check and the experiment URL, and exits non-zero on failure.
 
+## Local-only data
+
+These files are gitignored and live only on the machine that made them, so the
+public repo holds no recorded hotel data:
+
+| Path | What it is | On a fresh clone |
+|---|---|---|
+| `evals/cassettes/l3/` | Recorded hotel tools for the 20 L3 scenarios | `bun run eval:record-itinerary` (live model and hotel server, no Google), then curate as in P3 below |
+| `evals/cassettes/p1/` | The P1 Kyoto hotel recording | `bun run eval:replay-check --record` |
+| `evals/geocache.json` | Geocoding cache: Google place IDs, Wikidata and Nominatim results | Create it as `{"attribution":"© OpenStreetMap contributors","entries":{}}`; `eval itinerary` reads it at start. `eval:geography --fill` refills it and spends Google requests |
+| `evals/geocode-labels.json` | Labeled geocoder results from the 2026-10-30 accuracy check | Cannot be regenerated; the labels were made by hand |
+| `evals/drafts/` | Copies of the extract-days drafts | Not needed; the dataset holds the same drafts |
+
+Git no longer keeps history for them, so back them up yourself. Runs on new
+recordings are not comparable with the current baseline; run a new A/A pair.
+
 ## Replay
 
 Record/replay fixes MCP tool definitions and results so repeated model runs can
@@ -61,7 +77,7 @@ bun run eval:replay-check
 ```
 
 Record mode uses the live model and MCP servers and writes
-`evals/cassettes/p1/kyoto-hotels.json`. Review and commit that cassette when ready.
+`evals/cassettes/p1/kyoto-hotels.json` (local only, see below).
 The default check still calls the live model, but uses only recorded MCP results;
 it runs the fixed Chinese Kyoto hotel question three times and passes only when
 tool-call names and arguments match across runs with no replay misses. Both modes
@@ -98,7 +114,7 @@ JSONL is the source of truth. Sync upserts entries by stable id and archives
 removed items. The labels were reviewed on 2026-10-30 against the rules below, by
 Claude rather than a person; spot-check an item before trusting a regression on
 it. Classify has 144 entries (72 zh / 72 en). Extract-days has 22: two
-hand-written, and 20 real drafts whose sources are in `evals/drafts/`. Each entry
+hand-written, and 20 real drafts (local copies in `evals/drafts/`). Each entry
 carries the hotels its draft used (`stays`), so the suite needs no MCP results.
 
 Classify labels:
