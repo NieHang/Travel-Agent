@@ -98,8 +98,8 @@ JSONL is the source of truth. Sync upserts entries by stable id and archives
 removed items. The labels were reviewed on 2026-10-30 against the rules below, by
 Claude rather than a person; spot-check an item before trusting a regression on
 it. Classify has 144 entries (72 zh / 72 en). Extract-days has 22: two
-hand-written, and 20 real drafts whose sources are in `evals/drafts/` and whose
-MCP results are in `evals/cassettes/itinerary/`.
+hand-written, and 20 real drafts whose sources are in `evals/drafts/`. Each entry
+carries the hotels its draft used (`stays`), so the suite needs no MCP results.
 
 Classify labels:
 
