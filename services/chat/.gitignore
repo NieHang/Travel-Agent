@@ -43,6 +43,11 @@ lerna-debug.log*
 .env.eval
 !.env.eval.example
 evals/results/
+# Eval data kept on the local machine only (see evals/README.md, "Local-only data")
+evals/cassettes/
+evals/drafts/
+evals/geocache.json
+evals/geocode-labels.json
 .env.development.local
 .env.test.local
 .env.production.local
