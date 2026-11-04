@@ -26,7 +26,7 @@
 | Dataset copies, experiment runs (dataset runs), a trace per output, scores, a UI for comparing runs | Langfuse | No UI to build; traces show every round of tool calls |
 | Graders (code checks and LLM judge) | Repo: `evals/evaluators/` | Versioned and unit-testable; pairwise comparison needs the baseline output, which Langfuse's managed judges can't use |
 | Regression decision (worse than baseline?) | Repo: runs write local JSON, `eval:compare` decides | Gives CI an exit code without depending on Langfuse being up |
-| Human labeling, calibration, spot checks | Langfuse annotation queue + score configs | Ready-made labeling UI |
+| Human labeling, calibration, spot checks | Local labelling page (`eval:label`) | The Langfuse annotation queue needs a UI login |
 
 Langfuse Prompt Management is not used. Prompts stay as constants in `llm.ts` and versions are compared with git: run once on `main` as the baseline, then once on the branch.
 
@@ -369,12 +369,11 @@ Acceptance: every assertion in the live check has a matching L3 grader, and the 
 - Google is not repeatable. In five more runs the same day, 4 to 9 of 237 stops each time returned a place that had no label yet. Most were the same place under another ID (銀座, 法華堂 for 三月堂). Some fixed earlier errors (Lumine → ルミネエスト新宿, 青山). Some found nothing for a well-known stop (关西机场, 大阪城公园, 二月堂). So the grader fixes each stop's place ID on first lookup and retries a search that finds nothing before counting the stop as unplaced. A rerun of Nominatim and Wikidata changed 1 and 2 stops.
 
 ## P4. LLM judge + human calibration
-1. **Judge model**: different from the model under test and stronger. Configured in `evals/configs/judge.yaml`, temperature 0.
-2. **Per-criterion checklist**: the judge gets the requirements JSON, a summary of the tool results, the structured days and the draft. For each general criterion and each item in the case's `must`, it outputs `{ criterion, pass, reason }` (structured output). Score: `judge_checklist` = the share that pass, plus a score per criterion. The rubric states that length earns no credit.
+1. **Judge**: decided 2026-11-03. No paid judge API. Claude judges in the Claude Code session, from a sheet written from a saved run, so judging makes no model calls from the project. One trial per run (14 items) is judged, not every trial.
+2. **Per-criterion checklist** (built 2026-11-03, `evals/judge/`): `eval:judge-pack` writes a sheet per item with the request, the requirements JSON, the tool calls, the shown results, the structured days and the draft, plus an empty verdict file. For each general criterion (`evals/judge/rubric.ts`) and each item in the case's `must`, the judge fills in `{ criterion, verdict: pass | fail | na, reason }`. `eval:judge-import` checks the verdicts against the rubric hash and writes `judge_<criterion>`, `judge_must` and `judge_checklist` (the share that pass, n/a left out) to the result file and the item's Langfuse trace. The rubric states that length earns no credit.
 3. **Pairwise**: `eval:compare --pairwise` judges the baseline and candidate outputs for the same case twice, in A/B and B/A order. It counts a win or loss only when both orders agree; otherwise it's a tie. It reports the win rate and writes the verdict to the candidate run's trace as a `pairwise_vs_base` score.
-4. **Human calibration**:
-   - Create Langfuse score configs: pass/fail per criterion, plus an overall preference.
-   - Create an annotation queue with 30 itineraries (good and bad).
+4. **Human calibration** (labelling page and `eval:agreement` built 2026-11-03; a local page replaces the Langfuse annotation queue, which needs a UI login):
+   - `bun run eval:label` serves the judged trials (3 trials of `osakastays2`: 30 itineraries and 12 answers) blind to the verdicts.
    - You label them.
    - `bun run eval:agreement` fetches the human and judge scores and computes agreement per criterion. Only criteria at ≥ 80% agreement count toward thresholds; below that, rewrite the criterion and recalibrate.
    - Re-run `eval:agreement` after changing the judge model or the rubric.
@@ -394,7 +393,7 @@ Acceptance: at least 3 criteria at ≥ 80% agreement; pairwise comparison picks 
 
 ## 4. Decisions for you
 1. **Self-hosted Langfuse or Cloud.** Self-hosted is the default; Cloud means itineraries and user text are stored by a third party.
-2. **Judge model**: which one, different from DeepSeek.
+2. **Judge model**: decided 2026-11-03. Claude in the Claude Code session, no paid judge API (see P4).
 3. **Geocoding service** (P3): decided 2026-10-30. Google Places for coordinates; Wikidata and Nominatim to check that a stop exists (see P3's accuracy check).
 4. Whether to do P5, and the sampling rate.
 

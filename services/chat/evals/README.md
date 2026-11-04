@@ -1009,6 +1009,95 @@ The remaining failure is `b_1` `l3-zh-multi-city`, a "大阪" search without
 `eval:compare` reads, so a candidate compared with `osakastays2` gains about
 0.17 on `tool_args_ok` from the grader alone. The gate (0.11) is unchanged.
 
+## P4: subjective quality, judged by Claude
+
+The code checks above say whether a plan is well formed, not whether it is
+good. P4 adds a checklist for that. There is no paid judge model: Claude
+judges in a Claude Code session from a sheet written from a saved run, so
+judging calls no model from the project and needs no rerun.
+
+```sh
+bun run eval:judge-pack itinerary@507790f-dirty-osakastays2-a_1    # run name plus trial
+# The judge reads results/judge/<name>.md and fills results/judge/<name>.verdicts.json
+bun run eval:judge-import itinerary@507790f-dirty-osakastays2-a_1  # needs Langfuse running
+```
+
+- **What is judged.** One trial per run: the 10 itinerary and 4 answer items.
+  The 6 refusal and clarification items are fixed server copy and are skipped.
+- **Criteria** (`judge/rubric.ts`). Plans get `fits_party`, `realistic_days`,
+  `hotel_fit`, `no_unsupported_claims`, `useful_content` and
+  `language_quality`. Answers get `answers_question`, `no_unsupported_claims`
+  and `language_quality`. Every item also gets its own `must` lines.
+- **Verdicts.** Each criterion is `pass`, `fail` or `na`, with a one-sentence
+  reason. The sheet shows only what the model saw and wrote (request, tool
+  calls, shown hotels, days, draft), and length earns no credit. Each hotel
+  line adds the searched distance and tags from the raw tool result, since
+  cards carry no room types and can leave out or misquote a distance. The
+  model-written card summary is left out. A hotel fact must match its
+  result. Every other real-world fact (opening hours, closing days, travel
+  times, ticket and reservation rules) is checked with a web search, never
+  from memory, and the reason names the source. A fact the search shows
+  wrong fails even when the draft says to check it.
+- **Scores.** `judge_<criterion>` is 1 or 0, with the reason as the comment.
+  `judge_must` is the share of the item's `must` lines that pass, and
+  `judge_checklist` is the share of everything that passes. `na` counts
+  nowhere. The import replaces the item's earlier `judge_*` scores in the
+  result file and writes the same scores to its Langfuse trace, with the
+  judge and rubric hash as metadata. Langfuse overwrites a score only when
+  its id (`<traceId>-<name>`) and timestamp both match, so a re-import reuses
+  the earlier timestamps and deletes judge scores the new verdicts no longer
+  produce. It uses the batch endpoint, because the SDK's queued
+  `score.create` drops scores added during an automatic 10-score flush.
+- **Rubric hash.** Changing any question changes `RUBRIC_HASH`, and old
+  verdict files no longer import. Pack and judge again.
+- **Cost.** About 35k tokens of the session's context per trial. A cheaper
+  subagent can judge instead; write its model in `judge`.
+- **Not gated.** One judge, not yet checked against a person. `judge_*` scores
+  stay out of `thresholds.json` until they are calibrated: about 30 items
+  labelled by hand, and only criteria at ≥ 80% agreement count. Blind
+  pairwise comparison is a later P4 step.
+- **Local only.** Sheets, verdicts and labels live in `results/judge/`, which
+  is gitignored with the rest of `results/`.
+
+### Labelling by hand
+
+```sh
+bun run eval:label       # http://127.0.0.1:4311; or start "eval-label" from .claude/launch.json
+bun run eval:agreement   # after labelling
+```
+
+The labelling page lists every trial judged under the current rubric (or the
+trials named on the command line) and shows each item as the judge saw it,
+without the judge's verdicts, so the labels are blind. Each criterion takes
+pass, fail or n/a and an optional note; clicking a chosen answer again clears
+it. Each click saves to `results/judge/<trial>.labels.json`, so labelling can
+stop and resume. It is a local page instead of a Langfuse annotation queue
+because the queue works only in the Langfuse UI, which needs a login.
+
+`eval:agreement` compares the labels with the verdicts of the same trials:
+agreement per general criterion and for the `must` lines together, then every
+disagreement with the judge's reason and the labeller's note. A criterion
+needs at least 10 labels before its rate counts, and counts at ≥ 80%; below
+that, rewrite the question, judge again and relabel. Labels record the rubric
+hash, so a changed rubric needs new labels.
+
+### Checking the judge's sources
+
+```sh
+bun run eval:check       # http://127.0.0.1:4312; or start "eval-check" from .claude/launch.json
+```
+
+Labelling `realistic_days` and `no_unsupported_claims` blind needs knowledge
+of the place, so these two are checked through their sources instead.
+`results/judge/facts.json`, written by the judge, lists every web fact the
+verdicts rest on: the claim, a source with what to look for there, the
+verdicts citing it, and a note where the source differs from the one the
+verdict names. The page shows one fact at a time with those verdicts, and
+asks whether the source supports the claim. It is not blind. Checks save to
+`results/judge/facts.checks.json`; `eval:agreement` then reports how many
+checked facts their sources support and lists every unsupported or undecided
+fact with the verdicts citing it, which need judging again.
+
 ## Geocoder accuracy check
 
 `evals/geocode-labels.json` holds the stops from the 2026-10-30 accuracy check
