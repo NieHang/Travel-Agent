@@ -1062,7 +1062,7 @@ bun run eval:judge-import itinerary@507790f-dirty-osakastays2-a_1  # needs Langf
 ### Labelling by hand
 
 ```sh
-bun run eval:label       # http://127.0.0.1:4310; or start "eval-label" from .claude/launch.json
+bun run eval:label       # http://127.0.0.1:4311; or start "eval-label" from .claude/launch.json
 bun run eval:agreement   # after labelling
 ```
 
@@ -1080,6 +1080,23 @@ disagreement with the judge's reason and the labeller's note. A criterion
 needs at least 10 labels before its rate counts, and counts at ≥ 80%; below
 that, rewrite the question, judge again and relabel. Labels record the rubric
 hash, so a changed rubric needs new labels.
+
+### Checking the judge's sources
+
+```sh
+bun run eval:check       # http://127.0.0.1:4312; or start "eval-check" from .claude/launch.json
+```
+
+Labelling `realistic_days` and `no_unsupported_claims` blind needs knowledge
+of the place, so these two are checked through their sources instead.
+`results/judge/facts.json`, written by the judge, lists every web fact the
+verdicts rest on: the claim, a source with what to look for there, the
+verdicts citing it, and a note where the source differs from the one the
+verdict names. The page shows one fact at a time with those verdicts, and
+asks whether the source supports the claim. It is not blind. Checks save to
+`results/judge/facts.checks.json`; `eval:agreement` then reports how many
+checked facts their sources support and lists every unsupported or undecided
+fact with the verdicts citing it, which need judging again.
 
 ## Geocoder accuracy check
 

@@ -1,6 +1,7 @@
 import { initialState } from '../../src/trip/state.js';
 import { ItineraryEntrySchema } from '../schemas.js';
 import type { TurnOutput } from '../turn.js';
+import { factCheck } from './facts.js';
 import { agreement } from './labels.js';
 import { criteriaFor } from './rubric.js';
 import { renderItem } from './sheet.js';
@@ -44,6 +45,21 @@ it('counts agreement per labelled criterion, groups must lines and lists each di
   expect(disagreements).toEqual([{ runName: 'r#1', id: 'a', criterion: 'hotel_fit', judge: 'na', human: 'fail', reason: 'hotel_fit na', note: 'far away' }]);
   expect(undecided).toEqual([{ runName: 'r#1', id: 'a', criterion: 'must_2', judge: 'fail', human: null, reason: 'must_2 fail', note: 'search to check' }]);
   expect(() => agreement([{ verdicts, labels: { ...labels, items: [{ id: 'a', labels: [{ criterion: 'useful_content', verdict: 'pass' }] }] } }])).toThrow('no judge verdict for useful_content');
+});
+
+it('counts supported facts and lists unsupported and undecided ones with the verdicts citing them', () => {
+  const cite = { trial: 'r_1', id: 'a', criterion: 'realistic_days' };
+  const fact = (id: string) => ({ id, claim: `${id} claim`, sources: [{ url: 'https://example.com/', look: 'hours' }], cites: [cite] });
+  const facts = { rubricHash: 'h', checked: '2026-11-04', facts: [fact('f1'), fact('f2'), fact('f3'), fact('f4')] };
+  const checks = { rubricHash: 'h', checks: [
+    { fact: 'f1', verdict: 'supported' as const }, { fact: 'f2', verdict: 'unsupported' as const, note: 'page says 17:00' },
+    { fact: 'f3', verdict: null, note: 'page will not load' },
+  ] };
+  expect(factCheck(facts, checks)).toEqual({ checked: 2, supported: 1, doubts: [
+    { fact: 'f2', claim: 'f2 claim', verdict: 'unsupported', note: 'page says 17:00', cites: [cite] },
+    { fact: 'f3', claim: 'f3 claim', verdict: null, note: 'page will not load', cites: [cite] },
+  ] });
+  expect(() => factCheck(facts, { ...checks, checks: [{ fact: 'f9', verdict: 'supported' }] })).toThrow('Checked fact f9 is not in facts.json');
 });
 
 it('puts the request, the non-skill tool calls, the grounded hotel facts, the draft and the criteria on the sheet', () => {

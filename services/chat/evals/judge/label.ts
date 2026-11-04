@@ -3,14 +3,15 @@
 // Usage: bun run eval:label [run names with trial]; with none, every trial judged under the current rubric.
 import { existsSync } from 'node:fs';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
-import { createServer, type IncomingMessage } from 'node:http';
+import { createServer } from 'node:http';
 import { z } from 'zod';
 import { readDataset, ResultSchema, type ItineraryEntry } from '../schemas.js';
 import { LabelFileSchema, type LabelFile } from './labels.js';
+import { readJson } from './read-json.js';
 import { criteriaFor, RUBRIC_HASH } from './rubric.js';
 import { judgedItems, renderItem } from './sheet.js';
 
-const PORT = 4310;
+const PORT = 4311;
 const folder = new URL('../results/judge/', import.meta.url);
 const names = process.argv.slice(2).map((n) => n.replace('#', '_'));
 const trials = names.length ? names : await judgedTrials();
@@ -50,16 +51,6 @@ async function save({ trial, id, criterion, verdict, note }: z.infer<typeof Post
   await writeFile(new URL(`${trial}.labels.json`, folder), JSON.stringify(file, null, 2) + '\n');
 }
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(chunk as Buffer);
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
-  } catch {
-    return null;
-  }
-}
-
 async function judgedTrials(): Promise<string[]> {
   const files = (await readdir(folder)).filter((f) => f.endsWith('.verdicts.json')).sort();
   const current = await Promise.all(files.map(async (f) => JSON.parse(await readFile(new URL(f, folder), 'utf8')).rubricHash === RUBRIC_HASH));
@@ -86,7 +77,7 @@ function page(): string {
 body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, sans-serif; display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
 nav { border-right: 1px solid var(--line); overflow-y: auto; padding: 12px 0; }
 nav h1 { font-size: 13px; margin: 0 16px 8px; color: var(--muted); font-weight: 600; }
-nav button { all: unset; display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 6px 16px; cursor: pointer; font-size: 13px; }
+nav button { all: unset; box-sizing: border-box; display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 6px 16px; cursor: pointer; font-size: 13px; }
 nav button[aria-current="true"] { background: var(--panel); box-shadow: inset 3px 0 var(--accent); }
 nav .count { color: var(--muted); font-variant-numeric: tabular-nums; }
 nav .done .count { color: var(--pass); }
