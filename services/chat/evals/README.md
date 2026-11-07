@@ -1068,7 +1068,9 @@ bun run eval:agreement   # after labelling
 
 The labelling page lists every trial judged under the current rubric (or the
 trials named on the command line) and shows each item as the judge saw it,
-without the judge's verdicts, so the labels are blind. Each criterion takes
+without the judge's verdicts, so the labels are blind. It leaves out
+`realistic_days` and `no_unsupported_claims`, which are checked through their
+sources instead (see below). Each criterion takes
 pass, fail or n/a and an optional note; clicking a chosen answer again clears
 it. Each click saves to `results/judge/<trial>.labels.json`, so labelling can
 stop and resume. It is a local page instead of a Langfuse annotation queue
