@@ -59,6 +59,9 @@ it.each([
   { tripType: 'family', stops: ['Kiyomizu-dera', 'Gion', 'Lunch in Gion', 'Café on Sannenzaka', 'Sannenzaka', '酒店'], expected: 1 },
   { tripType: 'family', stops: ['奈良公园', '东大寺', '春日大社', '奈良公园一带午餐与休息'], expected: 1 },
   { tripType: 'family', stops: ['Kiyomizu-dera', 'Gion', 'Lunch in Pontocho', 'Yasaka Shrine'], expected: 0 },
+  { tripType: 'couple', stops: ['奈良', '奈良公园', '东大寺', '春日大社', '奈良町'], expected: 1 },
+  { tripType: 'couple', stops: ['Shibuya Sky', 'Shibuya', 'Meiji Jingu', 'Harajuku', 'Omotesando'], expected: 1 },
+  { tripType: 'couple', stops: ['Shibuya Sky', 'Meiji Jingu', 'Harajuku', 'Omotesando', 'Shinjuku Gyoen'], expected: 0 },
 ] as const)('allows four places a day ($tripType: three), counting restaurants and shops but not stations, nearby meals, meals at a listed place or repeats: $stops', ({ tripType, stops, expected }) => {
   const result = output();
   result.next.requirements.tripType = tripType;

@@ -70,12 +70,14 @@ export function gradeItinerary(item: ItineraryEntry, out: TurnOutput): Score[] {
       check('city_min_nights', nights.length >= 2 && nights.every((n) => n >= 2));
     }
     // Same rule as the japan-travel skill: restaurants and shops count as places; stations, airports, "nearby" meals and same-day repeats do not.
-    // A meal at one of the day's places is a repeat: "Lunch in Gion" next to "Gion".
+    // A meal at one of the day's places is a repeat: "Lunch in Gion" next to "Gion". So is an area named inside another
+    // place, since extraction makes the area a stop too: "奈良" (from "抵达奈良") next to "奈良公园", "Shibuya" next to "Shibuya Sky".
     const limit = kind === 'elderly' || next.requirements.tripType === 'family' ? 3 : 4;
     const counts = next.days.map((d) => {
-      const names = d.stops.map((s) => s.name).filter((name) => !TRANSIT_STOP.test(name) && !NEARBY_STOP.test(name));
-      const places = names.filter((name) => !MEAL_STOP.test(name)).map((name) => name.toLowerCase());
-      return new Set(names.filter((name) => !MEAL_STOP.test(name) || !places.some((place) => name.toLowerCase().includes(place)))).size;
+      const names = d.stops.map((s) => s.name.toLowerCase()).filter((name) => !TRANSIT_STOP.test(name) && !NEARBY_STOP.test(name));
+      const places = names.filter((name) => !MEAL_STOP.test(name));
+      const within = (name: string) => places.some((place) => place !== name && place.includes(name));
+      return new Set(names.filter((name) => (MEAL_STOP.test(name) ? !places.some((place) => name.includes(place)) : !within(name)))).size;
     });
     const middle = counts.slice(1, -1);
     check('pacing_ok', counts.length > 0 && counts.every((n) => n <= limit) && (!middle.length || (counts[0] <= Math.max(...middle) && counts.at(-1)! <= Math.max(...middle))));

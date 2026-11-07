@@ -1009,6 +1009,31 @@ The remaining failure is `b_1` `l3-zh-multi-city`, a "大阪" search without
 `eval:compare` reads, so a candidate compared with `osakastays2` gains about
 0.17 on `tool_args_ok` from the grader alone. The gate (0.11) is unchanged.
 
+**`pacing_ok` area names (2026-11-07).** Spot checks showed `pacing_ok`
+failing days that were within the limit. Extraction makes an area a stop as
+well as the places in it (the L2 rule), so "奈良" from "08:30 抵达奈良" sat
+next to "奈良公园", and "涩谷" next to "涩谷 Sky". A stop whose name is
+contained in another place's name that day is now a repeat. Regraded from the
+saved outputs, with no model calls (`code_checks_pass` gains count only the
+flipped items that now pass every current check):
+
+| Pair | `pacing_ok` | Items now passing every code check |
+|---|---:|---:|
+| `modeonly2` | 0.933 → 0.983 | +2 |
+| `rec2` | 0.833 → 0.933 | +5 |
+| `osakastays2` | 0.833 → 0.933 | +5 |
+
+Most flips are `l3-zh-day-trip`, the "抵达奈良" stop. Two kinds of false failure
+remain:
+- Extraction files check-in or a return to the hotel under the hotel's area
+  ("梅田" noted "入住梅田一带，附近晚餐"). A rule on the note was tried and
+  dropped: 5 of the 14 stops it matched were real visits, such as "Back to
+  the hotel to rest…, then Gion by taxi".
+- A sight split into its parts ("大阪城公园" and "天守阁").
+
+Spot checks catch both. The result files keep the old scores, as above, and
+the gates are unchanged.
+
 ## P4: subjective quality, judged by Claude
 
 The code checks above say whether a plan is well formed, not whether it is

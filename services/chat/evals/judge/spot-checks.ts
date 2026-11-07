@@ -77,7 +77,7 @@ export function pairwiseSpots(stem: string, items: { entry: ItineraryEntry; base
 const AUDIT_PICKS = 2;
 
 export const SCREEN_QUESTION = `You are checking an LLM judge's calls, so look for what it got wrong rather than reasons to agree. For each item, answer right when the judge's call holds and wrong when it does not, with a one-sentence reason naming the evidence.
-- Code check vs judge: the item failed a code check while the judge passed a criterion covering the same ground. Decide which is right. pacing_ok allows at most 4 places a day (3 for elderly or family trips), counting restaurants and shops but not stations, airports, meals "nearby" or a place repeated the same day, and no first or last day busier than the busiest middle day. Wrong means the judge missed a real problem; right means the check is too strict here.
+- Code check vs judge: the item failed a code check while the judge passed a criterion covering the same ground. Decide which is right. pacing_ok allows at most 4 places a day (3 for elderly or family trips), counting restaurants and shops but not stations, airports, meals "nearby", a place repeated the same day or an area named inside another of its places ("奈良" next to "奈良公园"), and no first or last day busier than the busiest middle day. Wrong means the judge missed a real problem; right means the check is too strict here.
 - Pairwise orders disagree: the two orders picked differently, so the outcome is a tie. Right when the drafts really are about even; wrong when one is clearly better (say which).
 - Random pick: check every verdict (or the pairwise outcome) shown.
 Check every fact a verdict rests on with a web search, never from memory, and cite the source. Hotel facts must match the shown results.`;
