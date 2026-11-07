@@ -1054,8 +1054,8 @@ bun run eval:judge-import itinerary@507790f-dirty-osakastays2-a_1  # needs Langf
   subagent can judge instead; write its model in `judge`.
 - **Not gated.** One judge, not yet checked against a person. `judge_*` scores
   stay out of `thresholds.json` until they are calibrated: about 30 items
-  labelled by hand, and only criteria at ≥ 80% agreement count. Blind
-  pairwise comparison is a later P4 step.
+  labelled by hand, and only criteria at ≥ 80% agreement count. For a
+  head-to-head verdict, see Pairwise comparison below.
 - **Local only.** Sheets, verdicts and labels live in `results/judge/`, which
   is gitignored with the rest of `results/`.
 
@@ -1099,6 +1099,33 @@ asks whether the source supports the claim. It is not blind. Checks save to
 `results/judge/facts.checks.json`; `eval:agreement` then reports how many
 checked facts their sources support and lists every unsupported or undecided
 fact with the verdicts citing it, which need judging again.
+
+### Pairwise comparison
+
+```sh
+bun run eval:compare --pairwise <base run with trial> <cand run with trial>   # packs two sheets
+# judge each sheet into its verdict file, then the same command imports:
+bun run eval:compare --pairwise <base run with trial> <cand run with trial>
+```
+
+The first call writes `results/judge/pairwise/pw-<hash>.{1,2}.md`, the items
+both runs answered, each showing the two outputs as draft A and draft B, plus
+an empty verdict file per sheet and a `.key.json`. Each item's drafts are
+placed at random in sheet 1 and swapped in sheet 2. Only the key says which
+run is which; the sheets, the verdict files and the file names do not, so a
+tag such as `worse` cannot tip off the judge. Judge the two sheets apart (a
+fresh judge for each, ideally) and leave the key closed. For every item pick
+A, B or tie, with a reason.
+
+Once both verdict files are filled, the same call imports them:
+
+- **Outcome.** A win or a loss counts only when both sheets pick the same
+  run; otherwise it is a tie, which cancels a pick that follows the position.
+- **Win rate.** (wins + ½ ties) / items. A judge that cannot tell the drafts
+  apart lands near 50%, not near 0%.
+- **Score.** Each candidate item gets `pairwise_vs_base` (1, ½ or 0), with
+  both reasons and the base run in the comment, in its result file and on its
+  Langfuse trace.
 
 ## Geocoder accuracy check
 

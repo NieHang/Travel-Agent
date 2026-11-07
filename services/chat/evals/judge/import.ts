@@ -8,6 +8,7 @@ import { LangfuseClient } from '@langfuse/client';
 import { requireLangfuse } from '../langfuse-health.js';
 import { readDataset, ResultSchema, type ItineraryEntry } from '../schemas.js';
 import { criteriaFor, RUBRIC_HASH } from './rubric.js';
+import { replaceTraceScores } from './trace-scores.js';
 import { judgeScores, VerdictFileSchema } from './verdicts.js';
 
 config({ path: fileURLToPath(new URL('../../.env.eval', import.meta.url)), override: true });
@@ -32,18 +33,7 @@ await requireLangfuse();
 const client = new LangfuseClient();
 for (const { item, traceId, scores } of scored) {
   item.scores = [...item.scores.filter((s) => !s.name.startsWith('judge_')), ...scores];
-  // Langfuse overwrites a score only when both id and timestamp match, so a re-import reuses the earlier timestamps and
-  // deletes judge scores the new verdicts no longer produce (a criterion now n/a).
-  const { data } = await client.api.scores.getMany({ traceId, limit: 100 });
-  const earlier = new Map(data.filter((s) => s.name.startsWith('judge_')).map((s) => [s.id, s.timestamp]));
-  const body = scores.map((score) => {
-    const id = `${traceId}-${score.name}`;
-    return { id, timestamp: earlier.get(id), traceId, ...score, dataType: 'NUMERIC' as const, metadata: { judge: file.judge, rubric: RUBRIC_HASH } };
-  });
-  // The batch endpoint, not the queued score.create: that queue drops every score added during an automatic 10-score flush.
-  const response = await client.api.scores.create(body);
-  if ('rejected' in response && response.rejected) throw new Error(`${item.id}: Langfuse rejected ${response.rejected} scores: ${response.errors.map((e) => e.message).join('; ')}`);
-  for (const id of earlier.keys()) if (!body.some((s) => s.id === id)) await client.api.scores.delete(id);
+  await replaceTraceScores(client, item.id, traceId, scores, (name) => name.startsWith('judge_'), { judge: file.judge, rubric: RUBRIC_HASH });
 }
 await writeFile(resultPath, JSON.stringify(run, null, 2) + '\n');
 const checklist = scored.map((s) => s.scores.find((x) => x.name === 'judge_checklist')?.value ?? 1);
