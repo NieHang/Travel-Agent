@@ -14,6 +14,23 @@ export function judgedItems(items: { id: string; output: TurnOutput | null }[], 
 
 /** One item of the judging sheet: what the user asked, what the tools returned and what the model wrote. */
 export function renderItem(entry: ItineraryEntry, out: TurnOutput): string {
+  return [
+    ...renderRequest(entry),
+    ...renderOutput(out),
+    'Criteria:', ...criteriaFor(entry).map((c) => `- ${c.name}: ${c.question}`),
+  ].join('\n');
+}
+
+export function renderRequest(entry: ItineraryEntry): string[] {
+  return [
+    `## ${entry.id}`,
+    `User (${entry.locale}, today ${entry.today}): ${entry.text}`,
+    ...entry.history.length ? [`History: ${entry.history.map((m) => `${m.role}: ${m.text}`).join(' | ')}`] : [],
+  ];
+}
+
+/** What one run did for an item: requirements, tools, shown results, days and the draft. */
+export function renderOutput(out: TurnOutput): string[] {
   const shown = [...new Map([...out.next.results.flatMap((g) => g.items), ...out.next.stays?.items ?? []].map((h) => [h.ref, h])).values()];
   const calls = out.toolCalls.filter((c) => c.name !== 'load_skill');
   // Room types are only in the hotel search's tags, and a card may leave out or misquote the distance, so both come from the raw result.
@@ -24,28 +41,25 @@ export function renderItem(entry: ItineraryEntry, out: TurnOutput): string {
     return [describeCard(h), ...hotel.distanceInMeters == null ? [] : [`searched distance ${hotel.distanceInMeters} m`], ...hotel.tags.length ? [`tags: ${hotel.tags.join(', ')}`] : []].join('; ');
   };
   return [
-    `## ${entry.id}`,
-    `User (${entry.locale}, today ${entry.today}): ${entry.text}`,
-    ...entry.history.length ? [`History: ${entry.history.map((m) => `${m.role}: ${m.text}`).join(' | ')}`] : [],
     `Requirements: ${JSON.stringify(out.next.requirements)}`,
     `Skills loaded: ${out.loaded.join(', ') || 'none'}`,
     `Tool calls: ${calls.map((c) => `${c.name} ${JSON.stringify(c.args)}`).join('; ') || 'none'}`,
     'Shown results:', ...shown.length ? shown.map(describe) : ['(none)'],
     'Days:', ...out.next.days.length ? out.next.days.map((d) => `- ${d.title}${d.stayRef ? ` (stay ${d.stayRef})` : ''}: ${d.stops.map((s) => s.name).join(', ')}`) : ['(none)'],
     'Draft:', '````', out.draft, '````',
-    'Criteria:', ...criteriaFor(entry).map((c) => `- ${c.name}: ${c.question}`),
-  ].join('\n');
+  ];
 }
 
 const text = (t: LocalizedText | null) => (t ? [t.original, t.translation].filter(Boolean).join(' / ') : '');
 
-const HotelsSchema = z.object({ hotels: z.array(z.object({ name: z.string(), distanceInMeters: z.number().nullish(), tags: z.array(z.string()).default([]) })) });
+const HotelsSchema = z.object({ hotels: z.array(z.object({ name: z.string(), nameEn: z.string().nullish(), distanceInMeters: z.number().nullish(), tags: z.array(z.string()).default([]) })) });
 type SearchedHotel = z.infer<typeof HotelsSchema>['hotels'][number];
 
 function searchedHotels(content: unknown): [string, SearchedHotel][] {
   try {
     const parsed = HotelsSchema.safeParse(JSON.parse(String(content)));
-    return parsed.success ? parsed.data.hotels.map((h) => [h.name, h]) : [];
+    // A card's original is the Chinese name or, for English replies, nameEn.
+    return parsed.success ? parsed.data.hotels.flatMap((h): [string, SearchedHotel][] => [[h.name, h], ...h.nameEn ? [[h.nameEn, h] as [string, SearchedHotel]] : []]) : [];
   } catch {
     return [];
   }

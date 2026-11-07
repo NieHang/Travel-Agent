@@ -3,6 +3,7 @@ import { ItineraryEntrySchema } from '../schemas.js';
 import type { TurnOutput } from '../turn.js';
 import { factCheck } from './facts.js';
 import { agreement } from './labels.js';
+import { pairwiseOutcomes, type PairwiseFile } from './pairwise.js';
 import { criteriaFor } from './rubric.js';
 import { renderItem } from './sheet.js';
 import { judgeScores, type Verdict } from './verdicts.js';
@@ -62,6 +63,19 @@ it('counts supported facts and lists unsupported and undecided ones with the ver
   expect(() => factCheck(facts, { ...checks, checks: [{ fact: 'f9', verdict: 'supported' }] })).toThrow('Checked fact f9 is not in facts.json');
 });
 
+it('counts a win or loss only when both orders pick the same run, and a tie as half a win', () => {
+  // In order 1, x and z show the baseline as A and y shows it as B; order 2 swaps every item.
+  const key = { base: 'base#1', candidate: 'cand#1', rubricHash: 'h', aIsBase: { x: true, y: false, z: true } };
+  const file = (order: 1 | 2, picks: Record<string, 'A' | 'B' | 'tie'>): PairwiseFile => ({ order, judge: 'claude', items: Object.entries(picks).map(([id, winner]) => ({ id, winner, reason: `${id} ${winner}` })) });
+  // x: candidate both times. y: baseline both times. z: always draft A, which is a different run in each order.
+  const report = pairwiseOutcomes(key, file(1, { x: 'B', y: 'B', z: 'A' }), file(2, { x: 'A', y: 'A', z: 'A' }));
+  expect(report.items.map((i) => [i.id, i.result])).toEqual([['x', 'win'], ['y', 'loss'], ['z', 'tie']]);
+  expect(report).toMatchObject({ wins: 1, losses: 1, ties: 1, winRate: 0.5 });
+  expect(report.items[0].reasons).toEqual(['x B', 'x A']);
+  expect(() => pairwiseOutcomes(key, file(2, { x: 'A', y: 'A', z: 'A' }), file(2, { x: 'A', y: 'A', z: 'A' }))).toThrow('Expected the order 1 verdicts');
+  expect(() => pairwiseOutcomes(key, file(1, { x: 'A', y: 'A' }), file(2, { x: 'A', y: 'A', z: 'A' }))).toThrow('Order 1 verdicts must cover exactly');
+});
+
 it('puts the request, the non-skill tool calls, the grounded hotel facts, the draft and the criteria on the sheet', () => {
   const text = (original: string) => ({ original, translation: null });
   const hotel = { ref: 'h1', id: null, title: text('Hotel A'), address: null, price: { amount: 900, currency: 'CNY' }, rating: 4, url: null, image: null, details: [{ label: 'Distance (m)', value: text('87') }], amenities: [text('Elevator')], summary: 'Best pick' };
@@ -79,4 +93,14 @@ it('puts the request, the non-skill tool calls, the grounded hotel facts, the dr
   expect(sheet).toContain('- Day 1 (stay h1): Osaka Castle');
   expect(sheet).toContain('````\nDay 1: Osaka Castle\n````');
   expect(sheet).toContain('- must_2: Mentions a rest stop');
+});
+
+it('finds the searched hotel of an English card by its nameEn', () => {
+  const text = (original: string) => ({ original, translation: null });
+  const hotel = { ref: 'h1', id: null, title: text('Hotel Hankyu RESPIRE OSAKA'), address: null, price: null, rating: null, url: null, image: null, details: [], amenities: [], summary: null };
+  const out = {
+    next: { ...initialState(0, 'en'), stays: { panel: null, items: [hotel] }, days: [] }, loaded: [], draft: '', toolCalls: [],
+    toolResults: [{ content: JSON.stringify({ hotels: [{ name: '阪急大阪龙仕柏酒店', nameEn: 'Hotel Hankyu RESPIRE OSAKA', distanceInMeters: 359, tags: ['提供四人间'] }] }) }],
+  } as unknown as TurnOutput;
+  expect(renderItem(entry, out)).toContain('- h1: Hotel Hankyu RESPIRE OSAKA | no price | no address | ; searched distance 359 m; tags: 提供四人间');
 });
