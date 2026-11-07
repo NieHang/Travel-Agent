@@ -1,13 +1,14 @@
 // Serves a local page for the spot-check queue that eval:compare fills: each item as the judge saw it, why it was
-// queued, and the judge's verdicts or pairwise picks. Not blind; it asks whether the judge's call holds. Each click
-// saves to results/judge/spot-checks.json, and reviewed items stay in the queue when later compares refill it.
+// queued, the judge's verdicts or pairwise picks, and the screener's call once eval:spot-screen has run. Not blind; it
+// asks whether the judge's call holds. By default it lists only what the person needs to see (see forPerson). Each
+// click saves to results/judge/spot-checks.json, and reviewed items stay in the queue when later compares refill it.
 // Usage: bun run eval:spot
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { z } from 'zod';
 import { readJson } from './read-json.js';
-import { SPOT_QUEUE, SpotFileSchema } from './spot-checks.js';
+import { forPerson, SPOT_QUEUE, SpotFileSchema } from './spot-checks.js';
 
 const PORT = 4313;
 if (!existsSync(SPOT_QUEUE)) throw new Error('The spot-check queue is empty; run eval:compare first');
@@ -27,10 +28,10 @@ createServer(async (req, res) => {
   res.writeHead(200, { 'content-type': 'application/json' }).end('{"ok":true}');
 }).listen(PORT, '127.0.0.1');
 const count = (verdict: 'right' | 'wrong') => file.items.filter((s) => s.verdict === verdict).length;
-console.log(`${file.items.length} spot checks, ${count('right')} judge right, ${count('wrong')} judge wrong → http://127.0.0.1:${PORT}`);
+console.log(`${file.items.length} spot checks, ${file.items.filter(forPerson).length} for you; ${count('right')} judge right, ${count('wrong')} judge wrong → http://127.0.0.1:${PORT}`);
 
 function page(): string {
-  const data = JSON.stringify(file.items).replaceAll('<', '\\u003c');
+  const data = JSON.stringify(file.items.map((s) => ({ ...s, person: forPerson(s) }))).replaceAll('<', '\\u003c');
   return `<!doctype html>
 <html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spot Checks</title>
@@ -41,6 +42,7 @@ function page(): string {
 body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 system-ui, sans-serif; display: grid; grid-template-columns: 280px 1fr; height: 100vh; }
 nav { border-right: 1px solid var(--line); overflow-y: auto; padding: 12px 0; }
 nav h1 { font-size: 13px; margin: 0 16px 8px; color: var(--muted); font-weight: 600; }
+nav label { display: flex; gap: 6px; align-items: center; margin: 0 16px 8px; font-size: 13px; color: var(--muted); cursor: pointer; }
 nav button { all: unset; box-sizing: border-box; display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 6px 16px; cursor: pointer; font-size: 13px; }
 nav button[aria-current="true"] { background: var(--panel); box-shadow: inset 3px 0 var(--accent); }
 nav .mark { color: var(--muted); }
@@ -53,7 +55,9 @@ header button { padding: 6px 12px; border: 1px solid var(--line); background: va
 section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; margin-top: 12px; }
 section h3 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
 .why { border-color: var(--warn); }
-.why p, .judge p { margin: 0 0 6px; }
+.screen.wrong { border-color: var(--fail); }
+.screen.right { border-color: var(--pass); }
+.why p, .judge p, .screen p { margin: 0 0 6px; }
 pre { white-space: pre-wrap; word-break: break-word; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 12px 0 0; font: 13px/1.55 ui-monospace, monospace; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .row button { padding: 6px 16px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
@@ -62,11 +66,13 @@ pre { white-space: pre-wrap; word-break: break-word; background: var(--panel); b
 .row input { flex: 1; min-width: 200px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--ink); }
 @media (max-width: 760px) { body { grid-template-columns: 1fr; height: auto; } nav { border-right: 0; border-bottom: 1px solid var(--line); max-height: 40vh; } main { padding: 16px; } }
 </style></head>
-<body><nav><h1 id="progress"></h1><div id="list"></div></nav><main id="main"></main>
+<body><nav><h1 id="progress"></h1><label><input type="checkbox" id="all"> 显示全部（含筛查已认可的）</label><div id="list"></div></nav><main id="main"></main>
 <script>
-const queue = ${data};
+const items = ${data};
+let queue = items.filter((s) => s.person);
 let index = 0;
-try { index = Math.min(Number(localStorage.getItem('spot-index')) || 0, queue.length - 1); } catch {}
+const allBox = document.getElementById('all');
+allBox.onchange = () => { queue = allBox.checked ? items : items.filter((s) => s.person); go(0); };
 const MARK = { right: '✓', wrong: '✗' };
 const short = (s) => s.source.replace(/^itinerary@[^-]+-(dirty-)?/, '') + ' · ' + s.id.replace(/^l3-/, '');
 
@@ -100,6 +106,14 @@ function renderSpot() {
     p.textContent = line;
     return p;
   }));
+  if (s.screen) {
+    const box = document.createElement('section');
+    box.className = 'screen ' + s.screen.verdict;
+    box.innerHTML = '<h3></h3><p></p>';
+    box.querySelector('h3').textContent = '筛查（' + s.screen.screener + '）：' + (s.screen.verdict === 'wrong' ? '判官不对' : '判官站得住') + (s.screen.audit ? ' · 抽给你核对筛查本身' : '');
+    box.querySelector('p').textContent = s.screen.reason;
+    main.querySelector('.judge').after(box);
+  }
   main.querySelector('#ask h3').textContent = s.kind === 'pairwise' ? '最终结果（outcome）站得住吗？' : '判官的判定站得住吗？';
   main.querySelector('pre').textContent = s.text;
   main.querySelector('#prev').onclick = () => go(index - 1);
@@ -134,10 +148,11 @@ async function send(s, verdict, note, buttons) {
 function go(i) {
   if (i < 0 || i >= queue.length) return;
   index = i;
-  try { localStorage.setItem('spot-index', String(i)); } catch {}
   renderList();
   renderSpot();
 }
-go(index);
+if (queue.length) go(0);
+else document.getElementById('main').textContent = '没有需要你复核的题；勾选「显示全部」可查看筛查已认可的。';
+renderList();
 </script></body></html>`;
 }

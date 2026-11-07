@@ -1153,6 +1153,26 @@ each item, mark whether the judge's call holds, with a note on what is wrong.
 A later compare of the same trial or pair replaces the items not yet reviewed
 and keeps the reviewed ones.
 
+**Screening first.** Reviewing every item by hand is slow, so a subagent can
+screen the queue before you do:
+
+```sh
+bun run eval:spot-screen            # writes results/judge/spot-screen.md and an empty spot-screen.verdicts.json
+# a fresh subagent fills the verdict file from the sheet alone, then:
+bun run eval:spot-screen --import
+```
+
+The sheet covers every item not yet screened or reviewed, and starts with the
+screener's instructions: look for what the judge got wrong, apply the
+`pacing_ok` rule by hand for code-check disagreements, and check facts with a
+web search. The import writes each call (right or wrong, with the reason) onto
+the queue as `screen`, separate from your own verdict. The page then lists
+only the items you need to see: those the screener found wrong, those not yet
+screened, and two random items it upheld, so you also check the screener. The
+screener is the same kind of model as the judge, so its agreement is weak
+evidence, while its disagreement is a useful signal. Tick "show all" to see
+the rest.
+
 ## Geocoder accuracy check
 
 `evals/geocode-labels.json` holds the stops from the 2026-10-30 accuracy check

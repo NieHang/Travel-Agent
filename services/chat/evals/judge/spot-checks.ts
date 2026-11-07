@@ -18,19 +18,24 @@ const OVERLAPS: Record<string, string[]> = {
 const RANDOM_PICKS = 3;
 export const RANDOM_WHY = 'random pick';
 
+// A screener (a subagent) reviews the queue before the person does; `audit` marks the upheld calls the person
+// checks anyway, to keep an eye on the screener. `verdict` and `note` stay the person's own.
+const ScreenSchema = z.object({ verdict: z.enum(['right', 'wrong']), reason: z.string().min(1), screener: z.string().min(1), audit: z.boolean() }).strict();
 const SpotSchema = z.object({
   kind: z.enum(['checklist', 'pairwise']), source: z.string(), id: z.string(), why: z.string(), text: z.string(), judge: z.array(z.string()),
-  verdict: z.enum(['right', 'wrong']).nullable().optional(), note: z.string().optional(),
+  screen: ScreenSchema.optional(), verdict: z.enum(['right', 'wrong']).nullable().optional(), note: z.string().optional(),
 }).strict();
 export type Spot = z.infer<typeof SpotSchema>;
 export const SpotFileSchema = z.object({ items: z.array(SpotSchema) }).strict();
 export const SPOT_QUEUE = new URL('../results/judge/spot-checks.json', import.meta.url);
 
-type Pick = (n: number) => number;
+export type Pick = (n: number) => number;
 type ItineraryRun = { runName: string; items: { id: string; output: TurnOutput | null; scores: Score[] }[] };
 
 export const spotKey = (s: { source: string; id: string }) => `${s.source} ${s.id}`;
 export const reviewed = (s: Spot) => Boolean(s.verdict || s.note);
+/** Unscreened items, those the screener found wrong, and the audit sample of those it upheld. */
+export const forPerson = (s: Spot) => !s.screen || s.screen.verdict === 'wrong' || s.screen.audit;
 const trialName = (runName: string) => runName.replace('#', '_');
 
 /** Judged items whose code checks and judge verdicts disagree, plus random others; `skip` holds items already reviewed. */
@@ -68,6 +73,33 @@ export function pairwiseSpots(stem: string, items: { entry: ItineraryEntry; base
   return withRandom(spots.filter((s) => !skip.has(spotKey(s))), pick);
 }
 
+// Upheld calls the person still checks per import: enough to notice a screener that waves everything through.
+const AUDIT_PICKS = 2;
+
+export const SCREEN_QUESTION = `You are checking an LLM judge's calls, so look for what it got wrong rather than reasons to agree. For each item, answer right when the judge's call holds and wrong when it does not, with a one-sentence reason naming the evidence.
+- Code check vs judge: the item failed a code check while the judge passed a criterion covering the same ground. Decide which is right. pacing_ok allows at most 4 places a day (3 for elderly or family trips), counting restaurants and shops but not stations, airports, meals "nearby" or a place repeated the same day, and no first or last day busier than the busiest middle day. Wrong means the judge missed a real problem; right means the check is too strict here.
+- Pairwise orders disagree: the two orders picked differently, so the outcome is a tie. Right when the drafts really are about even; wrong when one is clearly better (say which).
+- Random pick: check every verdict (or the pairwise outcome) shown.
+Check every fact a verdict rests on with a web search, never from memory, and cite the source. Hotel facts must match the shown results.`;
+
+export const ScreenFileSchema = z.object({
+  screener: z.string().min(1),
+  items: z.array(z.object({ source: z.string(), id: z.string(), verdict: z.enum(['right', 'wrong']), reason: z.string().min(1) }).strict()),
+}).strict();
+export type ScreenFile = z.infer<typeof ScreenFileSchema>;
+
+/** Writes the screener's verdicts onto the queue and marks a random few of the upheld ones for the person to audit. */
+export function applyScreen(queue: Spot[], file: ScreenFile, pick: Pick = randomInt): Spot[] {
+  const keys = new Set(queue.map(spotKey));
+  const unknown = file.items.filter((f) => !keys.has(spotKey(f)));
+  if (unknown.length) throw new Error(`Not in the queue: ${unknown.map(spotKey).join(', ')}`);
+  const audit = new Set(sample(file.items.filter((f) => f.verdict === 'right'), AUDIT_PICKS, pick).map(spotKey));
+  return queue.map((s) => {
+    const f = file.items.find((i) => spotKey(i) === spotKey(s));
+    return f ? { ...s, screen: { verdict: f.verdict, reason: f.reason, screener: file.screener, audit: audit.has(spotKey(f)) } } : s;
+  });
+}
+
 /** Reviewed spots stay; unreviewed ones from these sources make way for the new picks. */
 export function mergeQueue(queue: Spot[], sources: string[], fresh: Spot[]): Spot[] {
   return [...queue.filter((s) => !sources.includes(s.source) || reviewed(s)), ...fresh];
@@ -92,10 +124,14 @@ export async function queueSpots(sources: string[], build: (skip: Set<string>) =
 }
 
 function withRandom(spots: Spot[], pick: Pick): Spot[] {
-  const pool = spots.filter((s) => s.why === RANDOM_WHY);
-  const picked: Spot[] = [];
-  while (picked.length < RANDOM_PICKS && pool.length) picked.push(pool.splice(pick(pool.length), 1)[0]);
-  return [...spots.filter((s) => s.why !== RANDOM_WHY), ...picked];
+  return [...spots.filter((s) => s.why !== RANDOM_WHY), ...sample(spots.filter((s) => s.why === RANDOM_WHY), RANDOM_PICKS, pick)];
+}
+
+export function sample<T>(list: T[], n: number, pick: Pick): T[] {
+  const pool = [...list];
+  const picked: T[] = [];
+  while (picked.length < n && pool.length) picked.push(pool.splice(pick(pool.length), 1)[0]);
+  return picked;
 }
 
 // judge_must holds one line per must criterion in its comment; judge_checklist is the share and has no reason.

@@ -6,7 +6,7 @@ import { agreement } from './labels.js';
 import { pairwiseOutcomes, type PairwiseFile } from './pairwise.js';
 import { criteriaFor } from './rubric.js';
 import { renderItem } from './sheet.js';
-import { checklistSpots, mergeQueue, pairwiseSpots, type Spot } from './spot-checks.js';
+import { applyScreen, checklistSpots, forPerson, mergeQueue, pairwiseSpots, type Spot } from './spot-checks.js';
 import { judgeScores, type Verdict } from './verdicts.js';
 
 const entry = ItineraryEntrySchema.parse({ id: 'l3-en-family', today: '2026-10-30', locale: 'en', text: 'Family Osaka trip', history: [], expected: { effect: 'itinerary', nights: 2 }, must: ['Family pacing', 'Mentions a rest stop'] });
@@ -146,8 +146,20 @@ it('queues pairwise items whose orders picked differently, with both picks and t
   expect(spots[0].text).toMatch(/### Base[\s\S]*x base[\s\S]*### Candidate[\s\S]*x cand/);
 });
 
+const spot = (source: string, id: string, review: Partial<Spot> = {}): Spot => ({ kind: 'checklist', source, id, why: 'random pick', text: '', judge: [], ...review });
+
 it('keeps reviewed spots and other sources when a compare refills the queue', () => {
-  const spot = (source: string, id: string, review: Partial<Spot> = {}): Spot => ({ kind: 'checklist', source, id, why: 'random pick', text: '', judge: [], ...review });
   const queue = [spot('r_1', 'a', { verdict: 'wrong' }), spot('r_1', 'b'), spot('r_1', 'c', { verdict: null, note: 'unsure' }), spot('r_2', 'a')];
   expect(mergeQueue(queue, ['r_1'], [spot('r_1', 'd')]).map((s) => `${s.source} ${s.id}`)).toEqual(['r_1 a', 'r_1 c', 'r_2 a', 'r_1 d']);
+});
+
+it('writes the screener calls onto the queue and leaves the person the wrong ones, a sample of the upheld ones and the unscreened', () => {
+  const queue = ['a', 'b', 'c', 'd', 'e'].map((id) => spot('r_1', id));
+  const call = (id: string, verdict: 'right' | 'wrong') => ({ source: 'r_1', id, verdict, reason: `${id} ${verdict}` });
+  const screened = applyScreen(queue, { screener: 'claude subagent', items: [call('a', 'wrong'), call('b', 'right'), call('c', 'right'), call('d', 'right')] }, first);
+  expect(screened[0].screen).toEqual({ verdict: 'wrong', reason: 'a wrong', screener: 'claude subagent', audit: false });
+  expect(screened.map((s) => [s.id, s.screen?.audit ?? null, forPerson(s)])).toEqual([
+    ['a', false, true], ['b', true, true], ['c', true, true], ['d', false, false], ['e', null, true],
+  ]);
+  expect(() => applyScreen(queue, { screener: 's', items: [call('z', 'right')] })).toThrow('Not in the queue: r_1 z');
 });
