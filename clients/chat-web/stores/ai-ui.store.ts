@@ -36,7 +36,7 @@ export function createAIUIStore() {
         case 'start':
           break
         case 'status':
-          set({ phase: event.phase })
+          set(event.phase === 'searching' ? { phase: event.phase, text: '' } : { phase: event.phase })
           break
         case 'text':
           set({ text: get().text + event.delta, phase: 'writing' })

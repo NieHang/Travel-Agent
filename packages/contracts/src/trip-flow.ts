@@ -151,6 +151,7 @@ export const SendTurnRequestSchema = z
   .strict();
 export type SendTurnRequest = z.infer<typeof SendTurnRequestSchema>;
 
+// Text streamed before a "searching" status was the model narrating its tool calls; clients drop it.
 export const StatusPhaseSchema = z.enum(['searching', 'writing', 'organizing']);
 export type StatusPhase = z.infer<typeof StatusPhaseSchema>;
 

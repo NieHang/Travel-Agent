@@ -194,6 +194,9 @@ export function useChatStream(conversationId: string | null): {
                   upsertMessage(queryClient, targetId, event.userMessage)
                   void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_ROOT })
                   break
+                case 'status':
+                  if (event.phase === 'searching') accText = ''
+                  break
                 case 'text':
                   accText += event.delta
                   break

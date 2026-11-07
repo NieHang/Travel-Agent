@@ -119,6 +119,13 @@ describe('streamToolLoop', () => {
     expect(model.seen[1].at(-1)).toBeInstanceOf(ToolMessage);
   });
 
+  it('discards the narration streamed in a round that ends with tool calls', async () => {
+    const narrated = [...textChunks('I will search hotels.'), callChunk('c1', 'searchHotels', { city: 'Lisboa' })];
+    const events = await collect(scripted([narrated, textChunks('# Lisbon')]));
+    expect(events.map((e) => e.type)).toEqual(['text', 'discard_text', 'tool_call', 'tool_results', 'text']);
+    expect(events.at(-1)).toEqual({ type: 'text', delta: '# Lisbon' });
+  });
+
   it.each([
     ['a skill body', 'TOKYO-NOTES'],
     ['a long body with JSON-looking text', 'x'.repeat(13_000) + '{"a":1}'],

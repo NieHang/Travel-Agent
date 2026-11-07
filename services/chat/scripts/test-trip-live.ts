@@ -19,6 +19,27 @@ const check = (label: string, ok: boolean) => {
 };
 
 const turn = (state: TripState, text: string) => runTurn(llm, state, text);
+type Turn = Awaited<ReturnType<typeof turn>>;
+
+/** Hotel names in the draft: zh writes name（nameEn）, en writes nameEn and never the provider's Chinese name. */
+function checkHotelNames(label: string, locale: Locale, { draft, toolResults }: Turn) {
+  const hotels = toolResults.flatMap((r) => {
+    try {
+      return (JSON.parse(r.content) as { hotels?: { name: string; nameEn: string | null }[] }).hotels ?? [];
+    } catch {
+      return [];
+    }
+  });
+  const bad = locale === 'zh'
+    ? hotels.filter((h) => h.nameEn && draft.includes(h.name) && !draft.includes(`${h.name}（${h.nameEn}）`)).map((h) => h.name)
+    : hotels.filter((h) => draft.includes(h.name)).map((h) => h.name);
+  const named = hotels.some((h) => draft.includes(locale === 'zh' ? h.name : h.nameEn ?? h.name));
+  check(`${label} names hotels as ${locale === 'zh' ? 'name（nameEn）' : 'nameEn'}`, named && bad.length === 0);
+  if (bad.length || !named) console.log(`  hotels named wrongly: ${JSON.stringify(bad)}, any named: ${named}`);
+}
+
+// Narration before a tool call ("...search hotels.# Trip") must not reach the draft.
+const checkNoNarration = (label: string, draft: string) => check(`${label} has no narration glued to a heading`, !/\S#{1,3} \S/.test(draft));
 
 for (const locale of ['zh', 'en'] as Locale[]) {
   const start = initialState(0, locale);
@@ -46,6 +67,8 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   if (!overnight.next.stays) console.log(`  tool calls: ${JSON.stringify(overnight.calls)}`);
   check(`${locale}: stays carry amenities or images`, (overnight.next.stays?.items ?? []).some((h) => h.amenities.length > 0 || h.image));
   check(`${locale}: at least one day links to a stay`, overnight.next.days.some((d) => d.stayRef));
+  checkHotelNames(`${locale}: overnight draft`, locale, overnight);
+  checkNoNarration(`${locale}: overnight draft`, overnight.draft);
 
   const dayTrip = await turn(start, zh ? '奈良一日游，2026-12-01 当天往返，1 个人，个人游' : 'Solo day trip to Nara on 2026-12-01, back the same day, 1 person');
   check(`${locale}: same-day trip has no stays`, !dayTrip.next.stays);
@@ -67,6 +90,8 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   check(`${locale}: japan trip loads the city skills`, ['japan-tokyo', 'japan-osaka'].every((n) => japan.loaded.includes(n)));
   check(`${locale}: japan trip still finds stays`, (japan.next.stays?.items.length ?? 0) > 0);
   check(`${locale}: japan trip finds Osaka stays`, hasOsakaStay(japan.next));
+  checkHotelNames(`${locale}: japan draft`, locale, japan);
+  checkNoNarration(`${locale}: japan draft`, japan.draft);
   const headings = zh ? ['总览', '出发前要办'] : ['Overview', 'Before you go'];
   check(`${locale}: japan draft has overview and before-you-go`, headings.every((h) => japan.draft.includes(h)));
   const legDetail = legDetails(japan.draft);

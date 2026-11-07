@@ -85,6 +85,11 @@ export class TurnService {
               text += event.delta;
               yield { type: 'text', delta: event.delta };
               break;
+            case 'discard_text':
+              // The client drops the streamed text when a search starts.
+              text = '';
+              yield { type: 'status', phase: 'searching' };
+              break;
             case 'tool_results':
               next.toolResults = event.results.slice(-MAX_STORED_RESULTS);
               break;

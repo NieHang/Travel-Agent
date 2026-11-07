@@ -19,7 +19,9 @@ export type LoopEvent =
   | { type: 'tool_call'; name: string; args: Record<string, unknown> }
   | { type: 'tool_results'; results: ToolResult[] }
   | { type: 'show_results'; input: ShowResultsInput; results: ToolResult[] }
-  | { type: 'text'; delta: string };
+  | { type: 'text'; delta: string }
+  // The text streamed in a round that ended with tool calls was narration ("I'll search hotels..."), not the reply.
+  | { type: 'discard_text' };
 
 export interface StreamingModel {
   stream(
@@ -82,15 +84,20 @@ export async function* streamToolLoop(
     const final = round === maxRounds;
     if (final) conversation.push(new HumanMessage(FINAL_ROUND_NOTE));
     let reply: AIMessageChunk | undefined;
+    let wrote = false;
     for await (const chunk of await model.stream(conversation, { signal, runName: 'trip.respond', ...final ? { tool_choice: 'none' as const } : {} })) {
       signal.throwIfAborted();
       reply = reply ? reply.concat(chunk) : chunk;
-      if (typeof chunk.content === 'string' && chunk.content) yield { type: 'text', delta: chunk.content };
+      if (typeof chunk.content === 'string' && chunk.content) {
+        wrote = true;
+        yield { type: 'text', delta: chunk.content };
+      }
     }
     const calls = reply?.tool_calls ?? [];
     // Calls whose arguments are not valid JSON (DeepSeek truncates long show_results payloads now and then).
     const invalid = reply?.invalid_tool_calls ?? [];
     if (final || !reply || (!calls.length && !invalid.length)) return;
+    if (wrote) yield { type: 'discard_text' };
     // Only valid calls are sent back to the API, so invalid ones get no ToolMessage (it would be orphaned).
     if (calls.length) conversation.push(reply);
     for (const call of calls) {
