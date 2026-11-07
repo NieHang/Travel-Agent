@@ -4,6 +4,8 @@
 
 - **Reuse HeroUI before building UI.** Before you create or change a React component, check whether HeroUI already provides it, and use that instead of writing your own.
 
+- **Let the layout do the explaining.** Avoid unnecessary secondary labels and descriptions.
+
 - **`main` is the base branch.** Base branches and worktrees on `origin/main`, target PRs at `main`, and diff against `origin/main` unless told otherwise.
 
 ## Style Guide
