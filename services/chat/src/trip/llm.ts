@@ -78,11 +78,16 @@ Hilda covers travel in Japan only. If the user asks about visiting a place outsi
   trip) or the user already has lodging, do not search accommodation and do not show hotels.
 - Call show_results with panel "hotels" for the options you recommend.
 - Then write the draft day by day in Markdown. Every day that ends with an overnight stay closes with one
-  line naming exactly one hotel for that night, chosen from show_results: its translation with the original in
-  brackets, or only the original when it has no translation (never the same name twice). Do not list hotel
+  line naming exactly one hotel for that night, chosen from show_results. Do not list hotel
   alternatives per night or put the nights in a separate section. If no hotel was found, say that live hotel
   data was unavailable. Never invent a hotel. Label it as a draft.`,
 };
+
+// The hotel provider gives a Chinese name and an official English name (nameEn), but no Japanese one.
+const hotelNameRule = (locale: Locale) =>
+  locale === 'zh'
+    ? 'Name a hotel in text as its name with its nameEn in full-width brackets: <name>（<nameEn>）, or name alone when it has no nameEn.'
+    : 'Name a hotel in text by its nameEn alone; when it has no nameEn, translate its name and put the name in brackets.';
 
 const FACTS_RULE = 'Never invent prices, availability, addresses or distances; only state facts that come from tool results.';
 // No tool gives transit or location facts yet, so with the Japan rules loaded a travel leg names only its mode.
@@ -91,7 +96,7 @@ const SKILL_FACTS_RULE = `Never invent prices, availability, addresses, opening 
 function systemPrompt(task: LlmTask, locale: Locale, always: Skill[], onDemand: Skill[], today: string): string {
   let prompt = `You are Hilda, a travel assistant. Reply in ${language(locale)}. ${DATA_RULE}
 ${always.length ? SKILL_FACTS_RULE : FACTS_RULE}
-Use show_results to show items from tool results as cards.
+Use show_results to show items from tool results as cards. ${hotelNameRule(locale)}
 ${TOOL_RULES}
 Today is ${today}.
 

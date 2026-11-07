@@ -8,7 +8,10 @@ const NO_JAPAN_HOTELS =
 
 interface RawHotel {
   hotelId?: number;
+  /** The provider's Chinese name. */
   name?: string;
+  /** The hotel's official English name. */
+  nameEn?: string;
   brand?: string | null;
   address?: string;
   /** ISO country code, e.g. "JP". */
@@ -44,6 +47,7 @@ export function compactToolContent(text: string): string {
     hotels: japan.slice(0, MAX_HOTELS).map((h) => ({
       hotelId: h.hotelId,
       name: h.name,
+      nameEn: h.nameEn ?? null,
       brand: h.brand ?? null,
       address: h.address,
       starRating: h.starRating,

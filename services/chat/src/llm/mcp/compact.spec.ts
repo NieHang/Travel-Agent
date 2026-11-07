@@ -2,7 +2,7 @@ import { compactToolContent } from './compact.js';
 import { ROLLINGGO_COMPACT, ROLLINGGO_RAW } from './rollinggo.fixture.js';
 
 describe('compactToolContent', () => {
-  it('keeps ids, names, prices, links, amenities, every tag and the image', () => {
+  it('keeps ids, both names, prices, links, amenities, every tag and the image', () => {
     expect(JSON.parse(compactToolContent(JSON.stringify(ROLLINGGO_RAW)))).toEqual(JSON.parse(ROLLINGGO_COMPACT));
   });
   describe('hotels outside Japan', () => {

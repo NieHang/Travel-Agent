@@ -25,6 +25,7 @@ export async function turn(
   if (effect)
     for await (const e of llm.respond(effect, { text, state: next, history }, signal)) {
       if (e.type === 'text') draft += e.delta;
+      if (e.type === 'discard_text') draft = '';
       if (e.type === 'tool_call') {
         calls.push(e.name);
         toolCalls.push({ name: e.name, args: e.args });

@@ -25,6 +25,15 @@ it('按事件累积文本、阶段与最终组件，并忽略其他请求的事�
   expect(store.getState().text).toBe('你好')
 })
 
+it('开始搜索时丢弃此前流出的旁白', () => {
+  const store = createAIUIStore()
+  store.getState().begin('r1', 'c1')
+  store.getState().receive('r1', { type: 'text', delta: '我先查一下。' })
+  store.getState().receive('r1', { type: 'status', phase: 'searching' })
+  store.getState().receive('r1', { type: 'text', delta: '## 草稿' })
+  expect(store.getState().text).toBe('## 草稿')
+})
+
 it('错误和取消终止请求', () => {
   const store = createAIUIStore()
   store.getState().begin('r1', 'c1')

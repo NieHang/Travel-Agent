@@ -6,6 +6,7 @@ export const ROLLINGGO_RAW = {
       hotelId: 43615,
       bookingUrl: 'https://rollinggo.ai/h/43615',
       name: 'Casa do Fado Alfama',
+      nameEn: 'Casa do Fado Alfama Lisbon',
       brand: null,
       address: 'Rua de São Miguel 12, Lisboa',
       latitude: 38.71,
@@ -28,6 +29,7 @@ export const ROLLINGGO_COMPACT = JSON.stringify({
     {
       hotelId: 43615,
       name: 'Casa do Fado Alfama',
+      nameEn: 'Casa do Fado Alfama Lisbon',
       brand: null,
       address: 'Rua de São Miguel 12, Lisboa',
       starRating: 4,

@@ -161,6 +161,16 @@ describe('TurnService', () => {
     expect(end.trip!.status).toBe('confirmed');
   });
 
+  it('leaves the narration before a search out of the saved itinerary', async () => {
+    llm.classifications.push(planned({ destination: '杭州', tripType: 'solo', departureDate: '2026-12-01', returnDate: '2026-12-01', travelers: 1 }));
+    llm.responses.push([{ type: 'text', delta: '我先查一下。' }, { type: 'discard_text' }, { type: 'text', delta: '## 一日游草稿' }]);
+    const events = await send({ revision: 0, command: { type: 'message', text: '杭州一日游' } });
+    expect(events.filter((e) => e.type === 'status').map((e) => e.type === 'status' && e.phase)).toEqual(['writing', 'searching', 'writing', 'organizing']);
+    const end = done(events);
+    expect(end.message.content).toBe('## 一日游草稿');
+    expect(end.trip!.itineraryMarkdown).toBe('## 一日游草稿');
+  });
+
   it('saves the itinerary without stays when the model does not search', async () => {
     llm.classifications.push(planned({ destination: '杭州', tripType: 'solo', departureDate: '2026-12-01', returnDate: '2026-12-01', travelers: 1 }));
     llm.responses.push([{ type: 'text', delta: '一日游草稿' }]);

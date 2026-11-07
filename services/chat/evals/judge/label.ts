@@ -6,6 +6,7 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { z } from 'zod';
 import { readDataset, ResultSchema, type ItineraryEntry } from '../schemas.js';
+import { FACT_CRITERIA } from './facts.js';
 import { LabelFileSchema, type LabelFile } from './labels.js';
 import { readJson } from './read-json.js';
 import { criteriaFor, RUBRIC_HASH } from './rubric.js';
@@ -27,7 +28,7 @@ for (const trial of trials) {
   for (const { entry, output } of judgedItems(run.items, entries)) {
     // The sheet's criteria list becomes the form, so it is cut from the text.
     const sheet = renderItem(entry, output).split('\nCriteria:')[0];
-    queue.push({ trial, id: entry.id, sheet, criteria: criteriaFor(entry) });
+    queue.push({ trial, id: entry.id, sheet, criteria: criteriaFor(entry).filter((c) => !FACT_CRITERIA.includes(c.name)) });
   }
 }
 

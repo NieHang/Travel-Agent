@@ -51,6 +51,7 @@ export const SHOW_RESULTS_RULES = `Show items from tool results as cards.
   same characters, no units, no translation, no reformatting.
 - Put a \`translation\` next to an original only when it is not in the user's language; otherwise null.
   Never put translated text in \`original\`.
+- A hotel's title.original is its name in the user's language: name for Chinese, nameEn (when present) for English.
 - Put units and the user's language in the label instead, e.g. { label: "Distance (m)", value: { original: "850", translation: null } }.
 - price.amount and rating are numbers taken from the result, not converted.
 - amenities: at most ${MAX_AMENITIES} facilities or amenities the result lists for the item (e.g. hotelAmenities,

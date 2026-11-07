@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 // The web facts the judge's verdicts rest on, each with the source it was checked against and the verdicts citing it.
 // A person checks the sources instead of labelling the fact criteria blind, which needs knowledge of the place.
+export const FACT_CRITERIA = ['realistic_days', 'no_unsupported_claims'];
 const CiteSchema = z.object({ trial: z.string(), id: z.string(), criterion: z.string() }).strict();
 export const FactFileSchema = z.object({
   rubricHash: z.string(), checked: z.string(),
