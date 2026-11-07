@@ -1,7 +1,8 @@
 // eval:compare --pairwise <base run with trial> <candidate run with trial>
 // First call: writes two sheets for the same items with the drafts swapped, their empty verdict files and a key saying
 // which run is draft A. The sheets and verdict files name no run. Once both are filled, the same call imports them:
-// pairwise_vs_base goes to each candidate item (result file and Langfuse trace) and the win rate is printed.
+// pairwise_vs_base goes to each candidate item (result file and Langfuse trace), the win rate is printed and the
+// items whose orders disagree, plus a few random ones, are queued for eval:spot.
 import { config } from 'dotenv';
 import { createHash, randomInt } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -13,6 +14,7 @@ import { readDataset, ResultSchema, type ItineraryEntry } from '../schemas.js';
 import { outcomeValue, PAIRWISE_QUESTION, pairwiseOutcomes, PairwiseFileSchema, PairwiseKeySchema, type PairwiseKey } from './pairwise.js';
 import { criteriaFor, RUBRIC_HASH } from './rubric.js';
 import { judgedItems, renderOutput, renderRequest } from './sheet.js';
+import { pairwiseSpots, queueSpots } from './spot-checks.js';
 import { replaceTraceScores } from './trace-scores.js';
 
 config({ path: fileURLToPath(new URL('../../.env.eval', import.meta.url)), override: true });
@@ -23,7 +25,9 @@ export async function comparePairwise(baseName: string, candidateName: string) {
   // A neutral stem, so no file the judge opens names the runs (a tag like "worse" would give the answer away).
   const stem = `pw-${createHash('sha256').update(`${base.runName}~${candidate.runName}`).digest('hex').slice(0, 8)}`;
   const at = (suffix: string) => new URL(`${stem}${suffix}`, folder);
-  if (!existsSync(at('.key.json'))) return pack(base, candidate, folder, at);
+  const entries = new Map((await readDataset('itinerary') as ItineraryEntry[]).map((e) => [e.id, e]));
+  const items = pairedItems(base, candidate, entries);
+  if (!existsSync(at('.key.json'))) return pack(base, candidate, items, entries, folder, at);
 
   const key = PairwiseKeySchema.parse(JSON.parse(await readFile(at('.key.json'), 'utf8')));
   if (key.rubricHash !== RUBRIC_HASH) throw new Error(`The sheets use rubric ${key.rubricHash}, the current one is ${RUBRIC_HASH}; delete ${stem}.* and pack again`);
@@ -42,15 +46,19 @@ export async function comparePairwise(baseName: string, candidateName: string) {
   await client.flush();
   console.table(report.items.map((i) => ({ id: i.id, result: i.result, 'order 1': i.reasons[0], 'order 2': i.reasons[1] })));
   console.log(`${candidate.runName} vs ${base.runName}: ${report.wins} wins, ${report.losses} losses, ${report.ties} ties; win rate ${(report.winRate * 100).toFixed(0)}%`);
+  const judged = items.flatMap((i) => (i.entry.id in key.aIsBase ? [{ ...i, aIsBase: key.aIsBase[i.entry.id] }] : []));
+  await queueSpots([stem], (skip) => pairwiseSpots(stem, judged, report.items, skip));
 }
 
-async function pack(base: Run, candidate: Run, folder: URL, at: (suffix: string) => URL) {
-  const entries = new Map((await readDataset('itinerary') as ItineraryEntry[]).map((e) => [e.id, e]));
+function pairedItems(base: Run, candidate: Run, entries: Map<string, ItineraryEntry>) {
   const candidates = new Map(judgedItems(candidate.items, entries).map((i) => [i.entry.id, i.output]));
-  const items = judgedItems(base.items, entries).flatMap(({ entry, output }) => {
+  return judgedItems(base.items, entries).flatMap(({ entry, output }) => {
     const other = candidates.get(entry.id);
     return other ? [{ entry, base: output, candidate: other }] : [];
   });
+}
+
+async function pack(base: Run, candidate: Run, items: ReturnType<typeof pairedItems>, entries: Map<string, ItineraryEntry>, folder: URL, at: (suffix: string) => URL) {
   const skipped = [...new Set([...base.items, ...candidate.items].map((i) => i.id))].filter((id) => criteriaFor(entries.get(id)!).length && !items.some((i) => i.entry.id === id));
   const key: PairwiseKey = { base: base.runName, candidate: candidate.runName, rubricHash: RUBRIC_HASH, aIsBase: Object.fromEntries(items.map((i) => [i.entry.id, randomInt(2) === 0])) };
   await mkdir(folder, { recursive: true });

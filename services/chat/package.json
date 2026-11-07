@@ -34,6 +34,7 @@
     "eval:label": "bun run evals/judge/label.ts",
     "eval:agreement": "bun run evals/judge/agreement.ts",
     "eval:check": "bun run evals/judge/check.ts",
+    "eval:spot": "bun run evals/judge/spot.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",

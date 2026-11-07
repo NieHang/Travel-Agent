@@ -16,7 +16,8 @@ export const PairwiseFileSchema = z.object({
 }).strict();
 export type PairwiseFile = z.infer<typeof PairwiseFileSchema>;
 
-export type Outcome = { id: string; result: 'win' | 'loss' | 'tie'; reasons: [string, string] };
+type RunPick = 'base' | 'candidate' | 'tie';
+export type Outcome = { id: string; result: 'win' | 'loss' | 'tie'; picks: [RunPick, RunPick]; reasons: [string, string] };
 
 /**
  * The candidate's result per item: a win or a loss only when both orders pick the same run, otherwise a tie.
@@ -32,16 +33,16 @@ export function pairwiseOutcomes(key: PairwiseKey, first: PairwiseFile, second: 
   const items = ids.map((id): Outcome => {
     const a = first.items.find((i) => i.id === id)!;
     const b = second.items.find((i) => i.id === id)!;
-    const picks = [runPicked(a.winner, key.aIsBase[id]), runPicked(b.winner, !key.aIsBase[id])];
+    const picks: Outcome['picks'] = [runPicked(a.winner, key.aIsBase[id]), runPicked(b.winner, !key.aIsBase[id])];
     const result = picks[0] === picks[1] && picks[0] !== 'tie' ? (picks[0] === 'candidate' ? 'win' : 'loss') : 'tie';
-    return { id, result, reasons: [a.reason, b.reason] };
+    return { id, result, picks, reasons: [a.reason, b.reason] };
   });
   const count = (result: Outcome['result']) => items.filter((i) => i.result === result).length;
   const [wins, losses, ties] = [count('win'), count('loss'), count('tie')];
   return { items, wins, losses, ties, winRate: (wins + ties / 2) / items.length };
 }
 
-function runPicked(winner: 'A' | 'B' | 'tie', aIsBase: boolean): 'base' | 'candidate' | 'tie' {
+function runPicked(winner: 'A' | 'B' | 'tie', aIsBase: boolean): RunPick {
   if (winner === 'tie') return 'tie';
   return (winner === 'A') === aIsBase ? 'base' : 'candidate';
 }

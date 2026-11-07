@@ -6,6 +6,7 @@ import { agreement } from './labels.js';
 import { pairwiseOutcomes, type PairwiseFile } from './pairwise.js';
 import { criteriaFor } from './rubric.js';
 import { renderItem } from './sheet.js';
+import { checklistSpots, mergeQueue, pairwiseSpots, type Spot } from './spot-checks.js';
 import { judgeScores, type Verdict } from './verdicts.js';
 
 const entry = ItineraryEntrySchema.parse({ id: 'l3-en-family', today: '2026-10-30', locale: 'en', text: 'Family Osaka trip', history: [], expected: { effect: 'itinerary', nights: 2 }, must: ['Family pacing', 'Mentions a rest stop'] });
@@ -72,6 +73,7 @@ it('counts a win or loss only when both orders pick the same run, and a tie as h
   expect(report.items.map((i) => [i.id, i.result])).toEqual([['x', 'win'], ['y', 'loss'], ['z', 'tie']]);
   expect(report).toMatchObject({ wins: 1, losses: 1, ties: 1, winRate: 0.5 });
   expect(report.items[0].reasons).toEqual(['x B', 'x A']);
+  expect(report.items[2].picks).toEqual(['base', 'candidate']);
   expect(() => pairwiseOutcomes(key, file(2, { x: 'A', y: 'A', z: 'A' }), file(2, { x: 'A', y: 'A', z: 'A' }))).toThrow('Expected the order 1 verdicts');
   expect(() => pairwiseOutcomes(key, file(1, { x: 'A', y: 'A' }), file(2, { x: 'A', y: 'A', z: 'A' }))).toThrow('Order 1 verdicts must cover exactly');
 });
@@ -103,4 +105,49 @@ it('finds the searched hotel of an English card by its nameEn', () => {
     toolResults: [{ content: JSON.stringify({ hotels: [{ name: '阪急大阪龙仕柏酒店', nameEn: 'Hotel Hankyu RESPIRE OSAKA', distanceInMeters: 359, tags: ['提供四人间'] }] }) }],
   } as unknown as TurnOutput;
   expect(renderItem(entry, out)).toContain('- h1: Hotel Hankyu RESPIRE OSAKA | no price | no address | ; searched distance 359 m; tags: 提供四人间');
+});
+
+const draft = (text: string) => ({ next: { ...initialState(0, 'en'), days: [] }, loaded: [], draft: text, toolCalls: [], toolResults: [] }) as unknown as TurnOutput;
+const scored = (pairs: Record<string, number>) => Object.entries(pairs).map(([name, value]) => ({ name, value, comment: `${name} why` }));
+// Always takes the first item left in the pool, so the random picks are the first unflagged items in order.
+const first = () => 0;
+
+it('queues judged items where a failed code check meets a passing judge criterion, then three random ones, skipping reviewed items', () => {
+  const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
+  const entries = new Map(ids.map((id) => [id, { ...entry, id }]));
+  const judged = { judge_realistic_days: 1, judge_fits_party: 0, judge_checklist: 0.5 };
+  const run = { runName: 'r#1', items: [
+    { id: 'a', output: draft('A'), scores: scored({ pacing_ok: 0, ...judged }) },
+    { id: 'b', output: draft('B'), scores: scored({ pacing_ok: 0, judge_realistic_days: 0, judge_checklist: 0 }) },
+    { id: 'c', output: draft('C'), scores: scored({ pacing_ok: 1, ...judged }) },
+    { id: 'd', output: draft('D'), scores: scored({ invented_hotel: 1, judge_no_unsupported_claims: 1, judge_checklist: 1 }) },
+    { id: 'e', output: draft('E'), scores: scored({ pacing_ok: 1, ...judged }) },
+    { id: 'f', output: draft('F'), scores: scored({ pacing_ok: 0 }) },
+  ] };
+  const spots = checklistSpots([run], entries, new Set(['r_1 c']), first);
+  expect(spots.map((s) => [s.id, s.why])).toEqual([
+    ['a', 'pacing_ok failed, judge passed realistic_days'], ['d', 'invented_hotel failed, judge passed no_unsupported_claims'],
+    ['b', 'random pick'], ['e', 'random pick'],
+  ]);
+  expect(spots[0]).toMatchObject({ kind: 'checklist', source: 'r_1', judge: ['realistic_days pass: judge_realistic_days why', 'fits_party fail: judge_fits_party why'] });
+  expect(spots[0].text).toContain('````\nA\n````');
+  expect(spots[0].text).not.toContain('Criteria:');
+});
+
+it('queues pairwise items whose orders picked differently, with both picks and the outcome', () => {
+  const items = ['x', 'y'].map((id) => ({ entry: { ...entry, id }, base: draft(`${id} base`), candidate: draft(`${id} cand`), aIsBase: true }));
+  const outcomes = [
+    { id: 'x', result: 'tie' as const, picks: ['base', 'tie'] as ['base', 'tie'], reasons: ['x1', 'x2'] as [string, string] },
+    { id: 'y', result: 'loss' as const, picks: ['base', 'base'] as ['base', 'base'], reasons: ['y1', 'y2'] as [string, string] },
+  ];
+  const spots = pairwiseSpots('pw-1', items, outcomes, new Set(), first);
+  expect(spots.map((s) => [s.id, s.why])).toEqual([['x', 'orders disagree: base vs tie'], ['y', 'random pick']]);
+  expect(spots[0].judge).toEqual(['order 1 (A = base) picked base: x1', 'order 2 (A = candidate) picked tie: x2', 'outcome: tie']);
+  expect(spots[0].text).toMatch(/### Base[\s\S]*x base[\s\S]*### Candidate[\s\S]*x cand/);
+});
+
+it('keeps reviewed spots and other sources when a compare refills the queue', () => {
+  const spot = (source: string, id: string, review: Partial<Spot> = {}): Spot => ({ kind: 'checklist', source, id, why: 'random pick', text: '', judge: [], ...review });
+  const queue = [spot('r_1', 'a', { verdict: 'wrong' }), spot('r_1', 'b'), spot('r_1', 'c', { verdict: null, note: 'unsure' }), spot('r_2', 'a')];
+  expect(mergeQueue(queue, ['r_1'], [spot('r_1', 'd')]).map((s) => `${s.source} ${s.id}`)).toEqual(['r_1 a', 'r_1 c', 'r_2 a', 'r_1 d']);
 });

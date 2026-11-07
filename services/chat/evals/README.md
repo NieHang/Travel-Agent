@@ -1127,6 +1127,32 @@ Once both verdict files are filled, the same call imports them:
   both reasons and the base run in the comment, in its result file and on its
   Langfuse trace.
 
+### Spot checks
+
+```sh
+bun run eval:spot        # http://127.0.0.1:4313; or start "eval-spot" from .claude/launch.json
+```
+
+Every `eval:compare` on itinerary runs queues items for a person to check the
+judge on, in `results/judge/spot-checks.json`:
+
+- **Code check vs judge.** A judged candidate trial's items where a code check
+  failed but the judge passed a criterion covering the same ground:
+  `pacing_ok` against `realistic_days` and `fits_party`, `invented_hotel`
+  against `no_unsupported_claims`, and `osaka_stays` or `budget_ok` against
+  `hotel_fit`. Either the judge missed the problem or the check is too
+  strict. The other way round is not queued, because the judge is meant to
+  look deeper than the checks.
+- **Pairwise orders disagree.** After a pairwise import, the items where the
+  two orders picked different runs.
+- **Random.** Three more of the compared items, from either kind of compare.
+
+The page shows each item with why it was queued and the judge's verdicts (or
+both orders' picks, with which run was draft A in each). It is not blind. For
+each item, mark whether the judge's call holds, with a note on what is wrong.
+A later compare of the same trial or pair replaces the items not yet reviewed
+and keeps the reviewed ones.
+
 ## Geocoder accuracy check
 
 `evals/geocode-labels.json` holds the stops from the 2026-10-30 accuracy check

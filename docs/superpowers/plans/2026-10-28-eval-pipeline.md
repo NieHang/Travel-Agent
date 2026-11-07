@@ -377,7 +377,7 @@ Acceptance: every assertion in the live check has a matching L3 grader, and the 
    - You label them.
    - `bun run eval:agreement` fetches the human and judge scores and computes agreement per criterion. Only criteria at ≥ 80% agreement count toward thresholds; below that, rewrite the criterion and recalibrate.
    - Re-run `eval:agreement` after changing the judge model or the rubric.
-5. **Spot checks**: after each compare, automatically queue cases where the judge and the code checks disagree, cases whose pairwise verdict flipped, and 3 random cases.
+5. **Spot checks** (built 2026-11-07, `bun run eval:spot`): after each compare, automatically queue cases where the judge and the code checks disagree, cases whose pairwise verdict flipped, and 3 random cases. A local page shows the queue, as the labelling page does.
 
 Acceptance: at least 3 criteria at ≥ 80% agreement; pairwise comparison picks out a clearly worse prompt variant (win rate < 30%).
 

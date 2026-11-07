@@ -30,6 +30,10 @@ async function metrics([basePrefix, candidatePrefix, ...rest]: string[]) {
   console.table(report.categories);
   console.log('Regressed items:', report.regressed);
   console.log('Flaky items:', report.flaky);
+  if (candidate[0].suite === 'itinerary') {
+    const { queueChecklistSpots } = await import('./judge/spot-checks.js');
+    await queueChecklistSpots(candidate);
+  }
   for (const violation of report.violations) console.error(violation);
   if (report.violations.length) process.exitCode = 1;
 }
