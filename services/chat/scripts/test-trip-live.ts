@@ -39,7 +39,12 @@ function checkHotelNames(label: string, locale: Locale, { draft, toolResults }: 
 }
 
 // Narration before a tool call ("...search hotels.# Trip") must not reach the draft.
-const checkNoNarration = (label: string, draft: string) => check(`${label} has no narration glued to a heading`, !/\S#{1,3} \S/.test(draft));
+function checkNoNarration(label: string, draft: string) {
+  // [^\s#], not \S: the first "#" of "## 总览" is itself non-space, so \S flagged every level-2 heading.
+  const at = draft.search(/[^\s#]#{1,3} \S/);
+  check(`${label} has no narration glued to a heading`, at < 0);
+  if (at >= 0) console.log(`  glued: ${JSON.stringify(draft.slice(Math.max(0, at - 160), at + 40))}`);
+}
 
 for (const locale of ['zh', 'en'] as Locale[]) {
   const start = initialState(0, locale);
