@@ -20,9 +20,9 @@ const NULLS = { destination: null, tripType: null, departureDate: null, returnDa
 const planned = (patch: Partial<Classified['patch']>): Classified => ({ intent: 'plan', locale: 'zh', patch: { ...NULLS, ...patch }, clarify: null });
 const chatted: Classified = { intent: 'chat', locale: 'zh', patch: NULLS, clarify: null };
 const hotelResult = { callId: 'c1', tool: 'searchHotels', args: {}, content: ROLLINGGO_COMPACT, isError: false };
+// A hotel with a hotelId: the server fills address, price, rating, url and image from hotelResult.
 const hotelItem = {
   source: 'c1', id: '43615', title: { original: 'Casa do Fado Alfama', translation: '阿尔法玛法朵之家' },
-  address: null, price: { amount: 118, currency: 'EUR' }, rating: 4, url: null, image: null,
   details: [], amenities: [{ original: 'Kitchen', translation: '厨房' }], summary: null,
 };
 const searchAndShow = (panel: 'hotels'): LoopEvent[] => [
