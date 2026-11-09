@@ -23,13 +23,13 @@
     "badge": "Your AI travel agent",
     "title": "Where to next?",
     "subtitle": "Tell Hilda where you want to go. Get a day-by-day plan, hotels that fit, and the routes locals actually walk.",
-    "placeholder": "5 days in Lisbon, food and views…",
+    "placeholder": "5 days in Tokyo, food and views…",
     "submit": "Plan it",
     "chips": {
-      "0": "5 days in Lisbon",
-      "1": "Boutique stays in Lisbon",
-      "2": "Best walk through Alfama",
-      "3": "Where Lisbon locals drink"
+      "0": "5 days in Tokyo",
+      "1": "Boutique stays in Kyoto",
+      "2": "Best walk through Asakusa",
+      "3": "Where Osaka locals drink"
     }
   },
   "auth": {
@@ -65,10 +65,10 @@
     "failed": "Failed",
     "jumpToLatest": "Jump to latest",
     "chips": {
-      "0": "Hotels under €150",
-      "1": "Best walk in Alfama",
+      "0": "Hotels under 1,000 CNY a night",
+      "1": "Best walk in Asakusa",
       "2": "Where do locals eat?",
-      "3": "Swap day 3 for the beach"
+      "3": "Swap day 3 for hot springs"
     },
     "placeholder": "Ask Hilda anything…",
     "send": "Send",

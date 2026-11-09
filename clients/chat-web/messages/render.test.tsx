@@ -22,6 +22,6 @@ it('English apostrophes render literally', () => {
 
 it('numeric segment keys and placeholders resolve in zh', () => {
   renderWithProviders(<Probe />)
-  expect(screen.getByTestId('chip')).toHaveTextContent('150 欧以内的酒店')
+  expect(screen.getByTestId('chip')).toHaveTextContent('每晚 1000 元以内的酒店')
   expect(screen.getByTestId('prompt')).toHaveTextContent('登录后将为你规划：「里斯本」')
 })

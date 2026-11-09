@@ -27,8 +27,8 @@ it('空输入不可提交，chip 填入并聚焦，不跳转', async () => {
   expect(screen.getByRole('button', { name: '开始规划' })).toBeDisabled()
   await user.type(input, '   ')
   expect(screen.getByRole('button', { name: '开始规划' })).toBeDisabled()
-  await user.click(screen.getByRole('button', { name: '里斯本 5 天' }))
-  expect(input).toHaveValue('里斯本 5 天'); expect(input).toHaveFocus(); expect(nav.push).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: '东京 5 天' }))
+  expect(input).toHaveValue('东京 5 天'); expect(input).toHaveFocus(); expect(nav.push).not.toHaveBeenCalled()
 })
 it('未登录普通回车暂存并跳转；输入法组字不提交', async () => {
   const { user } = renderWithProviders(<LandingPage />)

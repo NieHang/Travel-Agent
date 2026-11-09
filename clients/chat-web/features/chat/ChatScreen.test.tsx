@@ -196,10 +196,10 @@ it('新对话：显示「嗨，Ann，想去哪？」与四个建议 chip', () =>
     screen.getByRole('heading', { name: '嗨，Ann，想去哪？' }),
   ).toBeInTheDocument()
   for (const chip of [
-    '150 欧以内的酒店',
-    '阿尔法玛最佳步行路线',
+    '每晚 1000 元以内的酒店',
+    '浅草最佳步行路线',
     '当地人去哪吃',
-    '把第 3 天换成海滩',
+    '把第 3 天换成温泉',
   ]) {
     expect(screen.getByRole('button', { name: chip })).toBeInTheDocument()
   }
