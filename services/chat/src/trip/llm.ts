@@ -63,6 +63,8 @@ export const CLASSIFY_PROMPT = `You read one travel-chat message and report what
 const TOOL_RULES = `- Fill tool arguments from the request and the conversation; follow each parameter description exactly.
 - originQuery: the user's full request, including earlier constraints from the conversation.
 - Prices are CNY. Convert a budget only if its currency is explicit; otherwise omit the price cap.
+- A hotel's lowestPrice is per night, not for the whole stay. Mark it as nightly wherever you state it, in the
+  reply and in show_results summaries (每晚 in Chinese, "per night" in English); a stay total is lowestPrice × nights.
 - Omit optional parameters the user did not imply. On an argument error, fix and retry once.
 - If a search with a price cap returns nothing, retry once without the cap.
 - For an item from serverContext.toolResults, use its provider id (e.g. hotelId).

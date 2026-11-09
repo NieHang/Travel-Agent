@@ -46,6 +46,31 @@ function checkNoNarration(label: string, draft: string) {
   if (at >= 0) console.log(`  glued: ${JSON.stringify(draft.slice(Math.max(0, at - 160), at + 40))}`);
 }
 
+// lowestPrice is per night; the model once called it the price of the whole stay ("单人两晚约1730元起").
+function checkNightlyPrices(label: string, locale: Locale, { draft, toolResults, next }: Turn) {
+  const amounts = toolResults.flatMap((r) => {
+    try {
+      return ((JSON.parse(r.content) as { hotels?: { lowestPrice: string | null }[] }).hotels ?? []).flatMap((h) => h.lowestPrice?.split(' ')[0] ?? []);
+    } catch {
+      return [];
+    }
+  });
+  const patterns = amounts.map(amountPattern);
+  const summaries = [...(next.stays?.items ?? []), ...next.results.flatMap((g) => g.items)].flatMap((item) => item.summary ?? []);
+  const priced = [...draft.split('\n'), ...summaries].filter((text) => patterns.some((p) => p.test(text)));
+  const nightly = locale === 'zh' ? /每晚|[/／]\s*晚|一晚/ : /per night|a night\b|nightly|\/\s*night\b/i;
+  const bad = priced.filter((text) => !nightly.test(text));
+  check(`${label} marks hotel prices as nightly (${priced.length} priced)`, bad.length === 0);
+  if (bad.length) console.log(`  prices without a nightly unit: ${JSON.stringify(bad)}`);
+}
+
+/** An amount as prose writes it, with or without thousands separators: "1730" also matches "1,730". */
+function amountPattern(amount: string): RegExp {
+  const [whole, fraction] = amount.split('.');
+  const grouped = whole.replace(/\B(?=(\d{3})+$)/g, ',?');
+  return new RegExp(`(?<![\\d.,])${grouped}${fraction ? `\\.${fraction}` : ''}(?![\\d]|[.,]\\d)`);
+}
+
 for (const locale of ['zh', 'en'] as Locale[]) {
   const start = initialState(0, locale);
   const zh = locale === 'zh';
@@ -74,6 +99,7 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   check(`${locale}: at least one day links to a stay`, overnight.next.days.some((d) => d.stayRef));
   checkHotelNames(`${locale}: overnight draft`, locale, overnight);
   checkNoNarration(`${locale}: overnight draft`, overnight.draft);
+  checkNightlyPrices(`${locale}: overnight draft`, locale, overnight);
 
   const dayTrip = await turn(start, zh ? '奈良一日游，2026-12-01 当天往返，1 个人，个人游' : 'Solo day trip to Nara on 2026-12-01, back the same day, 1 person');
   check(`${locale}: same-day trip has no stays`, !dayTrip.next.stays);
@@ -81,6 +107,7 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   const search = await turn(start, zh ? '京都站附近 1000 元以内的酒店' : 'Hotels near Kyoto Station under 1000 CNY');
   check(`${locale}: hotel question is chat`, search.classified.intent === 'chat');
   check(`${locale}: hotel question shows cards`, search.next.results.some((g) => g.items.length > 0));
+  checkNightlyPrices(`${locale}: hotel answer`, locale, search);
 
   const vague = await turn(start, zh ? '12 月想去个暖和的地方，两个人' : 'Somewhere warm in December for two');
   check(`${locale}: vague destination asks to clarify`, vague.next.clarify?.field === 'destination');
@@ -97,6 +124,7 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   check(`${locale}: japan trip finds Osaka stays`, hasOsakaStay(japan.next));
   checkHotelNames(`${locale}: japan draft`, locale, japan);
   checkNoNarration(`${locale}: japan draft`, japan.draft);
+  checkNightlyPrices(`${locale}: japan draft`, locale, japan);
   const headings = zh ? ['总览', '出发前要办'] : ['Overview', 'Before you go'];
   check(`${locale}: japan draft has overview and before-you-go`, headings.every((h) => japan.draft.includes(h)));
   const legDetail = legDetails(japan.draft);

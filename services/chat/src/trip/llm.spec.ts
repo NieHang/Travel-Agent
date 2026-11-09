@@ -69,6 +69,11 @@ describe('ModelTripLlm', () => {
     expect(await respond(new ModelTripLlm(), 'answer')).toContain('Hilda covers travel in Japan only. If the user asks about visiting a place outside Japan, say briefly that Hilda only plans trips in Japan, and call no tools.');
   });
 
+  it('tells both tasks that a hotel price is per night', async () => {
+    for (const task of ['answer', 'itinerary'] as const)
+      expect(await respond(new ModelTripLlm(), task)).toContain("A hotel's lowestPrice is per night, not for the whole stay.");
+  });
+
   it('uses the injected date in the system prompt sent by respond', async () => {
     expect(await respond(new ModelTripLlm(undefined, [], { today: '2026-01-15' }), 'answer'))
       .toContain('Today is 2026-01-15.');
