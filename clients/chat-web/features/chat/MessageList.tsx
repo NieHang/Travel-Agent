@@ -1,6 +1,11 @@
 'use client'
 
-import type { Command, Component, Message } from '@autix/contracts'
+import {
+  CommandSchema,
+  type Command,
+  type Component,
+  type Message,
+} from '@autix/contracts'
 import {
   useEffect,
   useLayoutEffect,
@@ -12,7 +17,10 @@ import {
 import { useTranslations } from 'next-intl'
 import { PillButton } from '@/components/ui/PillButton'
 import { Skeleton } from '@/components/ui/Skeleton'
+import type { ComponentMode } from '@/components/ai-ui/ComponentRenderer'
 import { MessageBubble } from './MessageBubble'
+
+const LOCKED: ComponentMode = { kind: 'locked' }
 
 export type PendingReply = {
   text: string
@@ -146,6 +154,17 @@ export function MessageList({
         const revision = message.metadata?.revision
         const interactive =
           revision !== undefined && revision === activeRevision
+        // The user message right after a reply records which command answered it.
+        const next = messages[index + 1]
+        const answer =
+          next?.role === 'USER'
+            ? CommandSchema.safeParse(next.metadata?.command)
+            : undefined
+        const mode: ComponentMode = answer?.success
+          ? { kind: 'answered', command: answer.data }
+          : interactive && !generating && onCommand
+            ? { kind: 'live', onCommand }
+            : LOCKED
         return (
           <MessageBubble
             key={keys[index]}
@@ -153,8 +172,7 @@ export function MessageList({
             content={message.content}
             status={message.status}
             components={message.metadata?.components}
-            disabled={generating || !interactive}
-            onCommand={interactive ? onCommand : undefined}
+            mode={mode}
           />
         )
       }),
@@ -170,8 +188,6 @@ export function MessageList({
         content={pending.text}
         typing={pending.text === ''}
         components={pending.components}
-        onCommand={undefined}
-        disabled
       />,
     )
   }

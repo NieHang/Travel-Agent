@@ -1,8 +1,9 @@
-import type { TripType } from '@autix/contracts';
+import type { FormFieldName, TripType } from '@autix/contracts';
 
 const en = {
   japanDestinationTitle: 'Choose a destination in Japan',
   japanCities: ['Tokyo', 'Kyoto', 'Osaka', 'Nara'],
+  preferenceTags: ['Food', 'Onsen', 'Nature', 'Shopping', 'History', 'Slow pace'],
   outsideJapan: (places: string[], japan: string | null): string =>
     `Hilda only plans trips within Japan, so I can't plan ${places.join(', ')}.` +
     (japan ? ` I can plan just ${japan}, or you can choose another destination in Japan.` : ' Please choose a destination in Japan.'),
@@ -20,11 +21,10 @@ const en = {
   generateDraft: 'Generate itinerary draft',
   fields: {
     destination: { label: 'Destination', placeholder: 'For example, Tokyo, Japan' },
-    departureDate: { label: 'Departure date', placeholder: null },
-    returnDate: { label: 'Return date', placeholder: null },
+    dates: { label: 'Travel dates', placeholder: null },
     travelers: { label: 'Travelers', placeholder: null },
     preferences: { label: 'Interests and special requirements', placeholder: 'For example, food, nature, accessibility' },
-  },
+  } satisfies Record<FormFieldName, { label: string; placeholder: string | null }>,
   review: 'Review the itinerary draft, then confirm or edit the requirements.',
   confirmed: 'Your itinerary has been confirmed and saved.',
   confirm: 'Confirm itinerary',
@@ -37,6 +37,7 @@ export type Copy = typeof en;
 const zh: Copy = {
   japanDestinationTitle: '选择日本的目的地',
   japanCities: ['东京', '京都', '大阪', '奈良'],
+  preferenceTags: ['美食', '温泉', '自然风光', '购物', '历史文化', '慢节奏'],
   outsideJapan: (places: string[], japan: string | null): string =>
     `Hilda 目前只规划日本境内的旅行，暂时无法安排${places.join('、')}。` +
     (japan ? `可以只规划${japan}，或换一个日本的目的地。` : '请换一个日本的目的地。'),
@@ -54,8 +55,7 @@ const zh: Copy = {
   generateDraft: '生成路线草案',
   fields: {
     destination: { label: '目的地', placeholder: '例如日本东京' },
-    departureDate: { label: '出发日期', placeholder: null },
-    returnDate: { label: '返程日期', placeholder: null },
+    dates: { label: '出行日期', placeholder: null },
     travelers: { label: '出行人数', placeholder: null },
     preferences: { label: '兴趣与特殊需求', placeholder: '例如美食、自然风景、无障碍设施' },
   },

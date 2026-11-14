@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { RequirementSchema } from './requirement';
 
 export const MessageMetadataSchema = z.object({
+  /** USER messages: the command that produced this message; the client parses it with CommandSchema. */
+  command: z.unknown().optional(),
   /** Components shown with this message; the client validates each entry (legacy types fall back). */
   components: z.array(z.unknown()).optional(),
   /** Trip revision these components belong to; only the current revision is interactive. */

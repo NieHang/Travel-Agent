@@ -41,16 +41,16 @@ it('typing：显示三点跳动，读屏标签为「正在输入…」', () => {
 
 const buttons = { type: 'buttons', buttons: [{ command: 'confirm', label: '确认路线' }] }
 
-it('组件在助手消息下渲染，有 onCommand 时可操作并发送命令', async () => {
+it('组件在助手消息下渲染，live 时可操作并发送命令', async () => {
   const onCommand = vi.fn()
   const { user } = renderWithProviders(
-    <MessageBubble role="ASSISTANT" content="草稿" components={[buttons]} onCommand={onCommand} />,
+    <MessageBubble role="ASSISTANT" content="草稿" components={[buttons]} mode={{ kind: 'live', onCommand }} />,
   )
   await user.click(screen.getByRole('button', { name: '确认路线' }))
   expect(onCommand).toHaveBeenCalledWith({ type: 'confirm' })
 })
 
-it('没有 onCommand（旧版本或生成中）时组件只读', () => {
+it('默认锁定（旧版本或生成中）时组件只读', () => {
   renderWithProviders(<MessageBubble role="ASSISTANT" content="草稿" components={[buttons]} />)
   expect(screen.getByRole('button', { name: '确认路线' })).toBeDisabled()
 })

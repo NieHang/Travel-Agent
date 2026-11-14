@@ -17,7 +17,7 @@ it('renders trip commands inside actual message bubbles', async () => {
           options: [{ value: 'solo', label: 'Solo', description: null }],
         },
       ]}
-      onCommand={onCommand}
+      mode={{ kind: 'live', onCommand }}
     />,
   )
   await user.click(screen.getByRole('button', { name: /Solo/ }))

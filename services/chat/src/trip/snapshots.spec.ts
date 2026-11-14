@@ -125,4 +125,10 @@ describe('frozen persisted snapshots', () => {
       expect(ComponentSchema.parse(component)).toEqual(component);
     }
   });
+
+  it.each(['requirements', 'destination-clarification', 'outside-japan'])('matches the frozen %s form with every field prefilled', (name) => {
+    const raw = readFixture(`trip-state.v2.${name}.json`);
+    const state = readState(raw, Number(raw.revision));
+    expect(render(state, copy(state.locale))).toEqual(readFixture(`message-metadata.${name}.json`).components);
+  });
 });

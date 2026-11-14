@@ -59,6 +59,53 @@
 }
 
 @layer components {
+  /* HeroUI controls in the trip form (incl. its portalled popovers) use the site's lime/ink instead of HeroUI blue. */
+  .trip-form {
+    --accent: var(--color-lime);
+    --accent-foreground: var(--color-ink);
+    --accent-hover: color-mix(in srgb, var(--color-lime) 85%, var(--color-ink));
+    --accent-soft: color-mix(in srgb, var(--color-lime) 35%, var(--color-paper));
+    --accent-soft-foreground: var(--color-ink);
+    --accent-soft-hover: color-mix(in srgb, var(--color-lime) 50%, var(--color-paper));
+  }
+
+  /* Travelers stepper drawn as a trip-form chip: replaces HeroUI's field box and 3-column grid. */
+  .trip-form .number-field__group.trip-stepper {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    height: auto;
+    min-height: 2.75rem;
+    padding: 0 0.25rem 0 0.875rem;
+    border: 2px solid var(--color-ink);
+    border-radius: 9999px;
+    background: var(--color-paper);
+    box-shadow: none;
+    color: var(--color-ink);
+    font-size: 0.875rem;
+    font-weight: 700;
+  }
+
+  .trip-form .number-field__group.trip-stepper[data-missing] {
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--color-ink) 30%, transparent);
+  }
+
+  .trip-form .trip-stepper .number-field__input {
+    width: 2ch;
+    padding: 0;
+    text-align: center;
+    font: inherit;
+  }
+
+  .trip-form .trip-stepper .number-field__decrement-button,
+  .trip-form .trip-stepper .number-field__increment-button {
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 9999px;
+  }
+
   .image-placeholder {
     background: repeating-linear-gradient(135deg, var(--color-paper) 0 10px, color-mix(in srgb, var(--color-ink) 10%, var(--color-paper)) 10px 20px);
   }

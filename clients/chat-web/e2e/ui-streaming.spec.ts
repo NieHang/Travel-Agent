@@ -1,12 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { registerViaUi } from './helpers'
-
-/** A local YYYY-MM-DD date `days` from today; the calendar rejects past dates. */
-function daysFromNow(days: number) {
-  const d = new Date()
-  d.setDate(d.getDate() + days)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+import { pickTripDates, registerViaUi } from './helpers'
 
 test('trip planning commands, panels and refresh recovery', async ({
   page,
@@ -19,15 +12,8 @@ test('trip planning commands, panels and refresh recovery', async ({
     .and(page.locator(':enabled'))
   await expect(solo).toBeVisible()
   await solo.click()
-  await page
-    .getByRole('textbox', { name: '出发日期', exact: true })
-    .fill(daysFromNow(30))
-  await page
-    .getByRole('textbox', { name: '返程日期', exact: true })
-    .fill(daysFromNow(32))
-  await page
-    .getByRole('spinbutton', { name: '出行人数', exact: true })
-    .fill('2')
+  await pickTripDates(page, 30, 32)
+  await page.getByRole('button', { name: '增加一人', exact: true }).click()
   await page.getByRole('button', { name: '生成路线草案', exact: true }).click()
   const panel = page.getByTestId('live-trip-panel')
   await expect(

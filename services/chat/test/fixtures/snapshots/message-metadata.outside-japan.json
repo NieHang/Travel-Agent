@@ -34,53 +34,41 @@
       "fields": [
         {
           "name": "destination",
-          "kind": "text",
           "label": "Destination",
-          "required": true,
           "placeholder": "For example, Tokyo, Japan",
-          "min": null,
-          "max": null
+          "value": null,
+          "suggestions": [
+            "Tokyo",
+            "Kyoto",
+            "Osaka",
+            "Nara"
+          ]
         },
         {
-          "name": "departureDate",
-          "kind": "date",
-          "label": "Departure date",
-          "required": true,
-          "placeholder": null,
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "returnDate",
-          "kind": "date",
-          "label": "Return date",
-          "required": true,
-          "placeholder": null,
-          "min": null,
-          "max": null
+          "name": "dates",
+          "label": "Travel dates",
+          "value": null
         },
         {
           "name": "travelers",
-          "kind": "number",
           "label": "Travelers",
-          "required": true,
-          "placeholder": null,
-          "min": 1,
-          "max": 100
+          "value": 2
         },
         {
           "name": "preferences",
-          "kind": "textarea",
           "label": "Interests and special requirements",
-          "required": false,
           "placeholder": "For example, food, nature, accessibility",
-          "min": null,
-          "max": null
+          "value": "",
+          "suggestions": [
+            "Food",
+            "Onsen",
+            "Nature",
+            "Shopping",
+            "History",
+            "Slow pace"
+          ]
         }
       ],
-      "initialValues": {
-        "tripType": "couple"
-      },
       "submitLabel": "Generate itinerary draft"
     }
   ],
