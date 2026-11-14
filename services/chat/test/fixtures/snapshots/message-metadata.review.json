@@ -1,0 +1,62 @@
+{
+  "components": [
+    {
+      "type": "cards",
+      "items": [
+        {
+          "ref": "h1",
+          "id": null,
+          "title": {
+            "original": "Kyoto Garden Hotel",
+            "translation": "京都花园酒店"
+          },
+          "address": {
+            "original": "12 Higashiyama, Kyoto",
+            "translation": null
+          },
+          "price": {
+            "amount": 24000,
+            "currency": "JPY"
+          },
+          "rating": 4.6,
+          "url": "https://example.com/kyoto-garden",
+          "image": "https://example.com/kyoto-garden.jpg",
+          "details": [
+            {
+              "label": "Distance (m)",
+              "value": {
+                "original": "500",
+                "translation": null
+              }
+            }
+          ],
+          "amenities": [
+            {
+              "original": "Family rooms",
+              "translation": null
+            },
+            {
+              "original": "Breakfast",
+              "translation": null
+            }
+          ],
+          "summary": "Family rooms near the gardens."
+        }
+      ]
+    },
+    {
+      "type": "buttons",
+      "buttons": [
+        {
+          "command": "confirm",
+          "label": "Confirm itinerary"
+        },
+        {
+          "command": "edit",
+          "label": "Edit requirements"
+        }
+      ]
+    }
+  ],
+  "revision": 4
+}

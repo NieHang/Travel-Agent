@@ -3,7 +3,7 @@ import type { Verdict, VerdictFile } from './verdicts.js';
 
 // A note without a verdict means the labeller is undecided; it is listed, not counted.
 const LabelSchema = z.object({ criterion: z.string(), verdict: z.enum(['pass', 'fail', 'na']).nullable(), note: z.string().optional() }).strict();
-export type Label = z.infer<typeof LabelSchema>;
+type Label = z.infer<typeof LabelSchema>;
 export const LabelFileSchema = z.object({
   runName: z.string(), rubricHash: z.string(),
   items: z.array(z.object({ id: z.string(), labels: z.array(LabelSchema) }).strict()),

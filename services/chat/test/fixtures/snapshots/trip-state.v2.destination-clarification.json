@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "revision": 1,
+  "stage": "requirements",
+  "requirements": {
+    "tripType": "family"
+  },
+  "clarify": {
+    "field": "destination",
+    "question": "想去关西的哪座城市？",
+    "options": [
+      "京都",
+      "大阪",
+      "奈良"
+    ]
+  },
+  "checkedDestination": null,
+  "outsideJapan": null,
+  "itinerary": null,
+  "days": [],
+  "stays": null,
+  "toolResults": [],
+  "results": [],
+  "locale": "zh"
+}

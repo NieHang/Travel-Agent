@@ -21,5 +21,5 @@ export function createSubAgents() {
   return { extractAgent, clarifyAgent, analysisAgent, riskAgent, summaryAgent };
 }
 
-export type SubAgents = ReturnType<typeof createSubAgents>;
+type SubAgents = ReturnType<typeof createSubAgents>;
 export type AgentName = keyof SubAgents;

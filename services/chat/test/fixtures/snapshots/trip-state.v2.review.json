@@ -1,0 +1,139 @@
+{
+  "version": 2,
+  "revision": 4,
+  "stage": "review",
+  "requirements": {
+    "destination": "Kyoto",
+    "tripType": "family",
+    "departureDate": "2027-04-03",
+    "returnDate": "2027-04-05",
+    "travelers": 3,
+    "preferences": "Gardens, trains and family rooms",
+    "budget": 180000,
+    "budgetCurrency": "JPY"
+  },
+  "clarify": null,
+  "checkedDestination": "Kyoto",
+  "outsideJapan": null,
+  "itinerary": "# Kyoto family trip\n\n## Day 1\nArrive at Kyoto Station and explore Higashiyama. Stay at Kyoto Garden Hotel.\n\n## Day 2\nTake the train to Arashiyama and walk through Bamboo Grove. Stay at Kyoto Garden Hotel.\n\n## Day 3\nVisit a garden before departure.",
+  "days": [
+    {
+      "title": "Day 1: Higashiyama",
+      "stops": [
+        {
+          "name": "Kyoto Station",
+          "note": "Arrival",
+          "time": "10:00"
+        },
+        {
+          "name": "Higashiyama",
+          "note": null,
+          "time": "14:00"
+        }
+      ],
+      "stayRef": "h1"
+    },
+    {
+      "title": "Day 2: Arashiyama",
+      "stops": [
+        {
+          "name": "Bamboo Grove",
+          "note": "Go early with the family",
+          "time": "09:00"
+        }
+      ],
+      "stayRef": "h1"
+    },
+    {
+      "title": "Day 3: Gardens and departure",
+      "stops": [
+        {
+          "name": "Kyoto Botanical Gardens",
+          "note": null,
+          "time": null
+        }
+      ],
+      "stayRef": null
+    }
+  ],
+  "stays": {
+    "panel": "hotels",
+    "items": [
+      {
+        "ref": "h1",
+        "id": null,
+        "title": {
+          "original": "Kyoto Garden Hotel",
+          "translation": "京都花园酒店"
+        },
+        "address": {
+          "original": "12 Higashiyama, Kyoto",
+          "translation": null
+        },
+        "price": {
+          "amount": 24000,
+          "currency": "JPY"
+        },
+        "rating": 4.6,
+        "url": "https://example.com/kyoto-garden",
+        "image": "https://example.com/kyoto-garden.jpg",
+        "details": [
+          {
+            "label": "Distance (m)",
+            "value": {
+              "original": "500",
+              "translation": null
+            }
+          }
+        ],
+        "amenities": [
+          {
+            "original": "Family rooms",
+            "translation": null
+          },
+          {
+            "original": "Breakfast",
+            "translation": null
+          }
+        ],
+        "summary": "Family rooms near the gardens."
+      }
+    ]
+  },
+  "toolResults": [
+    {
+      "callId": "t1",
+      "tool": "searchHotels",
+      "args": {
+        "city": "Kyoto",
+        "checkIn": "2027-04-03",
+        "checkOut": "2027-04-05",
+        "guests": 3
+      },
+      "content": "{\"name\":\"Kyoto Garden Hotel\",\"address\":\"12 Higashiyama, Kyoto\",\"price\":{\"amount\":24000,\"currency\":\"JPY\"},\"rating\":4.6,\"url\":\"https://example.com/kyoto-garden\",\"image\":\"https://example.com/kyoto-garden.jpg\",\"amenities\":[\"Family rooms\",\"Breakfast\"],\"distance\":\"500\"}",
+      "isError": false
+    },
+    {
+      "callId": "t2",
+      "tool": "searchRoutes",
+      "args": {
+        "from": "Kyoto Station",
+        "to": "Arashiyama"
+      },
+      "content": "{\"name\":\"Kyoto Station to Arashiyama\",\"duration\":\"25 minutes\",\"price\":{\"amount\":240,\"currency\":\"JPY\"},\"url\":\"https://example.com/arashiyama-train\"}",
+      "isError": false
+    },
+    {
+      "callId": "t3",
+      "tool": "searchPlaces",
+      "args": {
+        "city": "Kyoto",
+        "interest": "gardens"
+      },
+      "content": "{\"name\":\"Bamboo Grove\",\"address\":\"Arashiyama, Kyoto\",\"image\":\"https://example.com/bamboo.jpg\"}",
+      "isError": false
+    }
+  ],
+  "results": [],
+  "locale": "en"
+}

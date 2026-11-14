@@ -3,7 +3,7 @@ import { API_BASE_URL } from '@/lib/api-base'
 import { ApiRequestError, toApiError } from './api-client'
 import { authStore } from './auth-store'
 
-export const REFRESH_RETRY_DELAY_MS = 300
+const REFRESH_RETRY_DELAY_MS = 300
 
 let inflight: Promise<boolean> | null = null
 let bootstrap: Promise<void> | null = null

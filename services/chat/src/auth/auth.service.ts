@@ -12,9 +12,9 @@ import { PasswordService } from './password.service.js';
 import { generateRefreshToken, hashRefreshToken } from './refresh-token.js';
 
 /** 被轮换掉的 token 在这段时间内再次出现，视为多标签页并发而不是盗用。 */
-export const REUSE_GRACE_MS = 10_000;
+const REUSE_GRACE_MS = 10_000;
 /** 登录成功时，删除过期超过这么多天的 refresh token 记录。 */
-export const EXPIRED_RETENTION_DAYS = 7;
+const EXPIRED_RETENTION_DAYS = 7;
 
 const DAY_MS = 86_400_000;
 

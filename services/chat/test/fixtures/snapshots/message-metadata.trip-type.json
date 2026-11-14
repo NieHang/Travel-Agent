@@ -1,0 +1,37 @@
+{
+  "components": [
+    {
+      "type": "choice",
+      "command": "set_trip_type",
+      "title": "What kind of trip is this?",
+      "options": [
+        {
+          "value": "business",
+          "label": "Business travel",
+          "description": "Combine work with short visits"
+        },
+        {
+          "value": "family",
+          "label": "Family travel",
+          "description": "A pace suitable for families"
+        },
+        {
+          "value": "solo",
+          "label": "Solo travel",
+          "description": "Travel around your interests"
+        },
+        {
+          "value": "couple",
+          "label": "Couple travel",
+          "description": "Travel together as a couple"
+        },
+        {
+          "value": "friends",
+          "label": "Friends trip",
+          "description": "Travel together with friends"
+        }
+      ]
+    }
+  ],
+  "revision": 2
+}

@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "revision": 3,
+  "context": {
+    "stage": "reviewing_itinerary",
+    "requirements": {
+      "destination": "杭州",
+      "tripType": "family",
+      "departureDate": "2026-12-01",
+      "returnDate": "2026-12-03",
+      "travelers": 4,
+      "budget": null
+    },
+    "itinerary": "# 草稿",
+    "query": {
+      "intent": "hotel_search",
+      "input": "酒店",
+      "results": [
+        {
+          "tool": "searchHotels",
+          "args": {},
+          "content": "{}",
+          "isError": false
+        }
+      ]
+    },
+    "preferredLocale": "en"
+  },
+  "response": {},
+  "trip": {
+    "days": [
+      {
+        "title": "第 1 天",
+        "stops": [
+          {
+            "name": "西湖",
+            "note": null,
+            "time": null
+          }
+        ]
+      }
+    ]
+  }
+}

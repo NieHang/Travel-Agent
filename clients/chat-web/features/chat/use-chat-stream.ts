@@ -192,6 +192,7 @@ export function useChatStream(conversationId: string | null): {
                   break
                 case 'error':
                   if (event.message) upsertMessage(queryClient, targetId, event.message)
+                  void invalidateMessages(queryClient, targetId)
                   completed = true
                   failed = true
                   break

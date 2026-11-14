@@ -25,7 +25,7 @@ export const ToolResultSchema = z.object({
 
 export const SHOW_RESULTS = 'show_results';
 /** Keeps show_results short: long payloads made DeepSeek emit malformed JSON. */
-export const MAX_AMENITIES = 8;
+const MAX_AMENITIES = 8;
 
 // Copied fields are optional: for a hotel with a hotelId the server fills them from the tool result.
 const ResultItemInputSchema = z.object({

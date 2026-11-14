@@ -90,6 +90,21 @@ describe('TurnService', () => {
     for await (const e of turns.run(conversationId, request, signal)) events.push(e);
     return events;
   }
+  function onUserSave(action: () => void) {
+    const transaction = prisma.$transaction.bind(prisma);
+    return vi.spyOn(prisma, '$transaction').mockImplementationOnce((work) => transaction(async (tx) => {
+      const create = tx.message.create.bind(tx.message);
+      const save = vi.spyOn(tx.message, 'create').mockImplementationOnce((args) => {
+        action();
+        return create(args);
+      });
+      try {
+        return await work(tx);
+      } finally {
+        save.mockRestore();
+      }
+    }));
+  }
   const done = (events: TripStreamEvent[]) => {
     const last = events.at(-1)!;
     if (last.type !== 'done') throw new Error(`expected done, got ${JSON.stringify(last)}`);
@@ -230,6 +245,103 @@ describe('TurnService', () => {
     expect(outcomes.find((o) => o.status === 'rejected')).toMatchObject({ reason: { status: 409 } });
   });
 
+  it('rolls back the claim without an orphan assistant when saving the user fails', async () => {
+    const failure = new Error('save user failed');
+    const save = onUserSave(() => { throw failure; });
+    try {
+      await expect(send({ revision: 0, command: { type: 'message', text: 'hello' } })).rejects.toBe(failure);
+      expect(await turns.getState(conversationId)).toEqual({ revision: 0, trip: null, components: [] });
+      const row = await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } });
+      expect(row.tripRevision).toBe(0);
+      expect(await prisma.message.count({ where: { conversationId } })).toBe(0);
+    } finally {
+      save.mockRestore();
+    }
+  });
+
+  it('settles the claim when the controller stops consuming at the first event', async () => {
+    llm.classifications.push(planned({ destination: 'Tokyo' }));
+    const previous = done(await send({ revision: 0, command: { type: 'message', text: 'Tokyo' } }));
+    const controller = new AbortController();
+    const save = onUserSave(() => controller.abort());
+    try {
+      const events: TripStreamEvent[] = [];
+      for await (const event of turns.run(conversationId, { revision: 1, command: { type: 'message', text: 'hello' } }, controller.signal)) {
+        if (controller.signal.aborted) break;
+        events.push(event);
+      }
+      expect(events).toEqual([]);
+      expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(2);
+      expect((await turns.getState(conversationId)).components).toEqual(previous.components);
+      expect(previous.message.metadata).toMatchObject({ revision: 1 });
+      expect(await prisma.message.findFirstOrThrow({ where: { conversationId, role: 'ASSISTANT', status: 'partial' } })).toMatchObject({ content: '', metadata: { components: previous.components, revision: 2 } });
+      llm.classifications.push(chatted);
+      await send({ revision: 2, command: { type: 'message', text: 'next' } });
+      expect(llm.classified[1]).toEqual(['Tokyo', previous.message.content, 'hello']);
+    } finally {
+      save.mockRestore();
+    }
+  });
+
+  it('does not retry a failed cleanup write', async () => {
+    const stream = turns.run(conversationId, { revision: 0, command: { type: 'message', text: 'hello' } }, new AbortController().signal);
+    expect((await stream.next()).value).toMatchObject({ type: 'start' });
+    const failure = new Error('cleanup failed');
+    const save = vi.spyOn(prisma, '$transaction').mockRejectedValueOnce(failure);
+    try {
+      await expect(stream.return(undefined)).rejects.toBe(failure);
+      expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(1);
+      expect(await prisma.message.count({ where: { conversationId, role: 'ASSISTANT' } })).toBe(0);
+    } finally {
+      save.mockRestore();
+    }
+  });
+
+  it('keeps the newer components active when an older turn stops after another tab commits', async () => {
+    const stream = turns.run(conversationId, { revision: 0, command: { type: 'message', text: 'hello' } }, new AbortController().signal);
+    try {
+      expect((await stream.next()).value).toMatchObject({ type: 'start' });
+      expect((await turns.getState(conversationId)).revision).toBe(1);
+      llm.classifications.push(planned({ destination: 'Tokyo' }));
+      const next = done(await send({ revision: 1, command: { type: 'message', text: 'second tab' } }));
+      expect(next.message.metadata).toMatchObject({ revision: 2 });
+    } finally {
+      await stream.return(undefined);
+    }
+    expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(2);
+    expect(await prisma.message.findFirstOrThrow({ where: { conversationId, status: 'partial' } })).toMatchObject({ metadata: null });
+  });
+
+  it('accepts the reported column revision after a turn dies holding its claim', async () => {
+    llm.classifications.push(planned({ destination: 'Tokyo' }), chatted);
+    const previous = done(await send({ revision: 0, command: { type: 'message', text: 'Tokyo' } }));
+    await prisma.conversation.update({ where: { id: conversationId }, data: { tripRevision: { increment: 1 } } });
+    const restored = await turns.getState(conversationId);
+    expect(restored).toMatchObject({ revision: 2, components: previous.components });
+    const next = done(await send({ revision: restored.revision, command: { type: 'message', text: 'budget?' } }));
+    expect(next.message.metadata).toMatchObject({ revision: 3, components: previous.components });
+    expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(3);
+  });
+
+  it('restores the last good components at the newest revision after a commit conflict and model failure', async () => {
+    llm.classifications.push(planned({ destination: 'Tokyo' }));
+    const previous = done(await send({ revision: 0, command: { type: 'message', text: 'Tokyo' } }));
+    const first = turns.run(conversationId, { revision: 1, command: { type: 'message', text: 'first' } }, new AbortController().signal);
+    const second = turns.run(conversationId, { revision: 2, command: { type: 'message', text: 'second' } }, new AbortController().signal);
+    try {
+      expect((await first.next()).value).toMatchObject({ type: 'start' });
+      expect((await second.next()).value).toMatchObject({ type: 'start' });
+      llm.classifications.push(chatted);
+      expect((await first.next()).value).toMatchObject({ type: 'error', message: { status: 'error', metadata: null } });
+      expect((await second.next()).value).toMatchObject({ type: 'error', message: { status: 'error', metadata: { revision: 3, components: previous.components } } });
+    } finally {
+      await first.return(undefined);
+      await second.return(undefined);
+    }
+    expect((await turns.getState(conversationId)).revision).toBe(3);
+    expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(3);
+  });
+
   it('saves a partial message and keeps the state when aborted mid-stream', async () => {
     llm.classifications.push(planned({ destination: '杭州', tripType: 'solo', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 1 }));
     llm.responses.push([{ type: 'text', delta: '第一段' }]);
@@ -245,10 +357,10 @@ describe('TurnService', () => {
     expect(assistant).toMatchObject({ status: 'partial', content: '第一段' });
     const row = await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } });
     expect(row.tripState).toBeNull();
-    // The claim is released, so the previous turn's components stay interactive.
-    expect(row.tripRevision).toBe(0);
+    expect(assistant.metadata).toEqual({ revision: 1, components: [] });
+    expect(row.tripRevision).toBe(1);
     const state = await turns.getState(conversationId);
-    expect(state).toEqual({ revision: 0, trip: null, components: [] });
+    expect(state).toEqual({ revision: 1, trip: null, components: [] });
   });
 
   it('reports a model failure as an error event with a saved error message', async () => {
@@ -256,7 +368,7 @@ describe('TurnService', () => {
     llm.responses.push([]);
     const events = await send({ revision: 0, command: { type: 'message', text: '…' } });
     expect(events.at(-1)).toMatchObject({ type: 'error', code: 'MODEL_FAILED', message: { status: 'error' } });
-    expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(0);
+    expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(1);
   });
 
   it('gives the model every earlier message, not only the last 20', async () => {
@@ -298,7 +410,7 @@ describe('TurnService', () => {
     llm.hang = false;
     llm.classifications.push(chatted);
     llm.responses.push([{ type: 'text', delta: 'ok' }]);
-    await send({ revision: 0, command: { type: 'message', text: 'next' } });
+    await send({ revision: 1, command: { type: 'message', text: 'next' } });
     expect(llm.classified[1]).toEqual(['去杭州', '第一段']);
   });
 });

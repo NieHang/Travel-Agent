@@ -12,7 +12,7 @@ import {
 
 // Japan drafts may load city skills, search hotels per city, then show_results before writing.
 export const MAX_TOOL_ROUNDS = 5;
-export const MAX_RESULT_LENGTH = 12_000;
+const MAX_RESULT_LENGTH = 12_000;
 export const MAX_STORED_RESULTS = 8;
 
 export type LoopEvent =

@@ -9,13 +9,15 @@ import { readCassette } from './replay/cassette.js';
 import { ReplayMcp } from './replay/replay.js';
 import { itineraryReplayKey } from './replay/itinerary.js';
 
-export async function itineraryContext(rawBudget: string | undefined, defer = false) {
+export async function itineraryContext(rawBudget: string | undefined, defer = false, {
+  loadGeocache = readGeocache,
+  cassetteFolder = new URL('./cassettes/l3/', import.meta.url),
+}: { loadGeocache?: typeof readGeocache; cassetteFolder?: URL } = {}) {
   if (!defer && (rawBudget === undefined || !/^\d+$/.test(rawBudget))) throw new Error('L3 requires --google-details N after operator approval (Place Details Essentials, field mask location), or --defer-geography to collect trials without Google');
   const google = new GoogleCoordinates(Number(rawBudget ?? 0));
-  const cache = await readGeocache();
-  const folder = new URL('./cassettes/l3/', import.meta.url);
-  const files = (await readdir(folder)).filter((name) => name.endsWith('.json')).sort();
-  const cassettes = new Map(await Promise.all(files.map(async (name) => [name.slice(0, -5), await readCassette(fileURLToPath(new URL(name, folder)))] as const)));
+  const cache = await loadGeocache();
+  const files = (await readdir(cassetteFolder)).filter((name) => name.endsWith('.json')).sort();
+  const cassettes = new Map(await Promise.all(files.map(async (name) => [name.slice(0, -5), await readCassette(fileURLToPath(new URL(name, cassetteFolder)))] as const)));
   return {
     metadata: { replayProfile: 'itinerary-hybrid-v2', cassetteHash: createHash('sha256').update(JSON.stringify([...cassettes])).digest('hex').slice(0, 12) },
     async replay(id: string, callbacks: BaseCallbackHandler[]) {

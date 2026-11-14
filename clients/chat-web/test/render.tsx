@@ -10,7 +10,7 @@ export type RenderOptions = { locale?: 'zh' | 'en'; queryClient?: QueryClient }
 
 const MESSAGES = { zh, en }
 // Fixed so relative-time output is deterministic in tests.
-export const TEST_NOW = new Date('2026-10-03T12:00:00Z')
+const TEST_NOW = new Date('2026-10-03T12:00:00Z')
 
 export function createWrapper(opts: RenderOptions = {}): {
   Wrapper: (props: { children: ReactNode }) => ReactElement

@@ -1,0 +1,53 @@
+{
+  "components": [
+    {
+      "type": "form",
+      "command": "submit_requirements",
+      "title": "Travel requirements",
+      "fields": [
+        {
+          "name": "departureDate",
+          "kind": "date",
+          "label": "Departure date",
+          "required": true,
+          "placeholder": null,
+          "min": null,
+          "max": null
+        },
+        {
+          "name": "returnDate",
+          "kind": "date",
+          "label": "Return date",
+          "required": true,
+          "placeholder": null,
+          "min": null,
+          "max": null
+        },
+        {
+          "name": "travelers",
+          "kind": "number",
+          "label": "Travelers",
+          "required": true,
+          "placeholder": null,
+          "min": 1,
+          "max": 100
+        },
+        {
+          "name": "preferences",
+          "kind": "textarea",
+          "label": "Interests and special requirements",
+          "required": false,
+          "placeholder": "For example, food, nature, accessibility",
+          "min": null,
+          "max": null
+        }
+      ],
+      "initialValues": {
+        "destination": "Kyoto",
+        "tripType": "family"
+      },
+      "submitLabel": "Generate itinerary draft"
+    }
+  ],
+  "revision": 3
+}

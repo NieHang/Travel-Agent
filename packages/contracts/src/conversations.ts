@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const TitleSchema = z.string().trim().min(1).max(60);
 
-export const ConversationSchema = z.object({
+const ConversationSchema = z.object({
   id: z.string(),
   title: z.string(),
   createdAt: z.string().datetime(),
@@ -45,9 +45,4 @@ export const ListMessagesQuerySchema = z.object({
 });
 export type ListMessagesQuery = z.infer<typeof ListMessagesQuerySchema>;
 
-export const pageSchema = <T extends z.ZodTypeAny>(item: T) =>
-  z.object({
-    items: z.array(item),
-    nextCursor: z.string().nullable(),
-  });
 export type Page<T> = { items: T[]; nextCursor: string | null };

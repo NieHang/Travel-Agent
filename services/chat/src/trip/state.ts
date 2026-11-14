@@ -20,7 +20,6 @@ export const ClarifySchema = z.object({
   question: z.string().min(1).max(300),
   options: z.array(z.string().min(1).max(100)).max(MAX_CLARIFY_OPTIONS),
 });
-export type Clarify = z.infer<typeof ClarifySchema>;
 
 export const TripDaySchema = z.object({
   title: z.string().min(1).max(200),

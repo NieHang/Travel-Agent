@@ -11,8 +11,8 @@ import {
 } from 'react'
 import { PillButton } from '@/components/ui/PillButton'
 
-export const INPUT_MAX_LENGTH = 4000
-export const COUNTER_FROM = 3800
+const INPUT_MAX_LENGTH = 4000
+const COUNTER_FROM = 3800
 // 24px 行高 × 5 行 + 上下内边距各 12px
 const MAX_HEIGHT_PX = 24 * 5 + 24
 

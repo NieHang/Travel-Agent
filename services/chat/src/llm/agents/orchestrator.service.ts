@@ -20,7 +20,7 @@ const clarificationSchema = z
   );
 const textSchema = z.string().trim().min(1);
 
-export interface AgentStep {
+interface AgentStep {
   agent: AgentName;
   status: 'completed' | 'failed';
   output: unknown;

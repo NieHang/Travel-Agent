@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "includeEntryExports": true,
+  "workspaces": {
+    ".": {
+      // The root has no application source; it only orchestrates the workspaces below.
+      "project": []
+    },
+    "clients/chat-web": {
+      "playwright": {
+        "config": ["playwright.config.ts", "playwright.ui.config.ts"]
+      }
+    },
+    "services/chat": {
+      "entry": [
+        "src/main.ts",
+        "scripts/*.ts",
+        "evals/*.ts",
+        "evals/judge/*.ts",
+        // Skill instructions invoke Python scripts outside the TypeScript import graph.
+        "skills/**/scripts/*.py"
+      ],
+      "project": ["**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,prisma}", "!src/generated/prisma/**"],
+      "ignoreDependencies": [
+        // Generated Prisma code imports @prisma/client/runtime/client.
+        "@prisma/client",
+        // The Nest CLI resolves this package at runtime for `nest deploy`.
+        "@nestjs/mau"
+      ],
+      "vitest": {
+        "config": ["vitest.config*.ts"]
+      }
+    },
+    // package.json exports supplies the TS source entry point.
+    "packages/contracts": {}
+  }
+}

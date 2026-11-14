@@ -9,7 +9,7 @@ import { useRef, type ReactNode } from 'react'
 import { PillButton } from '@/components/ui/PillButton'
 import { springs } from '@/lib/motion'
 
-export const DISMISS_RATIO = 0.25
+const DISMISS_RATIO = 0.25
 export function shouldDismiss(dragOffsetY: number, sheetHeight: number): boolean {
   return sheetHeight > 0 && dragOffsetY > sheetHeight * DISMISS_RATIO
 }
