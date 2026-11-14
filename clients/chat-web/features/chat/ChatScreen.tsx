@@ -54,7 +54,7 @@ export function conversationIdFromPath(pathname: string): string | null {
   }
 }
 
-function SuggestionChips({ onPick }: { onPick(text: string): void }) {
+function SuggestionChips({ onPick }: { onPick: (text: string) => void }) {
   const t = useTranslations('chat')
   return (
     <div className="flex flex-wrap justify-center gap-2">
@@ -94,6 +94,7 @@ export function ChatScreen(): ReactNode {
   const busyRef = useRef(false)
 
   const stream = useChatStream(id)
+  const sendTurn = stream.send
   // 首条消息发出、地址还没同步前，按正在生成的会话展示
   const viewId = id ?? stream.activeConversationId
   const generating = stream.phase !== 'idle'
@@ -142,6 +143,7 @@ export function ChatScreen(): ReactNode {
     error: ApiRequestError,
   ) => {
     restoreInput(raw)
+    // oxlint-disable-next-line typescript/switch-exhaustiveness-check -- 其余错误码都弹同一个发送失败提示
     switch (error.code) {
       case 'RATE_LIMITED':
         if (error.retryAfter !== undefined) countdown.start(error.retryAfter)
@@ -205,7 +207,7 @@ export function ChatScreen(): ReactNode {
       if (!viewId || busyRef.current || generating || loadingInitial || uiState.isPending) return
       busyRef.current = true
       try {
-        const outcome = await stream.send(viewId, { revision: uiState.data?.revision ?? 0, command, locale })
+        const outcome = await sendTurn(viewId, { revision: uiState.data?.revision ?? 0, command, locale })
         if (!outcome.ok && outcome.error.code !== 'ABORTED') {
           toast(t('sendFailed'), { tone: 'danger' })
           void queryClient.invalidateQueries({ queryKey: uiStateKey(viewId) })
@@ -214,7 +216,7 @@ export function ChatScreen(): ReactNode {
         busyRef.current = false
       }
     },
-    [viewId, generating, loadingInitial, uiState.isPending, uiState.data?.revision, stream.send, locale, t, queryClient],
+    [viewId, generating, loadingInitial, uiState.isPending, uiState.data?.revision, sendTurn, locale, t, queryClient],
   )
 
   const deferredPrompt = useRef<{

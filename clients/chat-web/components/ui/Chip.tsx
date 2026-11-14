@@ -12,7 +12,7 @@ export function Chip({
   children,
 }: {
   icon?: ReactNode
-  onClick(): void
+  onClick: () => void
   children: ReactNode
 }) {
   const reduced = useReducedMotion()

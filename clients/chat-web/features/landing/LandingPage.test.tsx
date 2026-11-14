@@ -13,7 +13,7 @@ vi.mock('@/components/ui/toast', () => ({ toast }))
 beforeEach(() => { authStore.setGuest(); nav.push.mockClear(); toast.mockClear() })
 afterEach(() => { authStore.reset(); vi.restoreAllMocks() })
 it('鉴权状态决定入口：登录、进入对话或骨架', () => {
-  const { rerender } = renderWithProviders(<LandingPage />)
+  renderWithProviders(<LandingPage />)
   expect(screen.getByRole('link', { name: '登录' })).toHaveAttribute('href', '/login')
   act(() => authStore.setAuthed({ accessToken: 't', user: makeUser() }))
   expect(screen.getByRole('link', { name: '进入对话' })).toHaveAttribute('href', '/chat')

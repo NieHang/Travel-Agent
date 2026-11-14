@@ -22,10 +22,10 @@ const idle: State = {
 
 export function createAIUIStore() {
   return createStore<State & {
-    begin(id: string, conversationId: string): void
-    receive(id: string, event: TripStreamEvent): void
-    cancel(id: string): void
-    reset(): void
+    begin: (id: string, conversationId: string) => void
+    receive: (id: string, event: TripStreamEvent) => void
+    cancel: (id: string) => void
+    reset: () => void
   }>((set, get) => ({
     ...idle,
     begin: (requestId, conversationId) =>

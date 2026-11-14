@@ -29,8 +29,8 @@ export function Field({
   name: string
   type: 'text' | 'email' | 'password'
   value: string
-  onChange(value: string): void
-  onBlur?(): void
+  onChange: (value: string) => void
+  onBlur?: () => void
   error?: ReactNode
   hint?: ReactNode
   autoComplete?: string

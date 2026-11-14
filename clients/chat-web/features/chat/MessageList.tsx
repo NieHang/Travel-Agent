@@ -86,7 +86,7 @@ export function MessageList({
   loadingMore: boolean
   /** 加载更早的消息失败：不再自动重试，改为显示重试按钮 */
   loadMoreFailed: boolean
-  onLoadMore(): void
+  onLoadMore: () => void
   /** 没有消息时的内容（问候、骨架、错误状态） */
   children?: ReactNode
   generating?: boolean
@@ -138,7 +138,7 @@ export function MessageList({
     sawLoading.current = false
     loadMore.current()
   }
-  const { keys, pendingKey } = replyKeys(messages)
+  const { keys, pendingKey } = useMemo(() => replyKeys(messages), [messages])
   // 流式气泡与消息在同一个数组里，key 相同时才会被 React 当作同一个节点
   const historyBubbles = useMemo(
     () =>
@@ -158,7 +158,7 @@ export function MessageList({
           />
         )
       }),
-    [messages, activeRevision, generating, onCommand],
+    [messages, keys, activeRevision, generating, onCommand],
   )
   const bubbles = [...historyBubbles]
   if (pending) {

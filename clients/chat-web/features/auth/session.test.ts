@@ -41,7 +41,7 @@ class FakeChannel {
     this.closed = true
   }
   receive(data: unknown) {
-    for (const fn of [...this.listeners]) fn({ data })
+    for (const fn of Array.from(this.listeners)) fn({ data })
   }
 }
 

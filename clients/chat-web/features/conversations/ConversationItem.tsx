@@ -14,10 +14,10 @@ import { useRenameConversation } from './queries'
 export function ConversationItem({ conversation, active, onOpen, onDelete, rowRef, onMove }: {
   conversation: Conversation
   active: boolean
-  onOpen(): void
-  onDelete(): void
+  onOpen: () => void
+  onDelete: () => void
   rowRef: Ref<HTMLButtonElement>
-  onMove(step: number): void
+  onMove: (step: number) => void
 }) {
   const t = useTranslations('drawer')
   const formatter = useFormatter()

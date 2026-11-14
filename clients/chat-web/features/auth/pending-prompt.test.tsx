@@ -15,7 +15,7 @@ function Probe({
   onReady,
 }: {
   enabled: boolean
-  onReady(p: PendingPrompt): void
+  onReady: (p: PendingPrompt) => void
 }) {
   usePendingPrompt(enabled, onReady)
   return null

@@ -39,7 +39,7 @@ export function wrapMcpTool(
     schema: def.inputSchema as ToolSchemaBase,
     func: async (
       args: Record<string, unknown>,
-      runManager?: CallbackManagerForToolRun | undefined,
+      runManager?: CallbackManagerForToolRun,
       config?: { signal?: AbortSignal },
     ): Promise<Record<string, unknown>> => {
       try {

@@ -10,7 +10,7 @@ export function RequirementsForm({ component, onCommand, disabled = false }: {
   disabled?: boolean
 }) {
   const prefix = useId()
-  const initial = component.initialValues as Record<string, unknown>
+  const initial = component.initialValues
   const departure = component.fields.find((f) => f.name === 'departureDate')
   const returning = component.fields.find((f) => f.name === 'returnDate')
 
@@ -20,7 +20,8 @@ export function RequirementsForm({ component, onCommand, disabled = false }: {
     const data = new FormData(event.currentTarget)
     const values: Record<string, unknown> = {}
     for (const field of component.fields) {
-      const raw = String(data.get(field.name) ?? '').trim()
+      const entry = data.get(field.name)
+      const raw = typeof entry === 'string' ? entry.trim() : ''
       if (field.required && raw === '') {
         const control = event.currentTarget.elements.namedItem(field.name) as HTMLInputElement
         control.setCustomValidity(field.label)
@@ -40,7 +41,7 @@ export function RequirementsForm({ component, onCommand, disabled = false }: {
         {component.fields.map((field) => {
           if (departure && returning && field === returning) return null
           if (departure && returning && field === departure)
-            return <DateRangeField key="travel-dates" departure={departure} returning={returning} initialStart={String(initial.departureDate ?? '')} initialEnd={String(initial.returnDate ?? '')} />
+            return <DateRangeField key="travel-dates" departure={departure} returning={returning} initialStart={initial.departureDate ?? ''} initialEnd={initial.returnDate ?? ''} />
           const id = `${prefix}-${field.name}`
           const common = {
             id, name: field.name, required: field.required,

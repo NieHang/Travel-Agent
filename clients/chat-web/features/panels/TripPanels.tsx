@@ -21,7 +21,7 @@ export function PanelTabs({
   scrollable = false,
 }: {
   tab: PanelTab
-  onChange(tab: PanelTab): void
+  onChange: (tab: PanelTab) => void
   scrollable?: boolean
 }) {
   const t = useTranslations('panels')

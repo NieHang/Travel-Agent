@@ -22,7 +22,7 @@ const nav = vi.hoisted(() => {
     listeners,
     set(next: string) {
       nav.path = next
-      for (const listener of [...listeners]) listener()
+      for (const listener of Array.from(listeners)) listener()
     },
     push: vi.fn(),
     replace: vi.fn(),

@@ -18,8 +18,8 @@ export function ConfirmDialog({
   body: string
   confirmLabel: string
   cancelLabel: string
-  onConfirm(): void
-  onCancel(): void
+  onConfirm: () => void
+  onCancel: () => void
 }) {
   const cancelRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {

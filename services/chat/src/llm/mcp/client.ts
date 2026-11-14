@@ -100,7 +100,7 @@ export async function connectMcpServer(
 
   await connectWithTimeout(client, transport, name, CONNECTION_TIMEOUT_MS);
 
-  const caps = await client.getServerCapabilities();
+  const caps = client.getServerCapabilities();
   let tools: MCPToolDef[] = [];
   if (caps?.tools) {
     tools = (await client.listTools()).tools;

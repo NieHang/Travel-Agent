@@ -19,7 +19,7 @@ export function isNearBottom(el: {
 export function useStickToBottom(
   dep: unknown,
   resetKey?: unknown,
-): { ref: RefObject<HTMLDivElement | null>; atBottom: boolean; scrollToBottom(): void } {
+): { ref: RefObject<HTMLDivElement | null>; atBottom: boolean; scrollToBottom: () => void } {
   const ref = useRef<HTMLDivElement | null>(null)
   const stick = useRef(true)
   const lastReset = useRef(resetKey)
