@@ -27,3 +27,19 @@ export async function expectNoSeriousViolations(page: Page) {
   const results = await new AxeBuilder({ page }).exclude('nextjs-portal').analyze()
   expect(results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')).toEqual([])
 }
+
+/**
+ * Pick a trip range in the requirements calendar, `start`/`end` days from today. Opens the
+ * calendar through the form's primary button and pages forward until each day is visible.
+ */
+export async function pickTripDates(page: Page, start: number, end: number) {
+  await page.getByRole('button', { name: '下一步：出行日期', exact: true }).click()
+  const grid = page.getByRole('grid')
+  for (const offset of [start, end]) {
+    const d = new Date()
+    d.setDate(d.getDate() + offset)
+    const day = grid.getByRole('button', { name: new RegExp(`${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`) })
+    while (!(await day.isVisible())) await page.getByRole('button', { name: '下个月', exact: true }).click()
+    await day.click()
+  }
+}

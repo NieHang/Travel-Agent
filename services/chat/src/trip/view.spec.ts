@@ -1,6 +1,7 @@
 import type { Component, ResultGroup } from '@autix/contracts';
 import { initialState, type TripState } from './state.js';
 import { copy } from './copy.js';
+import { reduce } from './commands.js';
 import { describe as describeCommand, render, stageMessage } from './view.js';
 
 const zh = copy('zh');
@@ -48,11 +49,43 @@ describe('render', () => {
     expect(enChoice.type === 'choice' && enChoice.options[1].label).toBe('Family travel');
   });
 
-  it('requirements form asks only for missing fields, both dates together, plus preferences', () => {
-    const [form] = render(at({ stage: 'requirements', requirements: { tripType: 'solo', destination: '杭州', departureDate: '2026-12-01' } }), zh);
-    expect(form.type === 'form' && form.fields.map((f) => f.name)).toEqual(['departureDate', 'returnDate', 'travelers', 'preferences']);
-    expect(form.type === 'form' && form.initialValues).toMatchObject({ destination: '杭州', departureDate: '2026-12-01' });
-    expect(form.type === 'form' && form.submitLabel).toBe('生成路线草案');
+  it('renders all four empty fields with suggestions and a display-only traveler default', () => {
+    const state = at({ stage: 'requirements' });
+    expect(render(state, en)).toEqual([{
+      type: 'form', command: 'submit_requirements', title: 'Travel requirements', submitLabel: 'Generate itinerary draft',
+      fields: [
+        { name: 'destination', label: 'Destination', placeholder: 'For example, Tokyo, Japan', value: null, suggestions: ['Tokyo', 'Kyoto', 'Osaka', 'Nara'] },
+        { name: 'dates', label: 'Travel dates', value: null },
+        { name: 'travelers', label: 'Travelers', value: 2 },
+        { name: 'preferences', label: 'Interests and special requirements', placeholder: 'For example, food, nature, accessibility', value: '', suggestions: ['Food', 'Onsen', 'Nature', 'Shopping', 'History', 'Slow pace'] },
+      ],
+    }]);
+    expect(state.requirements).toEqual({});
+  });
+
+  it('defaults solo travelers to one and leaves incomplete dates empty without changing state', () => {
+    const state = at({ stage: 'requirements', requirements: { tripType: 'solo', destination: '京都', departureDate: '2026-12-01' } });
+    const [form] = render(state, zh);
+    expect(form.type === 'form' && form.fields).toEqual([
+      { name: 'destination', label: '目的地', placeholder: '例如日本东京', value: '京都', suggestions: ['东京', '京都', '大阪', '奈良'] },
+      { name: 'dates', label: '出行日期', value: null },
+      { name: 'travelers', label: '出行人数', value: 1 },
+      { name: 'preferences', label: '兴趣与特殊需求', placeholder: '例如美食、自然风景、无障碍设施', value: '', suggestions: ['美食', '温泉', '自然风光', '购物', '历史文化', '慢节奏'] },
+    ]);
+    expect(state.requirements).toEqual({ tripType: 'solo', destination: '京都', departureDate: '2026-12-01' });
+  });
+
+  it('prefills every field when editing a review, including explicit solo traveler counts', () => {
+    const review = at({ stage: 'review', itinerary: 'draft', requirements: { tripType: 'solo', destination: 'Kyoto', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 3, preferences: 'Food' } });
+    const { state } = reduce(review, { type: 'edit' });
+    expect(state.stage).toBe('requirements');
+    const [form] = render(state, en);
+    expect(form.type === 'form' && form.fields).toMatchObject([
+      { name: 'destination', value: 'Kyoto' },
+      { name: 'dates', value: { start: '2026-12-01', end: '2026-12-03' } },
+      { name: 'travelers', value: 3 },
+      { name: 'preferences', value: 'Food' },
+    ]);
   });
 
   it('clarify for destination renders a choice before the stage components', () => {
@@ -87,7 +120,13 @@ describe('stageMessage / describe', () => {
   it('turns commands into readable user messages', () => {
     expect(describeCommand({ type: 'message', text: '去杭州' }, zh)).toBe('去杭州');
     expect(describeCommand({ type: 'set_trip_type', value: 'family' }, zh)).toBe('亲子游');
-    expect(describeCommand({ type: 'submit_requirements', values: { travelers: 4, departureDate: '2026-12-01' } }, zh)).toBe('出发日期：2026-12-01\n出行人数：4');
+    expect(describeCommand({ type: 'submit_requirements', values: { travelers: 4, departureDate: '2026-12-01' } }, zh)).toBe('出行人数：4');
     expect(describeCommand({ type: 'confirm' }, en)).toBe('Confirm itinerary');
+  });
+  it('describes submitted values in form order with a combined date range in Chinese', () => {
+    expect(describeCommand({ type: 'submit_requirements', values: { destination: '京都', tripType: 'family', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4, preferences: '美食、慢节奏', budget: 100000, budgetCurrency: 'JPY' } }, zh))
+      .toBe('目的地：京都\n出行日期：2026-12-01 → 2026-12-03\n出行人数：4\n兴趣与特殊需求：美食、慢节奏');
+    expect(describeCommand({ type: 'submit_requirements', values: { preferences: '' } }, zh)).toBe('');
+    expect(describeCommand({ type: 'submit_requirements', values: {} }, en)).toBe('');
   });
 });

@@ -1,7 +1,6 @@
 'use client'
 import { memo } from 'react'
-import type { Command } from '@autix/contracts'
-import { ComponentRenderer } from '@/components/ai-ui/ComponentRenderer'
+import { ComponentRenderer, type ComponentMode } from '@/components/ai-ui/ComponentRenderer'
 import { Markdown } from '@/components/ui/Markdown'
 
 import { useReducedMotion } from '@/lib/use-reduced-motion'
@@ -30,18 +29,19 @@ function TypingDots({ label }: { label: string }) {
   )
 }
 
+const LOCKED: ComponentMode = { kind: 'locked' }
+
 export const MessageBubble = memo(function MessageBubble({
   role,
   content,
   status = 'complete',
   typing = false,
   components = [],
-  onCommand,
-  disabled = false,
+  mode = LOCKED,
 }: {
   components?: unknown[]
-  onCommand?: (command: Command) => void
-  disabled?: boolean
+  /** How this message's components behave; locked unless the list says otherwise. */
+  mode?: ComponentMode
   role: Message['role']
   content: string
   status?: Message['status']
@@ -87,11 +87,7 @@ export const MessageBubble = memo(function MessageBubble({
             className="w-full max-w-[95%] rounded-card bg-paper p-4 text-ink"
             key={i}
           >
-            <ComponentRenderer
-              component={c}
-              disabled={disabled || !onCommand}
-              onCommand={onCommand ?? (() => {})}
-            />
+            <ComponentRenderer component={c} mode={mode} />
           </div>
         ))}
     </motion.div>

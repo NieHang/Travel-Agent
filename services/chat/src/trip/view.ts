@@ -1,23 +1,22 @@
-import { TRIP_TYPES, type Command, type Component, type Field } from '@autix/contracts';
+import { TRIP_TYPES, type Command, type Component, type FormField, type FormFieldName, type Requirements } from '@autix/contracts';
 import type { Copy } from './copy.js';
 import type { TripState } from './state.js';
 
-const FORM_FIELDS = ['destination', 'departureDate', 'returnDate', 'travelers', 'preferences'] as const;
-type FormFieldName = (typeof FORM_FIELDS)[number];
-
-function field(name: FormFieldName, c: Copy): Field {
-  const { label, placeholder } = c.fields[name];
-  const kind = name === 'preferences' ? 'textarea' : name === 'travelers' ? 'number' : name === 'destination' ? 'text' : 'date';
-  return {
-    name,
-    kind,
-    label,
-    required: name !== 'preferences',
-    placeholder,
-    min: name === 'travelers' ? 1 : null,
-    max: name === 'travelers' ? 100 : null,
-  };
-}
+const FIELD_BUILDERS: { [N in FormFieldName]: (r: Requirements, c: Copy) => Extract<FormField, { name: N }> } = {
+  destination: (r, c) => ({
+    name: 'destination', ...c.fields.destination, value: r.destination ?? null, suggestions: c.japanCities,
+  }),
+  dates: (r, c) => ({
+    name: 'dates', label: c.fields.dates.label,
+    value: r.departureDate && r.returnDate ? { start: r.departureDate, end: r.returnDate } : null,
+  }),
+  travelers: (r, c) => ({
+    name: 'travelers', label: c.fields.travelers.label, value: r.travelers ?? (r.tripType === 'solo' ? 1 : 2),
+  }),
+  preferences: (r, c) => ({
+    name: 'preferences', ...c.fields.preferences, value: r.preferences ?? '', suggestions: c.preferenceTags,
+  }),
+};
 
 function tripTypeChoice(s: TripState, c: Copy): Component {
   return {
@@ -29,12 +28,8 @@ function tripTypeChoice(s: TripState, c: Copy): Component {
 }
 
 function requirementsForm(s: TripState, c: Copy): Component {
-  const r = s.requirements;
-  const datesMissing = !r.departureDate || !r.returnDate;
-  const fields = FORM_FIELDS.filter((name) =>
-    name === 'preferences' ? true : name === 'departureDate' || name === 'returnDate' ? datesMissing : r[name] === undefined,
-  ).map((name) => field(name, c));
-  return { type: 'form', command: 'submit_requirements', title: c.requirementsTitle, fields, initialValues: r, submitLabel: c.generateDraft };
+  const fields = Object.values(FIELD_BUILDERS).map((build) => build(s.requirements, c));
+  return { type: 'form', command: 'submit_requirements', title: c.requirementsTitle, fields, submitLabel: c.generateDraft };
 }
 
 /** The only place components are built. Pure: same state, same components. */
@@ -109,9 +104,13 @@ export function describe(command: Command, c: Copy): string {
     case 'set_destination':
       return command.value;
     case 'submit_requirements':
-      return FORM_FIELDS.filter((name) => command.values[name] !== undefined && command.values[name] !== '')
-        .map((name) => `${c.fields[name].label}${c.separator}${command.values[name]}`)
-        .join('\n');
+      return Object.values(FIELD_BUILDERS).flatMap((build) => {
+        const field = build(command.values, c);
+        const value = field.name === 'dates'
+          ? field.value && `${field.value.start} → ${field.value.end}`
+          : command.values[field.name];
+        return value === undefined || value === null || value === '' ? [] : [`${field.label}${c.separator}${value}`];
+      }).join('\n');
     case 'confirm':
       return c.confirm;
     case 'edit':

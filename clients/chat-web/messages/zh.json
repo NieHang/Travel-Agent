@@ -158,5 +158,15 @@
     "aiTranslated": "AI 翻译",
     "aiNote": "AI 点评",
     "tonight": "今晚入住"
+  },
+  "tripForm": {
+    "next": "下一步：{field}",
+    "done": "完成",
+    "submitted": "已提交",
+    "previousMonth": "上个月",
+    "nextMonth": "下个月",
+    "more": "增加一人",
+    "fewer": "减少一人",
+    "travelers": "{count} 人"
   }
 }

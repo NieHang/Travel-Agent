@@ -5,6 +5,7 @@ import { createTestApp, createUser } from '../../test/helpers/app.js';
 import { resetDb } from '../../test/helpers/db.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { COMPACT_THRESHOLD } from '../llm/compact.js';
+import { ConversationsService } from '../conversations/conversations.service.js';
 import { ROLLINGGO_COMPACT } from '../llm/mcp/rollinggo.fixture.js';
 import type { Classified, Place } from './commands.js';
 import { TRIP_LLM, type TripLlm } from './llm.js';
@@ -120,6 +121,22 @@ describe('TurnService', () => {
     }
   }
   const numbered = (count: number, from = 0) => Array.from({ length: count }, (_, i) => `m${from + i}`);
+
+  it('persists the request command on the user message in SSE and history', async () => {
+    llm.classifications.push(planned({ destination: 'Kyoto', tripType: 'family' }));
+    await send({ revision: 0, command: { type: 'message', text: 'Kyoto with family' } });
+    const command: SendTurnRequest['command'] = { type: 'submit_requirements', values: { destination: 'Kyoto', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4, preferences: 'Food' } };
+    llm.responses.push([{ type: 'text', delta: 'Draft' }]);
+    const events = await send({ revision: 1, command });
+    const start = events[0];
+    expect(start).toMatchObject({ type: 'start', userMessage: { role: 'USER', metadata: { command } } });
+    if (start.type !== 'start') throw new Error('Expected start event');
+    const row = await prisma.message.findUniqueOrThrow({ where: { id: start.userMessage.id } });
+    expect(row.metadata).toEqual({ command });
+    const { userId } = await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } });
+    const history = await app.get(ConversationsService).listMessages(userId, conversationId, { limit: 50 });
+    expect(history.items.find((message) => message.id === row.id)?.metadata).toEqual({ command });
+  });
 
   it('answers a chat message as text without components', async () => {
     llm.classifications.push(chatted);

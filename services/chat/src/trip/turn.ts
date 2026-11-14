@@ -1,6 +1,6 @@
 import { ConflictException, HttpException, Inject, Injectable, Logger } from '@nestjs/common';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
-import type { Component, Message, SendTurnRequest, TripStreamEvent, TripUIState } from '@autix/contracts';
+import type { Command, Component, Message, SendTurnRequest, TripStreamEvent, TripUIState } from '@autix/contracts';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { toMessageContract } from '../conversations/conversations.service.js';
@@ -53,7 +53,7 @@ export class TurnService {
       | { status: 'settled'; message: Message } = { status: 'unclaimed' };
     let status: 'partial' | 'error' = 'partial';
     try {
-      const user = await this.saveUserMessage(conversationId, describe(request.command, copy(state.locale)), request.revision);
+      const user = await this.saveUserMessage(conversationId, describe(request.command, copy(state.locale)), request.revision, request.command);
       turn = { status: 'preparing', userCreatedAt: user.createdAt };
       const context = await this.context(conversationId, user.id);
       const current = new HumanMessage(user.content);
@@ -139,7 +139,7 @@ export class TurnService {
     return readState(row.tripState, row.tripRevision);
   }
 
-  private async saveUserMessage(conversationId: string, content: string, revision: number) {
+  private async saveUserMessage(conversationId: string, content: string, revision: number, command: Command) {
     // A failed user save must roll back the claim without creating an orphan assistant reply.
     return this.prisma.$transaction(async (tx) => {
       const claim = await tx.conversation.updateMany({
@@ -147,7 +147,7 @@ export class TurnService {
         data: { tripRevision: { increment: 1 } },
       });
       if (claim.count !== 1) throw new ConflictException('Trip state has changed');
-      const user = await tx.message.create({ data: { conversationId, role: 'USER', content } });
+      const user = await tx.message.create({ data: { conversationId, role: 'USER', content, metadata: { command } } });
       await tx.conversation.updateMany({ where: { id: conversationId, title: '' }, data: { title: deriveTitle(content) } });
       return user;
     });

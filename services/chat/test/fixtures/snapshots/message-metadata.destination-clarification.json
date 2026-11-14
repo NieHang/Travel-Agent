@@ -29,53 +29,41 @@
       "fields": [
         {
           "name": "destination",
-          "kind": "text",
           "label": "目的地",
-          "required": true,
           "placeholder": "例如日本东京",
-          "min": null,
-          "max": null
+          "value": null,
+          "suggestions": [
+            "东京",
+            "京都",
+            "大阪",
+            "奈良"
+          ]
         },
         {
-          "name": "departureDate",
-          "kind": "date",
-          "label": "出发日期",
-          "required": true,
-          "placeholder": null,
-          "min": null,
-          "max": null
-        },
-        {
-          "name": "returnDate",
-          "kind": "date",
-          "label": "返程日期",
-          "required": true,
-          "placeholder": null,
-          "min": null,
-          "max": null
+          "name": "dates",
+          "label": "出行日期",
+          "value": null
         },
         {
           "name": "travelers",
-          "kind": "number",
           "label": "出行人数",
-          "required": true,
-          "placeholder": null,
-          "min": 1,
-          "max": 100
+          "value": 2
         },
         {
           "name": "preferences",
-          "kind": "textarea",
           "label": "兴趣与特殊需求",
-          "required": false,
           "placeholder": "例如美食、自然风景、无障碍设施",
-          "min": null,
-          "max": null
+          "value": "",
+          "suggestions": [
+            "美食",
+            "温泉",
+            "自然风光",
+            "购物",
+            "历史文化",
+            "慢节奏"
+          ]
         }
       ],
-      "initialValues": {
-        "tripType": "family"
-      },
       "submitLabel": "生成路线草案"
     }
   ],

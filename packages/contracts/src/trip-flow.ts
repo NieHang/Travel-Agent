@@ -6,6 +6,9 @@ export const TripTypeSchema = z.enum(TRIP_TYPES);
 export type TripType = z.infer<typeof TripTypeSchema>;
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const label = z.string().min(1).max(200);
+
+export const TRAVELERS = { min: 1, max: 100 } as const;
 
 export const RequirementsSchema = z
   .object({
@@ -13,7 +16,7 @@ export const RequirementsSchema = z
     tripType: TripTypeSchema,
     departureDate: isoDate,
     returnDate: isoDate,
-    travelers: z.number().int().min(1).max(100),
+    travelers: z.number().int().min(TRAVELERS.min).max(TRAVELERS.max),
     preferences: z.string().max(4000),
     budget: z.number().nonnegative(),
     budgetCurrency: z.string().regex(/^[A-Z]{3}$/),
@@ -64,20 +67,27 @@ export const ResultGroupSchema = z
   .strict();
 export type ResultGroup = z.infer<typeof ResultGroupSchema>;
 
-const FieldSchema = z
-  .object({
-    name: z.enum(['destination', 'departureDate', 'returnDate', 'travelers', 'preferences']),
-    kind: z.enum(['text', 'textarea', 'date', 'number']),
-    label: z.string().min(1),
-    required: z.boolean(),
-    placeholder: z.string().nullable(),
-    min: z.number().nullable(),
-    max: z.number().nullable(),
-  })
-  .strict();
-export type Field = z.infer<typeof FieldSchema>;
+const FormFieldSchema = z.discriminatedUnion('name', [
+  z.object({
+    name: z.literal('destination'), label, placeholder: z.string().nullable(),
+    value: z.string().trim().min(1).max(200).nullable(), suggestions: z.array(label).max(5),
+  }).strict(),
+  z.object({
+    name: z.literal('dates'), label,
+    value: z.object({ start: isoDate, end: isoDate }).strict().nullable(),
+  }).strict(),
+  z.object({
+    name: z.literal('travelers'), label,
+    value: z.number().int().min(TRAVELERS.min).max(TRAVELERS.max).nullable(),
+  }).strict(),
+  z.object({
+    name: z.literal('preferences'), label, placeholder: z.string().nullable(),
+    value: z.string().max(4000), suggestions: z.array(label).max(8),
+  }).strict(),
+]);
+export type FormField = z.infer<typeof FormFieldSchema>;
+export type FormFieldName = FormField['name'];
 
-const label = z.string().min(1).max(200);
 export const ComponentSchema = z.discriminatedUnion('type', [
   z
     .object({
@@ -95,8 +105,7 @@ export const ComponentSchema = z.discriminatedUnion('type', [
       type: z.literal('form'),
       command: z.literal('submit_requirements'),
       title: label,
-      fields: z.array(FieldSchema).min(1).max(6),
-      initialValues: RequirementsSchema,
+      fields: z.array(FormFieldSchema).min(1).max(6),
       submitLabel: label,
     })
     .strict(),
