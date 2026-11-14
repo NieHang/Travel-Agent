@@ -16,7 +16,7 @@ const OVERLAPS: Record<string, string[]> = {
   pacing_ok: ['realistic_days', 'fits_party'], invented_hotel: ['no_unsupported_claims'], osaka_stays: ['hotel_fit'], budget_ok: ['hotel_fit'],
 };
 const RANDOM_PICKS = 3;
-export const RANDOM_WHY = 'random pick';
+const RANDOM_WHY = 'random pick';
 
 // A screener (a subagent) reviews the queue before the person does; `audit` marks the upheld calls the person
 // checks anyway, to keep an eye on the screener. `verdict` and `note` stay the person's own.
@@ -127,7 +127,7 @@ function withRandom(spots: Spot[], pick: Pick): Spot[] {
   return [...spots.filter((s) => s.why !== RANDOM_WHY), ...sample(spots.filter((s) => s.why === RANDOM_WHY), RANDOM_PICKS, pick)];
 }
 
-export function sample<T>(list: T[], n: number, pick: Pick): T[] {
+function sample<T>(list: T[], n: number, pick: Pick): T[] {
   const pool = [...list];
   const picked: T[] = [];
   while (picked.length < n && pool.length) picked.push(pool.splice(pick(pool.length), 1)[0]);

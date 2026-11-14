@@ -15,7 +15,7 @@ import { AppThrottlerGuard } from './app-throttler.guard.js';
 import { AuthService, RefreshException, type AuthSession } from './auth.service.js';
 import { Public } from './decorators.js';
 
-export const REFRESH_COOKIE = 'hilda_rt';
+const REFRESH_COOKIE = 'hilda_rt';
 
 const USER_AGENT_MAX = 255;
 const CREDENTIALS_LIMIT = { default: { limit: 10, ttl: 60_000 } };

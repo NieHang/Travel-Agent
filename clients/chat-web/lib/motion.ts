@@ -5,8 +5,8 @@ export const springs = {
   gentle: { type: 'spring', stiffness: 120, damping: 18 },
 } as const
 
-export const STAGGER_MS = 40
-export const STAGGER_MAX = 8
+const STAGGER_MS = 40
+const STAGGER_MAX = 8
 export const BG_TRANSITION = 'background-color 450ms ease-out'
 
 /** 错开延迟，单位秒：min(index, STAGGER_MAX) * 0.04 */

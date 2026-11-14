@@ -1,0 +1,83 @@
+{
+  "components": [
+    {
+      "type": "choice",
+      "command": "set_destination",
+      "title": "想去关西的哪座城市？",
+      "options": [
+        {
+          "value": "京都",
+          "label": "京都",
+          "description": null
+        },
+        {
+          "value": "大阪",
+          "label": "大阪",
+          "description": null
+        },
+        {
+          "value": "奈良",
+          "label": "奈良",
+          "description": null
+        }
+      ]
+    },
+    {
+      "type": "form",
+      "command": "submit_requirements",
+      "title": "旅游需求",
+      "fields": [
+        {
+          "name": "destination",
+          "kind": "text",
+          "label": "目的地",
+          "required": true,
+          "placeholder": "例如日本东京",
+          "min": null,
+          "max": null
+        },
+        {
+          "name": "departureDate",
+          "kind": "date",
+          "label": "出发日期",
+          "required": true,
+          "placeholder": null,
+          "min": null,
+          "max": null
+        },
+        {
+          "name": "returnDate",
+          "kind": "date",
+          "label": "返程日期",
+          "required": true,
+          "placeholder": null,
+          "min": null,
+          "max": null
+        },
+        {
+          "name": "travelers",
+          "kind": "number",
+          "label": "出行人数",
+          "required": true,
+          "placeholder": null,
+          "min": 1,
+          "max": 100
+        },
+        {
+          "name": "preferences",
+          "kind": "textarea",
+          "label": "兴趣与特殊需求",
+          "required": false,
+          "placeholder": "例如美食、自然风景、无障碍设施",
+          "min": null,
+          "max": null
+        }
+      ],
+      "initialValues": {
+        "tripType": "family"
+      },
+      "submitLabel": "生成路线草案"
+    }
+  ],
+  "revision": 1
+}

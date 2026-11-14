@@ -3,9 +3,43 @@
   "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "nextjs"],
   "rules": {
     "react/rules-of-hooks": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/ban-ts-comment": [
+      "error",
+      {
+        "ts-ignore": true,
+        "ts-nocheck": true,
+        "ts-expect-error": "allow-with-description"
+      }
+    ],
     "typescript/no-floating-promises": "error",
     "typescript/switch-exhaustiveness-check": "error"
   },
+  "overrides": [
+    {
+      "files": [
+        "features/chat/sse.ts",
+        "features/chat/ui-stream-client.ts",
+        "features/chat/ui-state.ts",
+        "components/ai-ui/ComponentRenderer.tsx",
+        "features/auth/api-client.ts",
+        "features/auth/refresh.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["zod", "zod/**"],
+                "message": "Direct Zod imports in server-data validators let shared schemas drift from the backend. Define shared schemas in @autix/contracts and import them here; see features/chat/ui-stream-client.ts using TripStreamEventSchema.safeParse()."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
   "env": {
     "browser": true,
     "node": true

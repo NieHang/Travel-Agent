@@ -17,6 +17,8 @@ READMEs and design docs are mostly in Chinese. Specs/plans live in `docs/superpo
 
 ## Commands
 
+CI runs `bun run check` at the root and `bun run test` in both `services/chat` and `clients/chat-web`.
+
 From the repo root (Turbo): `bun install`, `bun run typecheck`, `bun run lint`, `bun run build`, `bun run dev` (backend + frontend; the `clean:ports` step uses `lsof`, so on Windows use `dev:chat` / `dev:chat-web` in separate shells). The frontend `dev` waits for tcp:4001.
 
 `services/chat` (run inside that directory):
@@ -54,7 +56,7 @@ Env: `services/chat/.env` needs `DATABASE_URL`, `JWT_ACCESS_SECRET` (≥32 chars
 - `trip/commands.ts`: `reduce(state, command, classified)` is a pure reducer returning the next state plus an optional LLM effect (`'answer' | 'itinerary'`).
 - `trip/view.ts`: `render(state)` builds every UI component (`choice`, `form`, `buttons`, `cards`) from state. The LLM never generates components.
 - `trip/llm.ts`: `classify()` free text, `respond()` streams prose and drives the MCP tool loop (`tool-loop.ts`); `results.ts` grounds `show_results` calls against real tool results by `callId`.
-- `trip/turn.ts` is the only trip file that touches Prisma. Keep `state`/`commands`/`view` free of Nest, Prisma and LangChain imports.
+- `trip/turn.ts` is the only trip file that touches Prisma. Oxlint enforces that `state`/`commands`/`view`/`copy` stay free of Nest, Prisma and LangChain imports.
 - Concurrency: a stale `revision` returns 409. A turn claims the revision while running and must release it on success, stop and failure. Errors before the first SSE event are plain JSON HTTP errors; once streaming, failures arrive as an `error` event and partial replies are saved.
 - `GET /api/conversations/:id/ui-state` returns `{ revision, trip, components }` for restoring panels after a reload.
 - `ChatService` (`src/chat/chat.service.ts`) is the older requirement-analysis path, used only when `TurnService` isn't provided.

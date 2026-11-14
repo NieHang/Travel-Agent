@@ -5,12 +5,12 @@ import { dirname, isAbsolute, relative, resolve, sep, win32 } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Stable from both src/llm/tools and dist/llm/tools, independent of process.cwd().
-export const WORKSPACE_ROOT = fileURLToPath(
+const WORKSPACE_ROOT = fileURLToPath(
   new URL('../../../workspace/', import.meta.url),
 );
 
 /** Validate the relative name and every existing component before filesystem access. */
-export async function safePath(
+async function safePath(
   path: string,
   workspaceRoot = WORKSPACE_ROOT,
 ): Promise<string> {

@@ -17,7 +17,7 @@ export const ErrorCodeSchema = z.enum([
 ]);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
 
-export const ApiErrorSchema = z.object({
+const ApiErrorSchema = z.object({
   code: ErrorCodeSchema,
   message: z.string(),
   details: z.unknown().optional(),

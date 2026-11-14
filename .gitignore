@@ -158,3 +158,6 @@ docs/superpowers/reports/
 
 # verify-hilda skill: run logs and evidence
 /.verify/
+
+# pstack skills installed locally; skills-lock.json pins their source and hash
+/.agents/

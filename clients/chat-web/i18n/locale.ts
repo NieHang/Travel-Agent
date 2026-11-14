@@ -1,7 +1,7 @@
 import type { Locale } from '@autix/contracts'
 
 export const LOCALE_COOKIE = 'hilda_locale'
-export const DEFAULT_LOCALE: Locale = 'zh'
+const DEFAULT_LOCALE: Locale = 'zh'
 
 const isLocale = (v: string | undefined): v is Locale => v === 'zh' || v === 'en'
 

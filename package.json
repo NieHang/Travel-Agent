@@ -14,11 +14,13 @@
     "dev:chat": "turbo run dev --filter=@autix/chat",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "knip": "knip",
+    "check": "turbo run typecheck lint && bun run knip"
   },
   "devDependencies": {
+    "knip": "^6.45.1",
     "turbo": "^2.8.20",
     "wait-on": "^9.0.5"
   }
 }
-

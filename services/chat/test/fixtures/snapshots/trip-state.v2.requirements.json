@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "revision": 3,
+  "stage": "requirements",
+  "requirements": {
+    "destination": "Kyoto",
+    "tripType": "family"
+  },
+  "clarify": null,
+  "checkedDestination": "Kyoto",
+  "outsideJapan": null,
+  "itinerary": null,
+  "days": [],
+  "stays": null,
+  "toolResults": [],
+  "results": [],
+  "locale": "en"
+}

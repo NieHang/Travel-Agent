@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 export const PENDING_KEY = 'hilda:pendingPrompt'
-export const PENDING_PREVIEW_CHARS = 40
+const PENDING_PREVIEW_CHARS = 40
 
 export type PendingPrompt = { prompt: string; conversationId?: string }
 

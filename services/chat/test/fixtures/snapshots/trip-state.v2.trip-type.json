@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "revision": 2,
+  "stage": "trip_type",
+  "requirements": {
+    "destination": "Kyoto"
+  },
+  "clarify": null,
+  "checkedDestination": "Kyoto",
+  "outsideJapan": null,
+  "itinerary": null,
+  "days": [],
+  "stays": null,
+  "toolResults": [],
+  "results": [],
+  "locale": "en"
+}

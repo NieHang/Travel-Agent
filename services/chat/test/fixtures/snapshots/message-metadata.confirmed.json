@@ -1,0 +1,14 @@
+{
+  "components": [
+    {
+      "type": "buttons",
+      "buttons": [
+        {
+          "command": "edit",
+          "label": "Edit requirements"
+        }
+      ]
+    }
+  ],
+  "revision": 5
+}

@@ -2,7 +2,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { AuthConfig } from './auth.config.js';
 
 /** TRUST_PROXY 开启时信任的反向代理跳数。 */
-export const TRUSTED_PROXY_HOPS = 1;
+const TRUSTED_PROXY_HOPS = 1;
 
 /**
  * 只信任紧邻的一跳反向代理，`req.ip` 取它追加在 X-Forwarded-For 末尾的地址。

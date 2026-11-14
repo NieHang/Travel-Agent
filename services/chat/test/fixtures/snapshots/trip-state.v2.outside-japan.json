@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "revision": 1,
+  "stage": "requirements",
+  "requirements": {
+    "tripType": "couple"
+  },
+  "clarify": null,
+  "checkedDestination": null,
+  "outsideJapan": {
+    "places": [
+      "Seoul"
+    ],
+    "japan": "Kyoto"
+  },
+  "itinerary": null,
+  "days": [],
+  "stays": null,
+  "toolResults": [],
+  "results": [],
+  "locale": "en"
+}

@@ -3,7 +3,7 @@
 服务端根据行程状态生成全部组件（`services/chat/src/trip/view.ts`），客户端只负责渲染并发送领域命令。
 
 ```tsx
-import { ComponentRenderer } from '@/components/ai-ui'
+import { ComponentRenderer } from '@/components/ai-ui/ComponentRenderer'
 
 <ComponentRenderer component={component} onCommand={(command) => send(command)} disabled={false} />
 ```

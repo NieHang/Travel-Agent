@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 
 export const McpResultSchema = z.object({ content: z.string(), isError: z.boolean() });
-export const CassetteSchema = z.object({
+const CassetteSchema = z.object({
   tools: z.array(z.object({
     name: z.string(),
     description: z.string(),

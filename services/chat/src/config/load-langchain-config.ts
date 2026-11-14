@@ -46,15 +46,3 @@ export const PROVIDER_ENV = {
   openai: { apiKey: 'OPENAI_API_KEY', baseUrl: 'OPENAI_BASE_URL' },
   deepseek: { apiKey: 'Deepseek_API_KEY', baseUrl: 'Deepseek_BASE_URL' },
 } as const;
-
-export function getApiKeys() {
-  return {
-    openaiApiKey: process.env.OPENAI_API_KEY,
-    openaiBaseUrl: process.env.OPENAI_BASE_URL,
-    embeddingApiKey: process.env.EMBEDDING_API_KEY,
-    vectorDbUrl: process.env.VECTOR_DB_URL,
-    vectorDbApiKey: process.env.VECTOR_DB_API_KEY,
-  };
-}
-
-export const getAPIKeys = getApiKeys;

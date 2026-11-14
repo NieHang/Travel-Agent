@@ -42,7 +42,7 @@ export type LocalizedText = z.infer<typeof LocalizedTextSchema>;
 export const PanelSchema = z.enum(['hotels', 'routes', 'hotspots']);
 export type Panel = z.infer<typeof PanelSchema>;
 
-export const ResultItemSchema = z
+const ResultItemSchema = z
   .object({
     ref: z.string().min(1).max(20),
     id: z.string().max(200).nullable(),
@@ -64,7 +64,7 @@ export const ResultGroupSchema = z
   .strict();
 export type ResultGroup = z.infer<typeof ResultGroupSchema>;
 
-export const FieldSchema = z
+const FieldSchema = z
   .object({
     name: z.enum(['destination', 'departureDate', 'returnDate', 'travelers', 'preferences']),
     kind: z.enum(['text', 'textarea', 'date', 'number']),
@@ -110,7 +110,7 @@ export const ComponentSchema = z.discriminatedUnion('type', [
 ]);
 export type Component = z.infer<typeof ComponentSchema>;
 
-export const TripViewSchema = z
+const TripViewSchema = z
   .object({
     revision: z.number().int().nonnegative(),
     status: z.enum(['collecting', 'draft', 'confirmed']),
@@ -152,7 +152,7 @@ export const SendTurnRequestSchema = z
 export type SendTurnRequest = z.infer<typeof SendTurnRequestSchema>;
 
 // Text streamed before a "searching" status was the model narrating its tool calls; clients drop it.
-export const StatusPhaseSchema = z.enum(['searching', 'writing', 'organizing']);
+const StatusPhaseSchema = z.enum(['searching', 'writing', 'organizing']);
 export type StatusPhase = z.infer<typeof StatusPhaseSchema>;
 
 export const TripStreamEventSchema = z.discriminatedUnion('type', [

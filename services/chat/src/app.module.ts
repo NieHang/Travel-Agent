@@ -15,7 +15,8 @@ import { LlmModule } from './llm/llm.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { UsersModule } from './users/users.module.js';
 
-export const { ObserveModule, ObserveInstrument } = createObserveModule();
+const observe = createObserveModule();
+export const ObserveInstrument = observe.ObserveInstrument;
 
 @Module({
   imports: [
@@ -31,7 +32,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     LlmModule,
     // Distributed tracing, auto-correlated logs, request/job metrics, error
     // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
-    // ObserveModule.forRoot({
+    // observe.ObserveModule.forRoot({
     //   appKey: 'YOUR_APP_KEY',
     //   appSecret: 'YOUR_APP_SECRET',
     //   serviceId: 'chat',

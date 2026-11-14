@@ -59,7 +59,7 @@ export const TurnOutputSchema = z.object({
   toolCalls: z.array(z.object({ name: z.string(), args: z.record(z.unknown()) })), toolResults: z.array(ToolResultSchema),
 });
 
-export const ScoreSchema = z.object({ name: z.string(), value: z.number().finite(), comment: z.string().optional() });
+const ScoreSchema = z.object({ name: z.string(), value: z.number().finite(), comment: z.string().optional() });
 export type Score = z.infer<typeof ScoreSchema>;
 
 const result = {

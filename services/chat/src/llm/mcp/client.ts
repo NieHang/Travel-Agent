@@ -41,7 +41,7 @@ async function connectWithTimeout(
   return Promise.race([connectPromise, timeoutPromise]);
 }
 
-export function wrapFetchWithTimeout(
+function wrapFetchWithTimeout(
   fetch: FetchLike,
   timeoutMs: number,
 ): FetchLike {

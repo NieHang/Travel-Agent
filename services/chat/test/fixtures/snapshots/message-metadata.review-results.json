@@ -1,0 +1,94 @@
+{
+  "components": [
+    {
+      "type": "cards",
+      "items": [
+        {
+          "ref": "r1",
+          "id": null,
+          "title": {
+            "original": "Kyoto Garden Hotel",
+            "translation": null
+          },
+          "address": null,
+          "price": {
+            "amount": 24000,
+            "currency": "JPY"
+          },
+          "rating": null,
+          "url": null,
+          "image": null,
+          "details": [],
+          "amenities": [],
+          "summary": null
+        }
+      ]
+    },
+    {
+      "type": "cards",
+      "items": [
+        {
+          "ref": "r1",
+          "id": null,
+          "title": {
+            "original": "Kyoto Station to Arashiyama",
+            "translation": null
+          },
+          "address": null,
+          "price": {
+            "amount": 240,
+            "currency": "JPY"
+          },
+          "rating": null,
+          "url": "https://example.com/arashiyama-train",
+          "image": null,
+          "details": [
+            {
+              "label": "Duration",
+              "value": {
+                "original": "25 minutes",
+                "translation": null
+              }
+            }
+          ],
+          "amenities": [],
+          "summary": "A short train ride for the family."
+        }
+      ]
+    },
+    {
+      "type": "cards",
+      "items": [
+        {
+          "ref": "r1",
+          "id": null,
+          "title": {
+            "original": "Bamboo Grove",
+            "translation": "竹林小径"
+          },
+          "address": {
+            "original": "Arashiyama, Kyoto",
+            "translation": null
+          },
+          "price": null,
+          "rating": null,
+          "url": null,
+          "image": "https://example.com/bamboo.jpg",
+          "details": [],
+          "amenities": [],
+          "summary": null
+        }
+      ]
+    },
+    {
+      "type": "buttons",
+      "buttons": [
+        {
+          "command": "resume",
+          "label": "Return to itinerary planning"
+        }
+      ]
+    }
+  ],
+  "revision": 5
+}

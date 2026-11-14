@@ -1,0 +1,40 @@
+# Excludes integration/e2e (Postgres + pgvector), next build (flaky Google font
+# fetch), and live LLM checks/evals (real API keys and paid calls).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TURBO_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Generate Prisma client
+        working-directory: services/chat
+        run: bun run db:generate
+      - name: Static checks
+        run: bun run check
+      - name: Backend unit tests
+        working-directory: services/chat
+        run: bun run test
+      - name: Frontend unit tests
+        working-directory: clients/chat-web
+        run: bun run test

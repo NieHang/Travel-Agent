@@ -6,7 +6,7 @@
     "dev": "wait-on tcp:4001 && next dev --port 3002",
     "build": "next build",
     "start": "next start --port 3002",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "lint": "oxlint --type-aware",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -47,7 +47,6 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite": "^8.3.2",
-    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^5.0.3"
   },
   "packageManager": "bun@1.4.2",
