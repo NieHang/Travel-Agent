@@ -12,6 +12,7 @@ const plan = (patch: Partial<Classified['patch']>, clarify: Classified['clarify'
 const chat: Classified = { intent: 'chat', locale: 'zh', patch: empty, clarify: null };
 const full = { destination: '杭州', tripType: 'family' as const, departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4 };
 const at = (patch: Partial<TripState>): TripState => ({ ...initialState(5), ...patch });
+const toolResults: TripState['toolResults'] = [{ callId: 't1', tool: 'searchHotels', args: {}, content: '{"hotels":[{"hotelId":"h1","name":"Hotel"}]}', isError: false }];
 
 describe('Japan destinations', () => {
   const command = { type: 'message', text: 'plan' } as const;
@@ -116,12 +117,13 @@ describe('nextStage', () => {
 
 describe('reduce', () => {
   it('chat messages answer without changing the stage, bump revision and clear results', () => {
-    const before = at({ stage: 'requirements', results: [{ panel: 'hotels', items: [] }] });
+    const before = at({ stage: 'requirements', results: [{ panel: 'hotels', items: [] }], toolResults });
     const { state, effect } = reduce(before, { type: 'message', text: '天气？' }, chat);
     expect(effect).toBe('answer');
     expect(state.stage).toBe('requirements');
     expect(state.revision).toBe(6);
     expect(state.results).toEqual([]);
+    expect(state.toolResults).toEqual(toolResults);
     expect(before.revision).toBe(5);
   });
 
@@ -173,6 +175,16 @@ describe('reduce', () => {
     const { state, effect } = reduce(at({ stage: 'confirmed', requirements: full, itinerary: '# 草稿' }), { type: 'message', text: '杭州' }, plan({ destination: '杭州' }));
     expect(state.stage).toBe('confirmed');
     expect(effect).toBeNull();
+  });
+
+  it.each(['review', 'confirmed'] as const)('clears previous tool results when resubmitting unchanged requirements after editing a %s trip', (stage) => {
+    const before = at({ stage, requirements: full, itinerary: '# Draft', toolResults });
+    const edited = reduce(before, { type: 'edit' });
+    expect(edited.state.toolResults).toEqual(toolResults);
+    const result = reduce(edited.state, { type: 'submit_requirements', values: full });
+    expect(result.effect).toBe('itinerary');
+    expect(result.state.toolResults).toEqual([]);
+    expect(before.toolResults).toEqual(toolResults);
   });
 
   it('confirm, edit and resume', () => {

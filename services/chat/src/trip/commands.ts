@@ -133,6 +133,8 @@ function plan(s: TripState, patch: Record<string, unknown>, clarify: TripState['
   s.clarify = clarify;
   s.stage = !changed && s.stage === 'confirmed' ? 'confirmed' : nextStage(requirements);
   const effect: Effect = s.stage === 'review' && !s.itinerary ? 'itinerary' : null;
+  // A new itinerary must search again instead of reusing a previous turn's results.
+  if (effect === 'itinerary') s.toolResults = [];
   return { state: s, effect };
 }
 
