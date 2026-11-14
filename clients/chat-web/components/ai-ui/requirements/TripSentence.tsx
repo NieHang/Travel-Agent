@@ -2,14 +2,12 @@
 
 import { useState, type ReactNode } from 'react'
 import { Button, I18nProvider, Popover } from '@heroui/react'
-import { Check } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
-import type { Component, FormField } from '@autix/contracts'
+import type { Command, Component, FormField } from '@autix/contracts'
 import { PillButton } from '@/components/ui/PillButton'
-import type { ComponentMode } from '../ComponentRenderer'
 import {
   DatesEditor, DestinationEditor, ICONS, PreferencesEditor, TravelersStepper,
-  chipBase, filledChip, isMissing, missingChip, toRequirements, useSummary, withSubmitted,
+  chipBase, filledChip, isMissing, missingChip, toRequirements, useSummary,
 } from './fields'
 
 type Name = FormField['name']
@@ -17,10 +15,11 @@ type Name = FormField['name']
 /**
  * The requirements form as one row of chips. Each chip opens its editor; committing
  * one opens the next missing field, so filling everything is a chain of single taps.
+ * Without `onCommand` the chips are read-only.
  */
-export function TripSentence({ component, mode }: {
+export function TripSentence({ component, onCommand }: {
   component: Extract<Component, { type: 'form' }>
-  mode: ComponentMode
+  onCommand?: (command: Command) => void
 }) {
   const t = useTranslations('tripForm')
   const locale = useLocale()
@@ -28,10 +27,7 @@ export function TripSentence({ component, mode }: {
   const [draft, setDraft] = useState(component.fields)
   const [open, setOpen] = useState<Name | null>(null)
   const [sent, setSent] = useState(false)
-  const live = mode.kind === 'live'
-  const fields = mode.kind === 'answered' && mode.command.type === 'submit_requirements'
-    ? withSubmitted(component.fields, mode.command.values)
-    : draft
+  const live = onCommand !== undefined
   const missing = draft.find(isMissing)
 
   function update(field: FormField, advance: boolean) {
@@ -41,10 +37,10 @@ export function TripSentence({ component, mode }: {
   }
 
   function primary() {
-    if (mode.kind !== 'live') return
+    if (!onCommand) return
     if (missing) return setOpen(missing.name)
     setSent(true)
-    mode.onCommand({ type: 'submit_requirements', values: toRequirements(draft) })
+    onCommand({ type: 'submit_requirements', values: toRequirements(draft) })
   }
 
   function chip(field: FormField): ReactNode {
@@ -77,14 +73,10 @@ export function TripSentence({ component, mode }: {
     <I18nProvider locale={locale}>
     <section aria-label={component.title} className="trip-form flex flex-col gap-3">
       <h3 className="text-sm font-bold text-ink/60">{component.title}</h3>
-      <div className="flex flex-wrap gap-2">{fields.map(chip)}</div>
-      {mode.kind === 'answered' ? (
-        <p className="flex items-center gap-1 self-end text-sm font-bold text-ink/60">
-          <Check size={16} aria-hidden="true" />{t('submitted')}
-        </p>
-      ) : live || sent ? (
-        <div className="flex justify-end">
-          <PillButton variant="ink" loading={sent && !live} disabled={!live && !sent} onClick={primary}>
+      <div className="flex flex-wrap gap-2">{draft.map(chip)}</div>
+      {live || sent ? (
+        <div className="flex">
+          <PillButton variant="ink" size="sm" loading={sent && !live} disabled={!live && !sent} onClick={primary}>
             {missing ? t('next', { field: missing.label }) : component.submitLabel}
           </PillButton>
         </div>

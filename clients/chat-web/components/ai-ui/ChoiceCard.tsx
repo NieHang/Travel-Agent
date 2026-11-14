@@ -1,24 +1,24 @@
 'use client'
 import type { Command, Component, TripType } from '@autix/contracts'
-import { buttonClass, panelClass } from './styles'
 
-export function ChoiceCard({ component, onCommand, disabled = false }: {
+/** Without `onCommand` the options are read-only. */
+export function ChoiceCard({ component, onCommand }: {
   component: Extract<Component, { type: 'choice' }>
-  onCommand: (command: Command) => void
-  disabled?: boolean
+  onCommand?: (command: Command) => void
 }) {
   return (
-    <section aria-label={component.title} className={panelClass}>
-      <h3 className="mb-3 font-semibold">{component.title}</h3>
+    // The bubble hugs its content; a fixed width keeps single-column options from shrinking to their text.
+    <section aria-label={component.title} className="flex w-72 max-w-full flex-col gap-3 sm:w-auto">
+      <h3 className="text-sm font-bold text-ink/60">{component.title}</h3>
       <div className="grid gap-2 sm:grid-cols-2">
         {component.options.map((option) => (
           <button
             key={option.value}
             type="button"
-            disabled={disabled}
-            className={`${buttonClass} text-left`}
+            disabled={!onCommand}
+            className="min-h-11 rounded-[16px] border-2 border-ink/15 px-4 py-2.5 text-left text-sm font-bold text-ink transition enabled:hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-40"
             onClick={() =>
-              onCommand(
+              onCommand?.(
                 component.command === 'set_trip_type'
                   ? { type: 'set_trip_type', value: option.value as TripType }
                   : { type: 'set_destination', value: option.value },
@@ -26,7 +26,7 @@ export function ChoiceCard({ component, onCommand, disabled = false }: {
             }
           >
             <span className="block">{option.label}</span>
-            {option.description ? <span className="mt-1 block text-xs text-gray-500">{option.description}</span> : null}
+            {option.description ? <span className="mt-0.5 block text-xs font-medium text-ink/60">{option.description}</span> : null}
           </button>
         ))}
       </div>

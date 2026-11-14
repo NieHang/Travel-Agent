@@ -48,26 +48,6 @@ export function toRequirements(fields: FormField[]): Requirements {
   return out
 }
 
-/** The fields as they were when `values` was submitted, for the answered view. */
-export function withSubmitted(fields: FormField[], values: Requirements): FormField[] {
-  return fields.map((field): FormField => {
-    switch (field.name) {
-      case 'destination':
-        return { ...field, value: values.destination ?? field.value }
-      case 'dates':
-        return values.departureDate && values.returnDate
-          ? { ...field, value: { start: values.departureDate, end: values.returnDate } }
-          : field
-      case 'travelers':
-        return { ...field, value: values.travelers ?? field.value }
-      case 'preferences':
-        return { ...field, value: values.preferences ?? field.value }
-      default:
-        return field satisfies never
-    }
-  })
-}
-
 /** Chip text for a filled field; null when the chip should show the field's label instead. */
 export function useSummary() {
   const locale = useLocale()

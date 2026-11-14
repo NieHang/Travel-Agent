@@ -162,7 +162,6 @@
   "tripForm": {
     "next": "下一步：{field}",
     "done": "完成",
-    "submitted": "已提交",
     "previousMonth": "上个月",
     "nextMonth": "下个月",
     "more": "增加一人",

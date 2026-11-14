@@ -5,7 +5,10 @@ import { ChoiceCard } from './ChoiceCard'
 import { TripSentence } from './requirements/TripSentence'
 import { ResultCard } from './ResultCard'
 
-/** How a component may behave: only `live` can send commands; `answered` shows what the user chose. */
+/**
+ * How a component may behave: only `live` can send commands. Once `answered`, the
+ * user's reply right below already says what they chose, so controls step aside.
+ */
 export type ComponentMode =
   | { kind: 'live'; onCommand: (command: Command) => void }
   | { kind: 'locked' }
@@ -28,13 +31,14 @@ export function ComponentRenderer({ component, mode }: ComponentRendererProps) {
   const parsed = ComponentSchema.safeParse(component)
   if (!parsed.success) return <LegacyComponent component={component} />
   const c = parsed.data
+  if (mode.kind === 'answered' && c.type !== 'cards') return null
   switch (c.type) {
     case 'choice':
-      return <ChoiceCard component={c} onCommand={mode.kind === 'live' ? mode.onCommand : () => {}} disabled={mode.kind !== 'live'} />
+      return <ChoiceCard component={c} onCommand={mode.kind === 'live' ? mode.onCommand : undefined} />
     case 'form':
-      return <TripSentence component={c} mode={mode} />
+      return <TripSentence component={c} onCommand={mode.kind === 'live' ? mode.onCommand : undefined} />
     case 'buttons':
-      return <ButtonsRow component={c} mode={mode} />
+      return <ButtonsRow component={c} onCommand={mode.kind === 'live' ? mode.onCommand : undefined} />
     case 'cards':
       return <div className="grid gap-3 sm:grid-cols-2">{c.items.map((item) => <ResultCard key={item.ref} item={item} />)}</div>
   }
