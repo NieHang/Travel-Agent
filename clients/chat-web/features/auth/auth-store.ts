@@ -15,12 +15,12 @@ const listeners = new Set<() => void>()
 
 function set(next: AuthState) {
   state = next
-  for (const listener of [...listeners]) listener()
+  for (const listener of Array.from(listeners)) listener()
 }
 
 export const authStore = {
   getState: (): AuthState => state,
-  subscribe(listener: () => void): () => void {
+  subscribe: (listener: () => void): (() => void) => {
     listeners.add(listener)
     return () => {
       listeners.delete(listener)

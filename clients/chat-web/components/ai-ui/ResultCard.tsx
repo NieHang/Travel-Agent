@@ -15,6 +15,7 @@ function Banner({ item, className }: { item: ResultItem; className: string }) {
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {src ? (
+        // oxlint-disable-next-line nextjs/no-img-element -- 酒店图片来自任意外部域名，next/image 需要逐个配置 remotePatterns
         <img
           src={src}
           alt={item.title.original}

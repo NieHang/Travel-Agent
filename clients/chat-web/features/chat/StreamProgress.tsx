@@ -16,6 +16,7 @@ export function StreamProgress({
   const reduced = useReducedMotion()
   const [hidden, setHidden] = useState(false)
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- outcome 变化时重新显示，再按需定时隐藏
     setHidden(false)
     if (outcome !== 'completed') return
     const timer = setTimeout(() => setHidden(true), 1750)

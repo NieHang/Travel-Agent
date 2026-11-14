@@ -17,7 +17,7 @@ import { useConversations, useDeleteConversation } from './queries'
 
 type Props = {
   open: boolean
-  onClose(): void
+  onClose: () => void
   activeId: string | null
   isBlankNewChat: boolean
   returnFocusRef: RefObject<HTMLElement | null>
@@ -31,6 +31,7 @@ function DrawerContent({ onClose, activeId, isBlankNewChat }: Omit<Props, 'open'
   const [q, setQ] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const query = useConversations(q)
+  const { hasNextPage, isFetching, isFetchNextPageError, fetchNextPage } = query
   const deletion = useDeleteConversation()
   const input = useRef<HTMLInputElement>(null)
   const rows = useRef<(HTMLButtonElement | null)[]>([])
@@ -42,13 +43,13 @@ function DrawerContent({ onClose, activeId, isBlankNewChat }: Omit<Props, 'open'
     return () => clearTimeout(timer)
   }, [search])
   useEffect(() => {
-    if (!sentinel.current || !query.hasNextPage || query.isFetching || query.isFetchNextPageError) return
+    if (!sentinel.current || !hasNextPage || isFetching || isFetchNextPageError) return
     const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) void query.fetchNextPage()
+      if (entries.some((entry) => entry.isIntersecting)) void fetchNextPage()
     }, { root: root.current, rootMargin: '120px' })
     observer.observe(sentinel.current)
     return () => observer.disconnect()
-  }, [query.hasNextPage, query.isFetching, query.isFetchNextPageError, query.fetchNextPage])
+  }, [hasNextPage, isFetching, isFetchNextPageError, fetchNextPage])
   const visit = (path: string) => { router.push(path); onClose() }
   return (
     <>
@@ -77,7 +78,7 @@ function DrawerContent({ onClose, activeId, isBlankNewChat }: Omit<Props, 'open'
         </div> : null}
         {query.isError && !query.isFetching ? <div className="flex flex-col items-center gap-2 py-4">
           <p>{tc('loadFailed')}</p><PillButton size="sm" onClick={() => {
-            if (query.isFetchNextPageError) void query.fetchNextPage(); else void query.refetch()
+            if (query.isFetchNextPageError) void fetchNextPage(); else void query.refetch()
           }}>{tc('retry')}</PillButton>
         </div> : !query.isPending && items.length === 0 ? <p className="py-6 text-center">{q ? t('noMatch') : t('empty')}</p> : null}
         <div ref={sentinel} aria-hidden className="h-px" />

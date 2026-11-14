@@ -24,6 +24,7 @@ export function IntlProvider({
 }) {
   const [timeZone, setTimeZone] = useState<string | undefined>(undefined)
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- 时区只能在客户端读取，服务端渲染时留空以免水合不一致
     setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone)
   }, [])
   return (

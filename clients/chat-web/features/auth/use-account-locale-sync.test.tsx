@@ -28,7 +28,7 @@ function setup(initial: 'zh' | 'en' = 'zh') {
   uiLocale = initial
   const view = renderHook(() => useAccountLocaleSync(), { wrapper: Wrapper })
   return {
-    changeLocale(next: 'zh' | 'en') {
+    changeLocale: (next: 'zh' | 'en') => {
       uiLocale = next
       view.rerender()
     },

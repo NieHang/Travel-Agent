@@ -16,7 +16,7 @@ export function TopBar({
   drawerButtonRef,
 }: {
   drawerOpen: boolean
-  onToggleDrawer(): void
+  onToggleDrawer: () => void
   /** 顶部中间（P1） */
   center?: ReactNode
   /** T3 之后（P2） */

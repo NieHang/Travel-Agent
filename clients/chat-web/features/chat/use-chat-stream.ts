@@ -8,7 +8,7 @@ import type {
 } from '@autix/contracts'
 import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { apiFetch, ApiRequestError } from '@/features/auth/api-client'
+import { ApiRequestError } from '@/features/auth/api-client'
 import { accountId } from '@/features/auth/account-cache'
 import { authStore } from '@/features/auth/auth-store'
 import { messagesKey } from '@/features/conversations/queries'
@@ -52,25 +52,6 @@ function invalidateMessages(queryClient: QueryClient, conversationId: string) {
   })
 }
 
-/** signal 中止时让 promise 立即以 ABORTED 失败，把阻塞在 reader.read() 上的等待唤醒。 */
-function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const onAbort = () => reject(aborted())
-    if (signal.aborted) return onAbort()
-    signal.addEventListener('abort', onAbort, { once: true })
-    promise.then(
-      (value) => {
-        signal.removeEventListener('abort', onAbort)
-        resolve(value)
-      },
-      (error: unknown) => {
-        signal.removeEventListener('abort', onAbort)
-        reject(error)
-      },
-    )
-  })
-}
-
 export function useChatStream(conversationId: string | null): {
   phase: StreamPhase
   text: string
@@ -80,8 +61,8 @@ export function useChatStream(conversationId: string | null): {
   trip: TripView | null | undefined
   streamConversationId: string | null
   outcome: StreamOutcome
-  send(conversationId: string, request: SendTurnRequest): Promise<SendOutcome>
-  stop(): void
+  send: (conversationId: string, request: SendTurnRequest) => Promise<SendOutcome>
+  stop: () => void
 } {
   const queryClient = useQueryClient()
   const [uiStore] = useState(createAIUIStore)

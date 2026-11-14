@@ -72,7 +72,7 @@ let postCalls = 0
 let listGate: Promise<void>
 let openListGate: () => void
 
-function useStreamHandler(resolver: Parameters<typeof http.post>[1]) {
+function setStreamHandler(resolver: Parameters<typeof http.post>[1]) {
   server.use(
     http.post(apiUrl('/api/conversations/:id/messages'), (info) => {
       postCalls += 1
@@ -152,7 +152,7 @@ describe('useChatStream', () => {
   it('停止时服务端尚未保存：保留 partial 并轮询到真实助手行', async () => {
     const stream = sseController()
     let persisted = false
-    useStreamHandler(() => sseResponse(stream.body))
+    setStreamHandler(() => sseResponse(stream.body))
     const hook = setup()
     server.use(
       http.get(apiUrl('/api/conversations/:id/messages'), () => {
@@ -183,7 +183,7 @@ describe('useChatStream', () => {
 
   it('分页请求在发送前取消，迟到页不会覆盖流缓存', async () => {
     const stream = sseController()
-    useStreamHandler(() => sseResponse(stream.body))
+    setStreamHandler(() => sseResponse(stream.body))
     const hook = setup()
     queryClient.setQueryData(messagesKey('c1'), {
       pages: [{ items: [], nextCursor: 'older' }],
@@ -222,7 +222,7 @@ describe('useChatStream', () => {
   it('退出清缓存后流卸载，不再写回原账号消息', async () => {
     authStore.setAuthed({ accessToken: 'A', user: makeUser({ id: 'A' }) })
     const stream = sseController()
-    useStreamHandler(() => sseResponse(stream.body))
+    setStreamHandler(() => sseResponse(stream.body))
     const hook = setup()
     const p = start(hook)
     await act(async () => stream.push(userMessage(), delta('私密回复')))
@@ -236,7 +236,7 @@ describe('useChatStream', () => {
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0)
   })
   it('完成：缓存里先后出现用户消息与助手消息，本地状态清空', async () => {
-    useStreamHandler(() =>
+    setStreamHandler(() =>
       sseResponse(
         sseBody([
           userMessage(),
@@ -263,7 +263,7 @@ describe('useChatStream', () => {
     let release!: () => void
     const gate = new Promise<void>((resolve) => (release = resolve))
     const stream = sseController()
-    useStreamHandler(async () => {
+    setStreamHandler(async () => {
       await gate
       return sseResponse(stream.body)
     })
@@ -295,7 +295,7 @@ describe('useChatStream', () => {
     let auth: string | null = null
     let contentType: string | null = null
     let body: unknown
-    useStreamHandler(async ({ request }) => {
+    setStreamHandler(async ({ request }) => {
       auth = request.headers.get('authorization')
       contentType = request.headers.get('content-type')
       body = await request.json()
@@ -309,7 +309,7 @@ describe('useChatStream', () => {
   })
 
   it('一个汉字跨两个网络块：text 无乱码', async () => {
-    useStreamHandler(() =>
+    setStreamHandler(() =>
       sseResponse(
         sseBody([userMessage(), delta('好的，'), delta('这是')], {
           chunkBytes: 1,
@@ -329,7 +329,7 @@ describe('useChatStream', () => {
   })
 
   it('user_message 与 done 都使会话列表失效（标题、顺序会变）', async () => {
-    useStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
+    setStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
     const hook = setup()
     const spy = vi.spyOn(queryClient, 'invalidateQueries')
     await act(() => hook.result.current.stream.send('c1', msg('x')))
@@ -341,7 +341,7 @@ describe('useChatStream', () => {
   })
 
   it('error 事件：助手消息以 status error 进缓存，返回 MODEL_FAILED', async () => {
-    useStreamHandler(() =>
+    setStreamHandler(() =>
       sseResponse(sseBody([userMessage(), delta('好的'), errorEvent()])),
     )
     const hook = setup()
@@ -357,7 +357,7 @@ describe('useChatStream', () => {
 
   it('手动停止（已有 delta）：缓存里多一条 partial 本地消息，内容为已累计文本，随后重新拉取消息', async () => {
     const stream = sseController()
-    useStreamHandler(() => sseResponse(stream.body))
+    setStreamHandler(() => sseResponse(stream.body))
     const hook = setup()
     holdMessageList()
     const p = start(hook)
@@ -385,7 +385,7 @@ describe('useChatStream', () => {
 
   it('收到 user_message 之前停止：不写缓存，返回 ABORTED', async () => {
     const stream = sseController()
-    useStreamHandler(() => sseResponse(stream.body))
+    setStreamHandler(() => sseResponse(stream.body))
     const hook = setup()
     holdMessageList()
     const p = start(hook)
@@ -400,7 +400,7 @@ describe('useChatStream', () => {
   })
 
   it('响应头到达之前停止：同样返回 ABORTED 并重新拉取', async () => {
-    useStreamHandler(() => new Promise<Response>(() => {}))
+    setStreamHandler(() => new Promise<Response>(() => {}))
     const hook = setup()
     holdMessageList()
     const p = start(hook)
@@ -415,7 +415,7 @@ describe('useChatStream', () => {
   })
 
   it('流没有 done 或 error 就结束：写入 status 为 error 的本地消息，内容为已累计文本', async () => {
-    useStreamHandler(() =>
+    setStreamHandler(() =>
       sseResponse(sseBody([userMessage(), delta('好的，')])),
     )
     const hook = setup()
@@ -446,7 +446,7 @@ describe('useChatStream', () => {
         fail = (reason) => controller.error(reason)
       },
     })
-    useStreamHandler(() => sseResponse(body))
+    setStreamHandler(() => sseResponse(body))
     const hook = setup()
     holdMessageList()
     const p = start(hook)
@@ -461,7 +461,7 @@ describe('useChatStream', () => {
   })
 
   it('流在 user_message 之前就结束：不写缓存，返回错误并重新拉取', async () => {
-    useStreamHandler(() => sseResponse(sseBody([])))
+    setStreamHandler(() => sseResponse(sseBody([])))
     const hook = setup()
     holdMessageList()
     const outcome = await act(() => hook.result.current.stream.send('c1', msg('x')))
@@ -488,7 +488,7 @@ describe('useChatStream', () => {
   ])(
     '流开始前失败（%s）：不写缓存，返回对应错误',
     async (_name, respond, code) => {
-      useStreamHandler(respond)
+      setStreamHandler(respond)
       const hook = setup()
       const outcome = await act(() =>
         hook.result.current.stream.send('c1', msg('x')),
@@ -514,7 +514,7 @@ describe('useChatStream', () => {
         HttpResponse.json({ accessToken: 'new', user: makeUser() }),
       ),
     )
-    useStreamHandler(({ request }) => {
+    setStreamHandler(({ request }) => {
       const auth = request.headers.get('authorization')
       seen.push(auth)
       return auth === 'Bearer new'
@@ -530,7 +530,7 @@ describe('useChatStream', () => {
 
   it('生成中再次 send：返回 ABORTED，不发第二个请求', async () => {
     const stream = sseController()
-    useStreamHandler(() => sseResponse(stream.body))
+    setStreamHandler(() => sseResponse(stream.body))
     const hook = setup()
     const first = start(hook)
     await waitFor(() => expect(postCalls).toBe(1))
@@ -547,7 +547,7 @@ describe('useChatStream', () => {
 
   it('同一事件循环内连续两次 send：只发一个请求', async () => {
     const stream = sseController()
-    useStreamHandler(() => sseResponse(stream.body))
+    setStreamHandler(() => sseResponse(stream.body))
     const hook = setup()
     let first!: Promise<SendOutcome>
     let second!: Promise<SendOutcome>
@@ -565,7 +565,7 @@ describe('useChatStream', () => {
   })
 
   it('完成后可以再发一条', async () => {
-    useStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
+    setStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
     const hook = setup()
     await act(() => hook.result.current.stream.send('c1', msg('a')))
     const outcome = await act(() => hook.result.current.stream.send('c1', msg('b')))
@@ -584,7 +584,7 @@ describe('useChatStream', () => {
         return realFetch(input, init)
       })
       const stream = sseController()
-      useStreamHandler(() => sseResponse(stream.body))
+      setStreamHandler(() => sseResponse(stream.body))
       return {
         state: {
           get aborted() {
@@ -611,7 +611,7 @@ describe('useChatStream', () => {
     })
 
     it('卸载时请求还没有响应：send 也会结束', async () => {
-      useStreamHandler(() => new Promise<Response>(() => {}))
+      setStreamHandler(() => new Promise<Response>(() => {}))
       const hook = setup()
       const p = start(hook)
       await waitFor(() => expect(postCalls).toBe(1))
@@ -707,7 +707,7 @@ describe('useChatStream', () => {
 
     it('卸载导致的停止：本地 partial 之后消息查询仍处于失效，重新进入时被服务端数据替换', async () => {
       const stream = sseController()
-      useStreamHandler(() => sseResponse(stream.body))
+      setStreamHandler(() => sseResponse(stream.body))
       const hook = setupBare()
       let p!: Promise<SendOutcome>
       act(() => {
@@ -720,7 +720,7 @@ describe('useChatStream', () => {
     })
 
     it('流没有 done 就结束（无观察者）：本地 error 消息之后查询仍处于失效', async () => {
-      useStreamHandler(() => sseResponse(sseBody([userMessage(), delta('好')])))
+      setStreamHandler(() => sseResponse(sseBody([userMessage(), delta('好')])))
       const hook = setupBare()
       await act(() => hook.result.current.send('c1', msg('x')))
       await expectReconciledOnRemount()
@@ -728,7 +728,7 @@ describe('useChatStream', () => {
 
     it('StrictMode 下挂载后 send：phase 到达 streaming 并正常完成', async () => {
       const stream = sseController()
-      useStreamHandler(() => sseResponse(stream.body))
+      setStreamHandler(() => sseResponse(stream.body))
       const { Wrapper, queryClient: qc } = createWrapper()
       queryClient = qc
       const hook = renderHook(() => useChatStream('c1'), {
@@ -758,7 +758,7 @@ describe('useChatStream', () => {
     })
 
     it('处理事件时的程序错误不被吞掉：send 以该错误结束，phase 回 idle', async () => {
-      useStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
+      setStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
       const hook = setup()
       const boom = new Error('boom')
       vi.spyOn(queryClient, 'setQueryData').mockImplementationOnce(() => {
@@ -796,7 +796,7 @@ describe('useChatStream', () => {
     }
 
     it('同一块里 stop 之后的 delta 不累计到本地 partial 消息', async () => {
-      useStreamHandler(() =>
+      setStreamHandler(() =>
         sseResponse(sseBody([userMessage(), delta('迟到')])),
       )
       const hook = setup()
@@ -815,7 +815,7 @@ describe('useChatStream', () => {
     })
 
     it('同一块里 stop 之后的 done 不写入缓存', async () => {
-      useStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
+      setStreamHandler(() => sseResponse(sseBody([userMessage(), done()])))
       const hook = setup()
       holdMessageList()
       stopAfterFirstCacheWrite(hook)
@@ -831,7 +831,7 @@ describe('useChatStream', () => {
         conversationId: 'c1',
         role: 'ASSISTANT',
       })
-      useStreamHandler(() =>
+      setStreamHandler(() =>
         sseResponse(sseBody([userMessage(), done(), delta('x'), done(a3)])),
       )
       const hook = setup()

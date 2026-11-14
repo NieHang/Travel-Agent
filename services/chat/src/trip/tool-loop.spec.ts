@@ -199,7 +199,7 @@ describe('streamToolLoop', () => {
     const model = scripted([[callChunk('s1', 'show_results', { panel: 'hotels', items: [{ title: 3 }] })], textChunks('ok')]);
     const events = await collect(model);
     expect(events.some((e) => e.type === 'show_results')).toBe(false);
-    expect(String((model.seen[1].at(-1) as ToolMessage).content)).toMatch(/^Invalid show_results arguments/);
+    expect((model.seen[1].at(-1) as ToolMessage).content).toEqual(expect.stringMatching(/^Invalid show_results arguments/));
     expect(events.at(-1)).toEqual({ type: 'text', delta: 'ok' });
   });
 

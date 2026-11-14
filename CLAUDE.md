@@ -39,7 +39,8 @@ bun run scripts/test-trip-live.ts   # live check of trip prompts against the rea
 ```sh
 bun run test                        # Vitest + jsdom + MSW, **/*.test.{ts,tsx}, no backend
 bunx vitest run features/chat/sse.test.ts
-bun run typecheck                   # `lint` is also just tsc --noEmit
+bun run typecheck
+bun run lint                        # oxlint --type-aware
 bun run test:e2e                    # Playwright, Chromium only; builds/starts backend with fake LLM on 4101, web on 3102
 ```
 

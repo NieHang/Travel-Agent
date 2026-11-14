@@ -26,11 +26,11 @@ export function Composer({
   ref,
 }: {
   value: string
-  onChange(v: string): void
+  onChange: (v: string) => void
   generating: boolean
   rateLimitSeconds: number
-  onSend(): void
-  onStop(): void
+  onSend: () => void
+  onStop: () => void
   ref?: Ref<HTMLTextAreaElement>
 }) {
   const t = useTranslations('chat')

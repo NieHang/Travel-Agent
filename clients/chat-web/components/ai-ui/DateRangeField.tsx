@@ -18,7 +18,8 @@ export function DateRangeField({ departure, returning, initialStart = '', initia
   const [open, setOpen] = useState(false)
   const [choosingEnd, setChoosingEnd] = useState(false)
   const [hover, setHover] = useState('')
-  const [month, setMonth] = useState(() => parse(initialStart || initialEnd || iso(new Date())))
+  const [now] = useState(() => new Date())
+  const [month, setMonth] = useState(() => parse(initialStart || initialEnd || iso(now)))
   const chinese = /[\u3400-\u9fff]/.test(departure.label)
   const copy = chinese ? {
     title: '出行日期', placeholder: '选择出发日期和返程日期', prev: '上个月', next: '下个月',
@@ -28,8 +29,8 @@ export function DateRangeField({ departure, returning, initialStart = '', initia
     start: 'Select departure date', end: 'Select return date', clear: 'Clear', today: 'Today',
   }
   // Trips start today at the earliest: past days are shown but cannot be picked.
-  const today = iso(new Date())
-  const atCurrentMonth = month.getFullYear() === new Date().getFullYear() && month.getMonth() === new Date().getMonth()
+  const today = iso(now)
+  const atCurrentMonth = month.getFullYear() === now.getFullYear() && month.getMonth() === now.getMonth()
   const weekdays = chinese ? ['一', '二', '三', '四', '五', '六', '日'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S']
   const first = new Date(month.getFullYear(), month.getMonth(), 1, 12)
   const offset = (first.getDay() + 6) % 7

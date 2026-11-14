@@ -47,7 +47,7 @@ export class McpManager {
 
   async start(): Promise<void> {
     await Promise.allSettled(
-      [...this.servers.values()].map((s) => this.ensureConnected(s)),
+      [...this.servers.values()].flatMap((s) => this.ensureConnected(s) ?? []),
     );
     for (const s of this.servers.values()) {
       console.log(`[MCP] ${s.name}: ${s.status} (${s.tools.length} tools)`);

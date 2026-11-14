@@ -13,7 +13,7 @@ export const DISMISS_RATIO = 0.25
 export function shouldDismiss(dragOffsetY: number, sheetHeight: number): boolean {
   return sheetHeight > 0 && dragOffsetY > sheetHeight * DISMISS_RATIO
 }
-export function MobileSheet({ open, onClose, children }: { open: boolean; onClose(): void; children: ReactNode }) {
+export function MobileSheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
   const t = useTranslations('common'), tc = useTranslations('chat'), reduced = useReducedMotion()
   const sheet = useRef<HTMLDivElement>(null)
   const dragControls = useDragControls()

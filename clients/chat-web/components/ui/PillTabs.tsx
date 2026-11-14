@@ -17,7 +17,7 @@ export function PillTabs<T extends string>({
 }: {
   items: { value: T; label: string; badge?: string }[]
   value: T
-  onChange(value: T): void
+  onChange: (value: T) => void
   'aria-label': string
   layoutId: string
   onInk?: boolean
