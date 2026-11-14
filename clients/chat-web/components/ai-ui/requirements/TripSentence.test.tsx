@@ -64,16 +64,14 @@ it('typing a destination and pressing Enter commits it', async () => {
   expect(screen.getByRole('button', { name: /目的地: 札幌/ })).toBeInTheDocument()
 })
 
-it('an answered form shows what was submitted and offers no controls', () => {
-  renderWithProviders(
+it('an answered form steps aside: the reply below already lists the values', () => {
+  const { container } = renderWithProviders(
     <ComponentRenderer
       component={form()}
       mode={{ kind: 'answered', command: { type: 'submit_requirements', values: { destination: '大阪', departureDate: '2026-12-01', returnDate: '2026-12-05', travelers: 3, preferences: '' } } }}
     />,
   )
-  expect(screen.getByText('大阪')).toBeInTheDocument()
-  expect(screen.getByText('已提交')).toBeInTheDocument()
-  expect(screen.queryByRole('button')).toBeNull()
+  expect(container).toBeEmptyDOMElement()
 })
 
 it('a locked form shows its values without a submit button', () => {

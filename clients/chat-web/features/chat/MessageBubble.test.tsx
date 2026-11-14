@@ -54,3 +54,15 @@ it('默认锁定（旧版本或生成中）时组件只读', () => {
   renderWithProviders(<MessageBubble role="ASSISTANT" content="草稿" components={[buttons]} />)
   expect(screen.getByRole('button', { name: '确认路线' })).toBeDisabled()
 })
+
+it('文字和组件在同一个气泡里', () => {
+  renderWithProviders(<MessageBubble role="ASSISTANT" content="草稿" components={[buttons]} mode={{ kind: 'live', onCommand: vi.fn() }} />)
+  const bubble = screen.getByText('草稿').closest('[data-bubble]')
+  expect(bubble).toContainElement(screen.getByRole('button', { name: '确认路线' }))
+})
+
+it('已回答的按钮收起后，气泡里只剩文字', () => {
+  renderWithProviders(<MessageBubble role="ASSISTANT" content="草稿" components={[buttons]} mode={{ kind: 'answered', command: { type: 'confirm' } }} />)
+  expect(screen.queryByRole('button')).toBeNull()
+  expect(screen.getByText('草稿').closest('[data-bubble]')!.textContent).toBe('草稿')
+})

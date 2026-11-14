@@ -51,14 +51,27 @@ it('确认排在修改前面', () => {
   expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['确认路线', '修改需求'])
 })
 
-it('已回答的按钮组只显示当时的选择', () => {
-  renderWithProviders(<ComponentRenderer mode={{ kind: 'answered', command: { type: 'confirm' } }} component={reviewButtons} />)
-  expect(screen.getByText('确认路线')).toBeInTheDocument()
-  expect(screen.queryByText('修改需求')).toBeNull()
-  expect(screen.queryByRole('button')).toBeNull()
+it('已回答的按钮组不再渲染：选择已作为用户消息显示', () => {
+  const { container } = renderWithProviders(<ComponentRenderer mode={{ kind: 'answered', command: { type: 'edit' } }} component={reviewButtons} />)
+  expect(container).toBeEmptyDOMElement()
 })
 
 it('锁定且未回答的按钮组不可点击', () => {
   renderWithProviders(<ComponentRenderer mode={{ kind: 'locked' }} component={reviewButtons} />)
   for (const b of screen.getAllByRole('button')) expect(b).toBeDisabled()
+})
+
+it('已回答的选项卡片收起；结果卡片是内容，回答后仍然显示', () => {
+  const answered = { kind: 'answered', command: { type: 'set_trip_type', value: 'solo' } } as const
+  const { container } = renderWithProviders(<ComponentRenderer mode={answered} component={tripTypes} />)
+  expect(container).toBeEmptyDOMElement()
+  const cards: Component = {
+    type: 'cards',
+    items: [{
+      ref: 'h1', id: '1', title: { original: 'Hotel Kanra', translation: null }, address: null,
+      price: null, rating: null, url: 'https://rollinggo.ai/h/1', image: null, details: [], amenities: [], summary: null,
+    }],
+  }
+  renderWithProviders(<ComponentRenderer mode={answered} component={cards} />)
+  expect(screen.getByText('Hotel Kanra')).toBeInTheDocument()
 })
