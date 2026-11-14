@@ -155,3 +155,6 @@ vite.config.ts.timestamp-*
 
 # Old live-test reports, kept locally only
 docs/superpowers/reports/
+
+# verify-hilda skill: run logs and evidence
+/.verify/

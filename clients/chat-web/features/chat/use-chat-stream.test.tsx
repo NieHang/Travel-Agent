@@ -1,4 +1,5 @@
 import type {
+  Component,
   Message,
   Page,
   SendTurnRequest,
@@ -16,6 +17,7 @@ import { makeMessage, makeUser, sseBody, sseController } from '@/test/fixtures'
 import { createWrapper } from '@/test/render'
 import { apiUrl, server } from '@/test/server'
 import { useChatStream, type SendOutcome } from './use-chat-stream'
+import { useUIState } from './ui-state'
 
 const u = makeMessage({
   id: 'u1',
@@ -344,6 +346,11 @@ describe('useChatStream', () => {
     setStreamHandler(() =>
       sseResponse(sseBody([userMessage(), delta('好的'), errorEvent()])),
     )
+    server.use(
+      http.get(apiUrl('/api/conversations/:id/messages'), () =>
+        HttpResponse.json({ items: [aError, u], nextCursor: null }),
+      ),
+    )
     const hook = setup()
     const outcome = await act(() => hook.result.current.stream.send('c1', msg('x')))
     expect(outcome).toMatchObject({ ok: false, error: { code: 'MODEL_FAILED' } })
@@ -353,6 +360,40 @@ describe('useChatStream', () => {
       phase: 'idle',
       text: '',
     })
+  })
+
+  it('refetches messages and ui-state after an error so restored components use the active revision', async () => {
+    const components: Component[] = [{ type: 'buttons', buttons: [{ command: 'confirm', label: 'Confirm' }] }]
+    const restored = makeMessage({ ...aError, metadata: { revision: 1, components } })
+    const revisions: number[] = []
+    server.use(
+      http.get(apiUrl('/api/conversations/:id/ui-state'), () => {
+        const revision = postCalls > 0 ? 1 : 0
+        revisions.push(revision)
+        return HttpResponse.json({ revision, trip: null, components })
+      }),
+      http.get(apiUrl('/api/conversations/:id/messages'), () =>
+        HttpResponse.json({ items: postCalls > 0 ? [restored, u] : [], nextCursor: null }),
+      ),
+    )
+    setStreamHandler(() => sseResponse(sseBody([userMessage(), errorEvent(restored)])))
+    const { Wrapper } = createWrapper()
+    const hook = renderHook(() => ({
+      stream: useChatStream('c1'),
+      messages: useMessages('c1'),
+      uiState: useUIState('c1'),
+    }), { wrapper: Wrapper })
+    await waitFor(() => expect(hook.result.current.uiState.data?.revision).toBe(0))
+    await waitFor(() => expect(hook.result.current.messages.isSuccess).toBe(true))
+
+    const outcome = await act(() => hook.result.current.stream.send('c1', msg('x')))
+
+    expect(outcome).toMatchObject({ ok: false, error: { code: 'MODEL_FAILED' } })
+    await waitFor(() => expect(hook.result.current.uiState.data?.revision).toBe(1))
+    expect(revisions).toEqual([0, 1])
+    await waitFor(() => expect(hook.result.current.messages.data?.pages[0].items[0]).toMatchObject({
+      status: 'error', metadata: { revision: 1, components },
+    }))
   })
 
   it('手动停止（已有 delta）：缓存里多一条 partial 本地消息，内容为已累计文本，随后重新拉取消息', async () => {

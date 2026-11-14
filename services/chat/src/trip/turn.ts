@@ -45,21 +45,22 @@ export class TurnService {
       if (error instanceof CommandError) throw new HttpException(error.message, error.status);
       throw error;
     }
-    const claim = await this.prisma.conversation.updateMany({
-      where: { id: conversationId, tripRevision: request.revision },
-      data: { tripRevision: { increment: 1 } },
-    });
-    if (claim.count !== 1) throw new ConflictException('Trip state has changed');
-
-    const user = await this.saveUserMessage(conversationId, describe(request.command, copy(state.locale)));
-    yield { type: 'start', userMessage: toMessageContract(user) };
-    const context = await this.context(conversationId, user.id);
-    const current = new HumanMessage(user.content);
-    context.addMessage(current);
-
     let text = '';
-    let saved = false;
+    let turn:
+      | { status: 'unclaimed' }
+      | { status: 'preparing' | 'streaming'; userCreatedAt: Date }
+      | { status: 'saved' }
+      | { status: 'settled'; message: Message } = { status: 'unclaimed' };
+    let status: 'partial' | 'error' = 'partial';
     try {
+      const user = await this.saveUserMessage(conversationId, describe(request.command, copy(state.locale)), request.revision);
+      turn = { status: 'preparing', userCreatedAt: user.createdAt };
+      const context = await this.context(conversationId, user.id);
+      const current = new HumanMessage(user.content);
+      context.addMessage(current);
+      yield { type: 'start', userMessage: toMessageContract(user) };
+      turn = { status: 'streaming', userCreatedAt: user.createdAt };
+
       // Compact before classifying, so every model call of this turn gets the compacted context.
       await context.maybeCompact(signal);
       // classify and respond add this turn's message themselves.
@@ -113,18 +114,21 @@ export class TurnService {
       const reply = text || stageMessage(next, c);
       const components = render(next, c);
       const message = await this.saveTurn(conversationId, next, reply, components, user.createdAt);
-      saved = true;
+      turn = { status: 'saved' };
       yield { type: 'done', message, components, trip: toTripView(next) };
     } catch (error) {
       if (signal.aborted) return;
+      status = 'error';
+      if (turn.status !== 'streaming') throw error;
       this.logger.error(`Trip turn failed (${errorName(error)}) conversation=${conversationId}`);
-      const message = await this.saveAssistant(conversationId, text, 'error', user.createdAt, request.revision);
-      saved = true;
-      yield { type: 'error', code: 'MODEL_FAILED', message };
     } finally {
       // Reached on abort, including when the consumer stops iterating: keep what was streamed.
-      if (!saved) await this.saveAssistant(conversationId, text, 'partial', user.createdAt, request.revision);
+      if (turn.status === 'preparing' || turn.status === 'streaming') {
+        const message = await this.saveAssistant(conversationId, text, status, turn.userCreatedAt, state);
+        turn = { status: 'settled', message };
+      }
     }
+    if (turn.status === 'settled') yield { type: 'error', code: 'MODEL_FAILED', message: turn.message };
   }
 
   private async load(conversationId: string): Promise<TripState> {
@@ -135,12 +139,18 @@ export class TurnService {
     return readState(row.tripState, row.tripRevision);
   }
 
-  private async saveUserMessage(conversationId: string, content: string) {
-    const [row] = await this.prisma.$transaction([
-      this.prisma.message.create({ data: { conversationId, role: 'USER', content } }),
-      this.prisma.conversation.updateMany({ where: { id: conversationId, title: '' }, data: { title: deriveTitle(content) } }),
-    ]);
-    return row;
+  private async saveUserMessage(conversationId: string, content: string, revision: number) {
+    // A failed user save must roll back the claim without creating an orphan assistant reply.
+    return this.prisma.$transaction(async (tx) => {
+      const claim = await tx.conversation.updateMany({
+        where: { id: conversationId, tripRevision: revision },
+        data: { tripRevision: { increment: 1 } },
+      });
+      if (claim.count !== 1) throw new ConflictException('Trip state has changed');
+      const user = await tx.message.create({ data: { conversationId, role: 'USER', content } });
+      await tx.conversation.updateMany({ where: { id: conversationId, title: '' }, data: { title: deriveTitle(content) } });
+      return user;
+    });
   }
 
   /** The conversation's context; built from its saved messages the first time (e.g. after a restart). */
@@ -201,18 +211,22 @@ export class TurnService {
     content: string,
     status: 'partial' | 'error',
     userCreatedAt: Date,
-    revision: number,
+    state: TripState,
   ): Promise<Message> {
     const at = this.after(userCreatedAt);
-    const [row] = await this.prisma.$transaction([
-      this.prisma.message.create({ data: { conversationId, role: 'ASSISTANT', content, status, createdAt: at } }),
-      this.prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: at } }),
-      // Release the claim: the state did not advance, so the previous turn's components stay active.
-      this.prisma.conversation.updateMany({
-        where: { id: conversationId, tripRevision: revision + 1 },
-        data: { tripRevision: revision },
-      }),
-    ]);
+    const row = await this.prisma.$transaction(async (tx) => {
+      // Lock the row while checking ownership so a new claim cannot precede these components.
+      const owned = await tx.conversation.updateMany({
+        where: { id: conversationId, tripRevision: state.revision + 1 },
+        data: { updatedAt: at },
+      });
+      const metadata = owned.count === 1
+        ? { components: render(state, copy(state.locale)), revision: state.revision + 1 }
+        : undefined;
+      return tx.message.create({
+        data: { conversationId, role: 'ASSISTANT', content, status, createdAt: at, metadata: metadata as Prisma.InputJsonValue | undefined },
+      });
+    });
     this.remember(conversationId, content);
     return toMessageContract(row);
   }
