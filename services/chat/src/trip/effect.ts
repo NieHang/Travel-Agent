@@ -16,18 +16,20 @@ export type EffectEvent =
   /** The itinerary markdown while it is written, for the panel. */
   | { type: 'draft'; delta: string };
 
+export type EffectObservation = LoopEvent | { type: 'grounding'; kept: number; dropped: number };
+
 /**
  * The one fold from LLM events to state, shared by TurnService and the eval harness.
  * Mutates `input.state` (the reducer's output, owned by this turn) and returns the chat reply, or null when
  * the model wrote none. A failure throws before anything half-applied matters: the caller keeps the old state.
- * `observe` sees every raw loop event (the eval harness records tool calls with it).
+ * `observe` sees every raw loop event and the counts from grounding (the eval harness records tool calls with it).
  */
 export async function* runEffect(
   llm: TripLlm,
   effect: Exclude<Effect, null>,
   input: { text: string | null; state: TripState; history: BaseMessage[] },
   signal: AbortSignal,
-  observe?: (event: LoopEvent) => void,
+  observe?: (event: EffectObservation) => void,
 ): AsyncGenerator<EffectEvent, string | null> {
   const next = input.state;
   const target = effect.type === 'revise' ? effect.target : undefined;
@@ -57,6 +59,7 @@ export async function* runEffect(
         break;
       case 'show_results': {
         const group = groundResults(event.input, event.results);
+        observe?.({ type: 'grounding', kept: group.items.length, dropped: event.input.items.length - group.items.length });
         if (effect.type !== 'answer' && group.panel === 'hotels')
           next.stays = mergeStays(next.stays, group, new Set(next.days.flatMap((d) => d.stayRef ?? [])));
         else if (group.items.length) next.results.push(group);

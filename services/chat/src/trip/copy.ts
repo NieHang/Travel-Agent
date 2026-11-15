@@ -1,4 +1,5 @@
 import type { FormFieldName, TripType } from '@autix/contracts';
+import { z } from 'zod';
 
 const en = {
   japanDestinationTitle: 'Choose a destination in Japan',
@@ -36,6 +37,7 @@ const en = {
   nights: (from: number, to: number): string => (from === to ? `night ${from + 1}` : `nights ${from + 1}–${to + 1}`),
   chooseStay: (hotel: string, nights: string): string => `Stay at ${hotel} for ${nights}`,
   stayChosen: (hotel: string, nights: string): string => `Updated ${nights}: ${hotel}.`,
+  lookupHotels: (place: string): string => `Hotels in ${place}`,
 };
 export type Copy = typeof en;
 
@@ -74,8 +76,32 @@ const zh: Copy = {
   nights: (from: number, to: number): string => (from === to ? `第 ${from + 1} 晚` : `第 ${from + 1}–${to + 1} 晚`),
   chooseStay: (hotel: string, nights: string): string => `${nights}住${hotel}`,
   stayChosen: (hotel: string, nights: string): string => `已将${nights}改为${hotel}。`,
+  lookupHotels: (place: string): string => `${place}酒店`,
 };
 
 export function copy(locale: string): Copy {
   return locale.toLowerCase().startsWith('zh') ? zh : en;
+}
+
+const LookupArgsSchema = z.object({
+  place: z.string().optional(),
+  city: z.string().optional(),
+  query: z.string().optional(),
+  checkInParam: z.object({
+    checkInDate: z.string().date(),
+    stayNights: z.number().int().positive(),
+  }).optional(),
+});
+
+export function lookupSubject(tool: string, args: Record<string, unknown>, locale: string): string | null {
+  const parsed = LookupArgsSchema.safeParse(args);
+  if (!parsed.success) return null;
+  const { place, city, query, checkInParam } = parsed.data;
+  const location = place?.trim() || city?.trim();
+  const subject = location && tool.endsWith('searchHotels') ? copy(locale).lookupHotels(location) : location || query?.trim();
+  if (!subject) return null;
+  if (!checkInParam) return subject;
+  const end = new Date(checkInParam.checkInDate);
+  end.setUTCDate(end.getUTCDate() + checkInParam.stayNights);
+  return `${subject} · ${checkInParam.checkInDate.slice(5).replace('-', '/')}–${end.toISOString().slice(5, 10).replace('-', '/')}`;
 }
