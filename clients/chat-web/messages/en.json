@@ -61,8 +61,6 @@
     "assistantName": "Hilda",
     "online": "your travel agent · online",
     "typing": "typing…",
-    "stopped": "Stopped",
-    "failed": "Failed",
     "jumpToLatest": "Jump to latest",
     "chips": {
       "0": "Hotels under 1,000 CNY a night",
@@ -79,14 +77,26 @@
     "startNew": "Start a new chat",
     "sendFailed": "Couldn't send. Try again",
     "viewTrip": "View trip",
-    "progress": {
-      "waiting": "Understanding your request",
-      "searching": "Checking live data",
-      "writing": "Writing the reply",
-      "organizing": "Updating trip panels",
-      "completed": "Completed",
-      "failed": "Generation failed",
-      "cancelled": "Stopped"
+    "trace": {
+      "phase": {
+        "understanding": "Understanding your request",
+        "searching": "Checking live data",
+        "writing": "Writing the reply",
+        "organizing": "Updating trip panels"
+      },
+      "took": "Took {duration}",
+      "seconds": "{n}s",
+      "stopped": "Stopped · {phase}",
+      "stoppedPlain": "Stopped",
+      "failed": "Failed · {phase}",
+      "failedPlain": "Failed",
+      "retry": "Retry",
+      "resume": "Continue",
+      "verification": "Data checks",
+      "lookup": "{subject} · checked at {time}",
+      "lookupCount": "{n} results",
+      "lookupFailed": "Lookup failed",
+      "grounding": "{dropped, plural, =0 {{kept} results, all matching the looked-up data} other {{kept} results matched the looked-up data, {dropped} failed the check}}"
     }
   },
   "drawer": {

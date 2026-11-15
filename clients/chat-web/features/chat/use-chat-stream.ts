@@ -17,7 +17,7 @@ import { streamTurn } from './ui-stream-client'
 import { uiStateKey } from './ui-state'
 import {
   createAIUIStore,
-  type ProgressPhase,
+  type TraceStep,
   type StreamOutcome,
 } from '@/stores/ai-ui.store'
 import { useStore } from 'zustand'
@@ -59,7 +59,8 @@ export function useChatStream(conversationId: string | null): {
   draft: string
   activeConversationId: string | null
   components: Component[]
-  progressPhase: ProgressPhase | null
+  /** Phases the in-flight reply has reached. */
+  steps: TraceStep[]
   trip: TripView | null | undefined
   streamConversationId: string | null
   outcome: StreamOutcome
@@ -284,7 +285,7 @@ export function useChatStream(conversationId: string | null): {
     send,
     stop,
     components: ui.components,
-    progressPhase: ui.phase,
+    steps: ui.steps,
     trip: ui.trip,
     streamConversationId: ui.conversationId,
     outcome: ui.outcome,

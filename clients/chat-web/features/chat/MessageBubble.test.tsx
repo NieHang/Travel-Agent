@@ -9,34 +9,54 @@ it('用户消息保留换行', () => {
   expect(bubble.textContent).toBe('第一行\n第二行')
 })
 
-it('partial：下方标注「已停止」；error：标注「生成失败」', () => {
-  const { rerender } = renderWithProviders(
-    <MessageBubble role="ASSISTANT" content="好的" status="partial" />,
-  )
-  expect(screen.getByText('已停止')).toBeInTheDocument()
-  expect(screen.queryByText('生成失败')).not.toBeInTheDocument()
-  rerender(<MessageBubble role="ASSISTANT" content="好的" status="error" />)
-  expect(screen.getByText('生成失败')).toBeInTheDocument()
-  expect(screen.queryByText('已停止')).not.toBeInTheDocument()
+const trace = {
+  steps: [
+    { phase: 'understanding' as const, at: '2026-11-15T09:27:47.000Z' },
+    { phase: 'searching' as const, at: '2026-11-15T09:27:48.500Z' },
+    { phase: 'writing' as const, at: '2026-11-15T09:27:59.800Z' },
+  ],
+  endedAt: '2026-11-15T09:28:04.300Z',
+  verification: {
+    lookups: [{ tool: 'mcp_rollingGo_searchHotels', subject: '大阪酒店 · 12/20–12/22', at: '2026-11-15T09:27:52.000Z', ok: true, count: 8 }],
+    grounding: { kept: 3, dropped: 1 },
+  },
+}
+
+it('已完成：收成「用时」一行，展开后是各阶段与数据核验', async () => {
+  const { user } = renderWithProviders(<MessageBubble role="ASSISTANT" content="大阪 2 晚" trace={trace} />)
+  await user.click(screen.getByRole('button', { name: /用时 17 秒/ }))
+  expect(screen.getByText('理解需求')).toBeVisible()
+  expect(screen.getByText('11 秒')).toBeVisible()
+  expect(screen.getByText(/大阪酒店 · 12\/20–12\/22 · 查询于 .+ · 8 条结果/)).toBeVisible()
+  expect(screen.getByText('3 条结果与查询数据一致，1 条未通过核对')).toBeVisible()
 })
 
-it('complete 的助手消息没有标注', () => {
+it('已完成但没有过程记录（旧消息、按钮回合）：不显示过程行', () => {
   renderWithProviders(<MessageBubble role="ASSISTANT" content="好的" />)
-  expect(screen.queryByText('已停止')).not.toBeInTheDocument()
-  expect(screen.queryByText('生成失败')).not.toBeInTheDocument()
+  expect(screen.queryByText(/用时|已停止|生成失败/)).not.toBeInTheDocument()
 })
 
-it('内容为空的 error 消息只显示标注', () => {
-  const { container } = renderWithProviders(
-    <MessageBubble role="ASSISTANT" content="" status="error" />,
+it('已停止：写明停在哪个阶段，并可继续生成', async () => {
+  const onResume = vi.fn()
+  const { user } = renderWithProviders(
+    <MessageBubble role="ASSISTANT" content="" status="partial" trace={{ steps: trace.steps.slice(0, 2), endedAt: trace.endedAt }} onResume={onResume} />,
   )
-  expect(screen.getByText('生成失败')).toBeInTheDocument()
-  expect(container.querySelector('[data-bubble]')).toBeNull()
+  expect(screen.getByText('已停止 · 查询实时数据')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: '继续生成' }))
+  expect(onResume).toHaveBeenCalledOnce()
 })
 
-it('typing：显示三点跳动，读屏标签为「正在输入…」', () => {
-  renderWithProviders(<MessageBubble role="ASSISTANT" content="" typing />)
-  expect(screen.getByRole('status', { name: '正在输入…' })).toBeInTheDocument()
+it('生成失败且没有过程记录：仍在气泡里标注，并可重试', () => {
+  renderWithProviders(<MessageBubble role="ASSISTANT" content="" status="error" onResume={vi.fn()} />)
+  expect(screen.getByText('生成失败').closest('[data-bubble]')).not.toBeNull()
+  expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument()
+})
+
+it('生成中且还没有文字：列出已到达的阶段，最后一个为进行中', () => {
+  renderWithProviders(<MessageBubble role="ASSISTANT" content="" status="running" trace={{ steps: trace.steps.slice(0, 2) }} />)
+  const list = screen.getByRole('status')
+  expect(list).toHaveTextContent('理解需求')
+  expect(screen.getByText('查询实时数据')).toHaveClass('trace-shimmer')
 })
 
 const buttons = { type: 'buttons', buttons: [{ command: 'confirm', label: '确认路线' }] }

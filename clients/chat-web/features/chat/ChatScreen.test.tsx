@@ -335,7 +335,7 @@ it('会话不存在：显示「找不到这段对话」，按钮跳 /chat', asyn
   expect(nav.push).toHaveBeenCalledWith('/chat')
 })
 
-it('生成中：副标题为「正在输入…」，首个 delta 前显示三点；chip 隐藏', async () => {
+it('生成中：副标题为「正在输入…」，气泡里逐步显示到达的阶段，文字出现后收起；chip 隐藏', async () => {
   nav.path = '/chat/conv_1'
   onList({
     first: {
@@ -352,7 +352,7 @@ it('生成中：副标题为「正在输入…」，首个 delta 前显示三点
   ).toBeInTheDocument()
 
   await typeAndSend(user, '继续')
-  await screen.findByRole('status', { name: '正在输入…' })
+  expect(await screen.findByRole('status')).toHaveTextContent('理解需求')
   expect(screen.getByText('正在输入…', { selector: 'p' })).toBeInTheDocument()
   expect(
     screen.queryByRole('button', { name: '当地人去哪吃' }),
@@ -361,13 +361,17 @@ it('生成中：副标题为「正在输入…」，首个 delta 前显示三点
   act(() =>
     stream.push(
       ev.userMessage(userMsg({ conversationId: 'conv_1', content: '继续' })),
-      ev.delta('好'),
+      { type: 'status', phase: 'searching' },
     ),
   )
+  await waitFor(() =>
+    expect(screen.getByRole('status')).toHaveTextContent(/理解需求.*秒查询实时数据/),
+  )
+
+  act(() => stream.push({ type: 'status', phase: 'writing' }, ev.delta('好')))
   expect(await screen.findByText('好')).toBeInTheDocument()
-  expect(
-    screen.queryByRole('status', { name: '正在输入…' }),
-  ).not.toBeInTheDocument()
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /撰写回复/ })).toBeInTheDocument()
   act(() => stream.close())
 })
 
@@ -470,7 +474,10 @@ it('点击停止：已生成部分保留并标注「已停止」', async () => {
     content: '好的，我先',
     status: 'partial',
   })
-  const sent = userMsg({ conversationId: 'conv_1' })
+  const sent = userMsg({
+    conversationId: 'conv_1',
+    metadata: { command: { type: 'message', text: '里斯本 5 天' } },
+  })
   let afterStop = false
   server.use(
     http.get(apiUrl('/api/conversations/:id/messages'), () =>
@@ -493,6 +500,20 @@ it('点击停止：已生成部分保留并标注「已停止」', async () => {
   expect(await screen.findByText('已停止')).toBeInTheDocument()
   expect(screen.getByText('好的，我先')).toBeInTheDocument()
   expect(screen.getByText('里斯本 5 天')).toBeInTheDocument()
+
+  const bodies: unknown[] = []
+  server.use(
+    http.post(apiUrl('/api/conversations/:id/messages'), async ({ request }) => {
+      bodies.push(await request.json())
+      return sseResponse(sseController().body)
+    }),
+  )
+  await user.click(await screen.findByRole('button', { name: '继续生成' }))
+  await waitFor(() =>
+    expect(bodies).toEqual([
+      expect.objectContaining({ command: { type: 'message', text: '里斯本 5 天' } }),
+    ]),
+  )
 })
 
 it('暂存输入 { prompt }（新对话）：自动创建会话并发送，只发一次', async () => {
