@@ -8,8 +8,8 @@ const entry = ItineraryEntrySchema.parse({ id: 'l3-en-family', today: '2026-10-3
 function output(): TurnOutput {
   return {
     place: undefined,
-    classified: { intent: 'plan', locale: 'en', clarify: null, patch: { destination: null, tripType: null, departureDate: null, returnDate: null, travelers: null, preferences: null, budget: null, budgetCurrency: null } },
-    next: { ...initialState(0, 'en'), stage: 'review', checkedDestination: 'Osaka', requirements: { destination: 'Osaka', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4, tripType: 'family' }, days: [0, 1, 2].map((i) => ({ title: `Day ${i + 1}`, stayRef: null, stops: [{ name: 'Osaka Castle', note: null, time: null }] })) },
+    classified: { intent: 'plan', locale: 'en', clarify: null, revise: null, patch: { destination: null, tripType: null, departureDate: null, returnDate: null, travelers: null, preferences: null, budget: null, budgetCurrency: null } },
+    next: { ...initialState(0, 'en'), stage: 'review', checkedDestination: 'Osaka', requirements: { destination: 'Osaka', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4, tripType: 'family' }, days: [0, 1, 2].map((i) => ({ title: `Day ${i + 1}`, body: '', stayRef: null, stops: [{ name: 'Osaka Castle', note: null, time: null }] })) },
     effect: 'itinerary', draft: 'Overview\nDay 1\nDay 2\nAlternative: rest\nDay 3\nBefore you go\napprox.',
     loaded: ['japan-osaka'], calls: [], toolCalls: [], toolResults: [],
   };

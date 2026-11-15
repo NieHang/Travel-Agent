@@ -1,8 +1,8 @@
-import type { TripDay } from '../../src/trip/state.js';
+import type { PlanDay } from '../../src/trip/itinerary.js';
 import type { ExtractDaysEntry, Score } from '../schemas.js';
 import { TRAVEL_LEG } from '../travel-leg.js';
 
-export function gradeExtractDays(actual: TripDay[], expected: ExtractDaysEntry['expected']): Score[] {
+export function gradeExtractDays(actual: Pick<PlanDay, 'stops' | 'stayRef'>[], expected: ExtractDaysEntry['expected']): Score[] {
   const count = Math.max(actual.length, expected.days.length);
   const positions = Array.from({ length: count }, (_, i) => ({ actual: actual[i], expected: expected.days[i] }));
   const f1 = positions.map(({ actual: day, expected: target }) => {

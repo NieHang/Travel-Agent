@@ -216,17 +216,3 @@ function fromCopy(item: ResultItemInput, content: string): GroundedItem | null {
     summary: item.summary,
   };
 }
-
-/** Itinerary hotels from several show_results calls, renumbered h1… so days can reference them. */
-export function mergeStays(stays: ResultGroup | null, group: ResultGroup): ResultGroup {
-  const items = [...(stays?.items ?? []), ...group.items]
-    .slice(0, 20)
-    .map((item, i) => ({ ...item, ref: `h${i + 1}` }));
-  return { panel: 'hotels', items };
-}
-
-/** A day can only point at a verified hotel. */
-export function linkStays<T extends { stayRef: string | null }>(days: T[], stays: ResultGroup | null): T[] {
-  const refs = new Set(stays?.items.map((i) => i.ref) ?? []);
-  return days.map((d) => ({ ...d, stayRef: d.stayRef && refs.has(d.stayRef) ? d.stayRef : null }));
-}

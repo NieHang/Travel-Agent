@@ -1,5 +1,6 @@
 import { HumanMessage, ToolMessage, type AIMessageChunk, type BaseMessage } from '@langchain/core/messages';
 import { tool, type StructuredToolInterface } from '@langchain/core/tools';
+import { z } from 'zod';
 import type { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import { compactToolContent } from '../llm/mcp/compact.js';
 import {
@@ -19,6 +20,11 @@ export type LoopEvent =
   | { type: 'tool_call'; name: string; args: Record<string, unknown> }
   | { type: 'tool_results'; results: ToolResult[] }
   | { type: 'show_results'; input: ShowResultsInput; results: ToolResult[] }
+  /**
+   * A call to one of the draft-editing tools. The consumer validates it and may set `reply` before asking
+   * for the next event; the model gets that reply (default "ok") as the tool result, so it can fix a rejected edit.
+   */
+  | { type: 'edit'; call: EditCall; results: ToolResult[]; reply?: string }
   | { type: 'text'; delta: string }
   // The text streamed in a round that ended with tool calls was narration ("I'll search hotels..."), not the reply.
   | { type: 'discard_text' };
@@ -28,6 +34,39 @@ export interface StreamingModel {
     messages: BaseMessage[],
     options: { signal: AbortSignal; tool_choice?: 'none'; runName?: string },
   ): Promise<AsyncIterable<AIMessageChunk>>;
+}
+
+export const WRITE_DAY = 'write_day';
+export const WRITE_PREAMBLE = 'write_preamble';
+export const USE_STAY = 'use_stay';
+
+const EDIT_SCHEMAS = {
+  [WRITE_DAY]: z.object({
+    day: z.number().int().describe('The day number, as in the [D#] tag of serverContext.plan.'),
+    markdown: z.string().describe('The whole day in the draft format: its "Day N | …" header line, timeline, alternatives line and hotel line.'),
+  }),
+  [WRITE_PREAMBLE]: z.object({
+    markdown: z.string().describe('The draft text before the first day: title, overview and before-you-go, in the draft format.'),
+  }),
+  [USE_STAY]: z.object({
+    hotelId: z.string().describe('The provider hotelId, copied exactly from a tool result you showed with show_results.'),
+    days: z.array(z.number().int()).describe('The day numbers whose night is spent at this hotel.'),
+  }),
+};
+export type EditCall = { [K in keyof typeof EDIT_SCHEMAS]: { name: K; args: z.infer<(typeof EDIT_SCHEMAS)[K]> } }[keyof typeof EDIT_SCHEMAS];
+
+/** The tools a revise turn edits the draft with; the loop never runs them, it reports them as `edit` events. */
+export const editTools = [
+  tool(async () => 'ok', { name: WRITE_DAY, description: 'Replace one day of the draft.', schema: EDIT_SCHEMAS[WRITE_DAY] }),
+  tool(async () => 'ok', { name: WRITE_PREAMBLE, description: 'Replace the overview and before-you-go part of the draft.', schema: EDIT_SCHEMAS[WRITE_PREAMBLE] }),
+  tool(async () => 'ok', { name: USE_STAY, description: 'Put a hotel on the nights after the given days.', schema: EDIT_SCHEMAS[USE_STAY] }),
+];
+
+function parseEdit(name: string, args: unknown): EditCall | string | null {
+  if (name !== WRITE_DAY && name !== WRITE_PREAMBLE && name !== USE_STAY) return null;
+  const parsed = EDIT_SCHEMAS[name].safeParse(args);
+  if (!parsed.success) return `Invalid ${name} arguments: ${parsed.error.issues.map((i) => i.message).join('; ')}`;
+  return { name, args: parsed.data } as EditCall;
 }
 
 const FINAL_ROUND_NOTE =
@@ -102,6 +141,17 @@ export async function* streamToolLoop(
     if (calls.length) conversation.push(reply);
     for (const call of calls) {
       const callId = call.id ?? `${call.name}-${round}`;
+      const edit = parseEdit(call.name, call.args);
+      if (typeof edit === 'string') {
+        conversation.push(new ToolMessage({ tool_call_id: callId, content: edit }));
+        continue;
+      }
+      if (edit) {
+        const event: Extract<LoopEvent, { type: 'edit' }> = { type: 'edit', call: edit, results: [...results] };
+        yield event;
+        conversation.push(new ToolMessage({ tool_call_id: callId, content: event.reply ?? 'ok' }));
+        continue;
+      }
       if (call.name === SHOW_RESULTS) {
         const response = await showTool.invoke({ type: 'tool_call', id: callId, name: SHOW_RESULTS, args: call.args }, { signal, callbacks, runName: SHOW_RESULTS }).catch((error: unknown) => {
           if (signal.aborted) throw error;

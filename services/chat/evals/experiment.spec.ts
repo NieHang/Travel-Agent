@@ -14,7 +14,7 @@ const entry: ClassifyEntry = {
 it('runs a real fake-LLM classify task through grading and metering', async () => {
   const result = await executeItem(entry, new FakeTripLlm());
   expect(result.output).toEqual({
-    intent: 'plan', locale: 'zh', clarify: null,
+    intent: 'plan', locale: 'zh', clarify: null, revise: null,
     patch: { destination: '杭州', tripType: null, departureDate: null, returnDate: null, travelers: null, preferences: null, budget: null, budgetCurrency: null },
   });
   expect(result.scores).toContainEqual({ name: 'patch_exact', value: 1 });
@@ -56,7 +56,7 @@ it('keeps a failed task as a zero-scored item with its error', async () => {
 it('summarizes fake extraction as stop names and stays', async () => {
   const extraction: ExtractDaysEntry = {
     id: 'ext-zh-01', category: 'single_city', locale: 'zh', today: '2026-10-30',
-    draft: '## 杭州行程草稿', stays: null,
+    draft: '## 杭州行程草稿\n\n**第 1 天 | 杭州市区漫步**', stays: null,
     expected: { days: [{ stops: ['杭州市区漫步'], stayRef: null }] },
   };
   const result = await executeItem(extraction, new FakeTripLlm());

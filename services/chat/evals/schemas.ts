@@ -54,7 +54,8 @@ export type Entry = ClassifyEntry | ExtractDaysEntry | ItineraryEntry;
 
 export const TurnOutputSchema = z.object({
   classified: ClassifiedSchema, place: PlaceSchema.extend({ destination: z.string() }).optional(),
-  next: TripStateSchema, effect: z.enum(['answer', 'itinerary']).nullable(), draft: z.string(),
+  next: TripStateSchema, effect: z.enum(['answer', 'itinerary', 'revise']).nullable(), draft: z.string(),
+  reply: z.string().nullable().optional(),
   loaded: z.array(z.string()), calls: z.array(z.string()),
   toolCalls: z.array(z.object({ name: z.string(), args: z.record(z.unknown()) })), toolResults: z.array(ToolResultSchema),
 });

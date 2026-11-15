@@ -31,6 +31,11 @@ const en = {
   edit: 'Edit requirements',
   resume: 'Return to itinerary planning',
   separator: ': ',
+  draftReady: (overview: string | null): string =>
+    `${overview ? `${overview}\n\n` : ''}The full itinerary is in the trip panel.`,
+  nights: (from: number, to: number): string => (from === to ? `night ${from + 1}` : `nights ${from + 1}–${to + 1}`),
+  chooseStay: (hotel: string, nights: string): string => `Stay at ${hotel} for ${nights}`,
+  stayChosen: (hotel: string, nights: string): string => `Updated ${nights}: ${hotel}.`,
 };
 export type Copy = typeof en;
 
@@ -65,6 +70,10 @@ const zh: Copy = {
   edit: '修改需求',
   resume: '返回路线规划',
   separator: '：',
+  draftReady: (overview: string | null): string => `${overview ? `${overview}\n\n` : ''}完整行程在行程面板中。`,
+  nights: (from: number, to: number): string => (from === to ? `第 ${from + 1} 晚` : `第 ${from + 1}–${to + 1} 晚`),
+  chooseStay: (hotel: string, nights: string): string => `${nights}住${hotel}`,
+  stayChosen: (hotel: string, nights: string): string => `已将${nights}改为${hotel}。`,
 };
 
 export function copy(locale: string): Copy {

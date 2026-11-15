@@ -3,8 +3,6 @@ import {
   appears,
   groundResults,
   hasNumber,
-  linkStays,
-  mergeStays,
   ShowResultsInputSchema,
   type ToolResult,
 } from './results.js';
@@ -207,24 +205,5 @@ describe('groundResults: copy-and-check', () => {
       results,
     ).items;
     expect(item.title.translation).toBeNull();
-  });
-});
-
-describe('mergeStays / linkStays', () => {
-  const one = groundResults(input([base]), results);
-  it('appends groups and renumbers refs as h1…', () => {
-    const merged = mergeStays(mergeStays(null, one), one);
-    expect(merged.panel).toBe('hotels');
-    expect(merged.items.map((i) => i.ref)).toEqual(['h1', 'h2']);
-  });
-  it('keeps only refs that exist in the stays', () => {
-    const stays = mergeStays(null, one);
-    const days = [
-      { title: 'D1', stayRef: 'h1' },
-      { title: 'D2', stayRef: 'h9' },
-      { title: 'D3', stayRef: null },
-    ];
-    expect(linkStays(days, stays).map((d) => d.stayRef)).toEqual(['h1', null, null]);
-    expect(linkStays(days, null).map((d) => d.stayRef)).toEqual([null, null, null]);
   });
 });

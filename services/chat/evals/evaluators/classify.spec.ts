@@ -2,7 +2,7 @@ import type { Classified } from '../../src/trip/commands.js';
 import { gradeClassify, gradeClarify } from './classify.js';
 
 const actual: Classified = {
-  intent: 'plan', locale: 'en', clarify: null,
+  intent: 'plan', locale: 'en', clarify: null, revise: null,
   patch: { destination: 'Kyoto', tripType: null, departureDate: null, returnDate: null, travelers: null, preferences: null, budget: null, budgetCurrency: null },
 };
 

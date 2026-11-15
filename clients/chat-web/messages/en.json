@@ -147,7 +147,9 @@
       "budget": "Budget {amount} {currency}",
       "waiting": "Complete your requirements to generate a draft",
       "noResults": "No verified results available yet",
-      "empty": "Your itinerary will appear here when you start planning"
+      "empty": "Your itinerary will appear here when you start planning",
+      "night": "Night {n}",
+      "nights": "Nights {from}–{to}"
     }
   },
   "resultCard": {

@@ -12,7 +12,7 @@ import { HotelsPanel } from './HotelsPanel'
 import { RoutesPanel } from './RoutesPanel'
 import { HotspotsPanel } from './HotspotsPanel'
 import type { PanelTab, TripMock } from './mock/types'
-import type { TripView } from '@autix/contracts'
+import type { Command, TripView } from '@autix/contracts'
 import { LiveTripPanels } from './LiveTripPanels'
 
 export function PanelTabs({
@@ -60,12 +60,18 @@ const PANELS = {
 export function TripPanels({
   tab,
   data,
+  draft,
+  busy,
+  onCommand,
 }: {
   tab: PanelTab
   data: TripMock | TripView | null
+  draft?: string
+  busy?: boolean
+  onCommand?: (command: Command) => void
 }) {
   if (data === null || 'revision' in data)
-    return <LiveTripPanels tab={tab} data={data} />
+    return <LiveTripPanels tab={tab} data={data} draft={draft} busy={busy} onCommand={onCommand} />
   return <SampleTripPanels tab={tab} data={data} />
 }
 function SampleTripPanels({ tab, data }: { tab: PanelTab; data: TripMock }) {

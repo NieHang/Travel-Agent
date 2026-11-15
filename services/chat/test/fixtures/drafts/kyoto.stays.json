@@ -1,0 +1,142 @@
+{
+ "panel": "hotels",
+ "items": [
+  {
+   "ref": "h1",
+   "id": "1549991",
+   "title": {
+    "original": "hotel MONday Kyoto Marutamachi",
+    "translation": null
+   },
+   "address": {
+    "original": "日本，京都府，京都，中京区，225 Shoshoicho, Nakagyo-ku",
+    "translation": null
+   },
+   "price": {
+    "amount": 1093.33,
+    "currency": "CNY"
+   },
+   "rating": 3.5,
+   "url": "https://rollinggo.cn/pages/hotel/detail/index?id=1549991&checkInDate=2026-11-22&checkOutDate=2026-11-25&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+   "image": "https://image-cdn.rollinggo.cn/6/Image/1549991/05eb4c25_b.jpg",
+   "details": [],
+   "amenities": [
+    {
+     "original": "行李寄存",
+     "translation": "Luggage storage"
+    },
+    {
+     "original": "24小时前台",
+     "translation": "24-hour front desk"
+    },
+    {
+     "original": "客房WIFI（免费）",
+     "translation": "Free in-room Wi-Fi"
+    },
+    {
+     "original": "提供大床房",
+     "translation": "Double rooms"
+    },
+    {
+     "original": "提供双床房",
+     "translation": "Twin rooms"
+    },
+    {
+     "original": "提供早餐",
+     "translation": "Breakfast available"
+    }
+   ],
+   "summary": "Central Nakagyo-ku base, approx. 1 km from the city centre; lowest price per night, good for a couple's 3-night stay."
+  },
+  {
+   "ref": "h2",
+   "id": "265237",
+   "title": {
+    "original": "Hotel M’s Est Shijo - Karasuma",
+    "translation": null
+   },
+   "address": {
+    "original": "京都府京都下京区Shimogyo-ku Motoakuojicho 41, 600-8091",
+    "translation": null
+   },
+   "price": {
+    "amount": 1738,
+    "currency": "CNY"
+   },
+   "rating": 3,
+   "url": "https://rollinggo.cn/pages/hotel/detail/index?id=265237&checkInDate=2026-11-22&checkOutDate=2026-11-25&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+   "image": "https://image-cdn.rollinggo.cn/Image/JP/265237/Featured%20Image/f0b0c78d_b.jpg",
+   "details": [],
+   "amenities": [
+    {
+     "original": "行李寄存",
+     "translation": "Luggage storage"
+    },
+    {
+     "original": "24小时前台",
+     "translation": "24-hour front desk"
+    },
+    {
+     "original": "客房WIFI（免费）",
+     "translation": "Free in-room Wi-Fi"
+    },
+    {
+     "original": "提供双床房",
+     "translation": "Twin rooms"
+    },
+    {
+     "original": "洗衣设施",
+     "translation": "Laundry facilities"
+    }
+   ],
+   "summary": "Shijo-Karasuma location, walkable to Nishiki Market and Gion; slightly higher nightly price."
+  },
+  {
+   "ref": "h3",
+   "id": "13249",
+   "title": {
+    "original": "Miyako Hotel Kyoto Hachijo",
+    "translation": null
+   },
+   "address": {
+    "original": "17 Nishi Kujoin-machi, Minami-ku",
+    "translation": null
+   },
+   "price": {
+    "amount": 1395.67,
+    "currency": "CNY"
+   },
+   "rating": 4,
+   "url": "https://rollinggo.cn/pages/hotel/detail/index?id=13249&checkInDate=2026-11-22&checkOutDate=2026-11-25&roomCount=1&adultCount=2&childCount=0&childAgeDetails=&utm_source=0A0N93",
+   "image": "https://image-cdn.rollinggo.cn/v2/13249/hotel/250716172104/0/image/68293259.jpg",
+   "details": [],
+   "amenities": [
+    {
+     "original": "行李寄存",
+     "translation": "Luggage storage"
+    },
+    {
+     "original": "24小时前台",
+     "translation": "24-hour front desk"
+    },
+    {
+     "original": "餐厅",
+     "translation": "Restaurant"
+    },
+    {
+     "original": "提供早餐",
+     "translation": "Breakfast available"
+    },
+    {
+     "original": "提供大床房",
+     "translation": "Double rooms"
+    },
+    {
+     "original": "提供双床房",
+     "translation": "Twin rooms"
+    }
+   ],
+   "summary": "4-star hotel near Kyoto Station; convenient for arrival and departure days."
+  }
+ ]
+}

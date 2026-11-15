@@ -46,13 +46,17 @@ export function fromLegacySnapshot(raw: unknown, revision: number): TripState | 
   const stage = STAGE_MAP[context.stage];
   if (!stage) return null;
   const language = context.preferredLocale ?? context.replyLanguage ?? 'zh';
-  const state: TripState = {
-    ...initialState(revision, language.toLowerCase().startsWith('zh') ? 'zh' : 'en'),
+  const { preamble: _, footer: __, ...fresh } = initialState(revision, language.toLowerCase().startsWith('zh') ? 'zh' : 'en');
+  // Read as a v2 state, so the draft is split into days the same way stored v2 drafts are.
+  const v2 = {
+    ...fresh,
+    version: 2,
     stage,
     requirements: merge({}, context.requirements).requirements,
     itinerary: context.itinerary,
     days: (trip?.days ?? []).map((d) => ({ ...d, stayRef: null })),
     toolResults: (context.query?.results ?? []).slice(-8).map((r, i) => ({ ...r, callId: `legacy-${i + 1}` })),
   };
-  return TripStateSchema.safeParse(state).success ? state : null;
+  const state = TripStateSchema.safeParse(v2);
+  return state.success ? state.data : null;
 }

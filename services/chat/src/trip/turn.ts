@@ -11,9 +11,8 @@ import { ContextManager } from '../llm/context-manager.js';
 import { CommandError, assertAllowed, reduce, uncheckedDestination } from './commands.js';
 import { copy } from './copy.js';
 import { TRIP_LLM, type TripLlm } from './llm.js';
-import { groundResults, linkStays, mergeStays } from './results.js';
+import { runEffect } from './effect.js';
 import { readState, toTripView, type TripState } from './state.js';
-import { MAX_STORED_RESULTS } from './tool-loop.js';
 import { describe, render, stageMessage } from './view.js';
 
 @Injectable()
@@ -54,7 +53,7 @@ export class TurnService {
       | { status: 'settled'; message: Message } = { status: 'unclaimed' };
     let status: 'partial' | 'error' = 'partial';
     try {
-      const user = await this.saveUserMessage(conversationId, describe(request.command, copy(state.locale)), loaded, request.command);
+      const user = await this.saveUserMessage(conversationId, describe(request.command, copy(state.locale), state), loaded, request.command);
       turn = { status: 'preparing', userCreatedAt: user.createdAt };
       const context = await this.context(conversationId, user.id);
       const current = new HumanMessage(user.content);
@@ -74,47 +73,31 @@ export class TurnService {
       const { state: next, effect } = reduce(state, command, classified, place);
       if (classified && !request.locale) next.locale = classified.locale;
 
+      let reply: string | null = null;
       if (effect) {
         const input = { text: command.type === 'message' ? command.text : null, state: next, history };
-        for await (const event of this.llm.respond(effect, input, signal)) {
-          signal.throwIfAborted();
-          switch (event.type) {
-            case 'tool_call':
-              yield { type: 'status', phase: 'searching' };
-              break;
-            case 'text':
-              if (!text) yield { type: 'status', phase: 'writing' };
-              text += event.delta;
-              yield { type: 'text', delta: event.delta };
-              break;
-            case 'discard_text':
-              // The client drops the streamed text when a search starts.
-              text = '';
-              yield { type: 'status', phase: 'searching' };
-              break;
-            case 'tool_results':
-              next.toolResults = event.results.slice(-MAX_STORED_RESULTS);
-              break;
-            case 'show_results': {
-              const group = groundResults(event.input, event.results);
-              if (effect === 'itinerary' && group.panel === 'hotels') next.stays = mergeStays(next.stays, group);
-              else if (group.items.length) next.results.push(group);
+        const events = runEffect(this.llm, effect, input, signal);
+        try {
+          for (let step = await events.next(); ; step = await events.next()) {
+            signal.throwIfAborted();
+            if (step.done) {
+              reply = step.value;
               break;
             }
+            const event = step.value;
+            // Only chat text is kept as a partial reply; a half-written draft never lands in the chat.
+            if (event.type === 'text') text += event.delta;
+            if (event.type === 'status' && event.phase === 'searching') text = '';
+            yield event;
           }
+        } finally {
+          await events.return(null);
         }
-      }
-      if (effect === 'itinerary') {
-        if (!text.trim()) throw new Error('Empty itinerary');
-        next.itinerary = text;
-        yield { type: 'status', phase: 'organizing' };
-        next.days = linkStays(await this.llm.extractDays(text, next.stays, next.locale, signal), next.stays);
       }
       signal.throwIfAborted();
       const c = copy(next.locale);
-      const reply = text || stageMessage(next, c);
       const components = render(next, c);
-      const message = await this.saveTurn(conversationId, next, reply, components, user.createdAt);
+      const message = await this.saveTurn(conversationId, next, reply ?? stageMessage(next, c, command), components, user.createdAt);
       turn = { status: 'saved' };
       yield { type: 'done', message, components, trip: toTripView(next) };
     } catch (error) {

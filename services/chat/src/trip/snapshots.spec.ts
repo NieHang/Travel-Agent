@@ -37,10 +37,20 @@ describe('frozen persisted snapshots', () => {
       expect(TripStateSchema.safeParse(readFixture(file)).success).toBe(true);
     });
 
-    it('reads all frozen fields without silently resetting, using the column revision', () => {
-      const raw = readFixture(file);
+    it('upgrades to v3 without silently resetting, using the column revision', () => {
+      const { version: _, itinerary, days, ...raw } = readFixture(file);
+      const state = readState(readFixture(file), 91);
       // Compare with the original JSON, not schema output that could strip lost data.
-      expect(readState(raw, 91)).toMatchObject({ ...raw, revision: 91 });
+      expect(state).toMatchObject({ ...raw, version: 3, revision: 91 });
+      expect(state.days.map(({ title, stops, stayRef }) => ({ title, stops, stayRef }))).toEqual(days);
+      // Every line of the stored draft is still in the derived markdown.
+      const markdown = toTripView(state)?.itineraryMarkdown ?? '';
+      for (const line of z.string().nullable().parse(itinerary)?.split('\n').filter((l) => l.trim() && !l.startsWith('## Day')) ?? [])
+        expect(markdown).toContain(line);
+    });
+
+    it('reads the same state twice, as the turn claim requires', () => {
+      expect(readState(readFixture(file), 91)).toStrictEqual(readState(readFixture(file), 91));
     });
 
     it('renders components accepted by the frontend history contract', () => {
@@ -61,7 +71,7 @@ describe('frozen persisted snapshots', () => {
     const state = fromLegacySnapshot(raw, 91);
     expect(TripStateSchema.safeParse(state).success).toBe(true);
     expect(state).toMatchObject({
-      version: 2,
+      version: 3,
       revision: 91,
       requirements: {
         destination: requirements.destination,
@@ -70,9 +80,9 @@ describe('frozen persisted snapshots', () => {
         returnDate: requirements.returnDate,
         travelers: requirements.travelers,
       },
-      itinerary: context.itinerary,
-      days: trip.days,
+      preamble: context.itinerary,
     });
+    expect(state?.days.map(({ title, stops }) => ({ title, stops }))).toEqual(trip.days);
     expect(readState(state, 92)).toMatchObject({ ...state, revision: 92 });
   });
 
@@ -81,7 +91,7 @@ describe('frozen persisted snapshots', () => {
     expect(state).toMatchObject({
       stage: 'review',
       locale: 'en',
-      itinerary: '# 草稿',
+      preamble: '# 草稿',
       days: [{ title: '第 1 天', stops: [{ name: '西湖', note: null, time: null }], stayRef: null }],
       toolResults: [{ callId: 'legacy-1', tool: 'searchHotels', args: {}, content: '{}', isError: false }],
     });
@@ -96,7 +106,7 @@ describe('frozen persisted snapshots', () => {
       stage: 'review',
       requirements: { destination: 'Kyoto', travelers: 3, budget: 180000, budgetCurrency: 'JPY' },
     });
-    expect(state.itinerary).toContain('## Day 3\nVisit a garden before departure.');
+    expect(toTripView(state)?.itineraryMarkdown).toContain('**Day 3: Gardens and departure**\nVisit a garden before departure.');
     expect(state.days).toHaveLength(3);
     expect(state.days.map((day) => day.stayRef)).toEqual(['h1', 'h1', null]);
     expect(state.toolResults.map((result) => [result.callId, result.tool])).toEqual([
@@ -110,6 +120,7 @@ describe('frozen persisted snapshots', () => {
         { title: 'Day 2: Arashiyama', stay: { ref: 'h1', title: { original: 'Kyoto Garden Hotel' } } },
         { title: 'Day 3: Gardens and departure', stay: null },
       ],
+      stayPlan: [{ nights: { from: 0, to: 1 }, stay: { ref: 'h1' } }],
       hotels: [{ price: { amount: 24000, currency: 'JPY' }, amenities: [{ original: 'Family rooms' }, { original: 'Breakfast' }] }],
       routes: [{ title: { original: 'Kyoto Station to Arashiyama' } }],
       hotspots: [{ title: { original: 'Bamboo Grove', translation: '竹林小径' } }],

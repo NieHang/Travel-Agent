@@ -1,6 +1,7 @@
 // Live check of the trip prompts against the configured model and MCP servers.
 // Usage: bun run scripts/test-trip-live.ts (PRINT_DRAFT=1 also prints the Tokyo→Osaka drafts)
 import 'dotenv/config';
+import { AIMessage, HumanMessage, type BaseMessage } from '@langchain/core/messages';
 import { hasOsakaStay } from '../evals/evaluators/itinerary.js';
 import { legDetails, TRAVEL_LEG } from '../evals/travel-leg.js';
 import { McpService } from '../src/llm/mcp/mcp.service.js';
@@ -146,6 +147,36 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   if (!(nights.length >= 2 && nights.every((n) => n >= 2))) console.log(`  overview nights: ${JSON.stringify(nights)}`);
   if (process.env.PRINT_DRAFT) console.log(japan.draft);
   console.log(`${locale}: loaded ${JSON.stringify(japan.loaded)}, days ${japan.next.days.length}, draft ${japan.draft.length} chars, tool calls ${JSON.stringify(japan.calls)}`);
+}
+
+// Multi-turn: edits change only the part they name.
+for (const locale of ['en', 'zh'] as Locale[]) {
+  const zh = locale === 'zh';
+  const history: BaseMessage[] = [];
+  const say = async (state: TripState, text: string) => {
+    const out = await runTurn(llm, state, text, { history: [...history] });
+    history.push(new HumanMessage(text), new AIMessage(out.reply ?? ''));
+    return out;
+  };
+  const draft = await say(initialState(0, locale), zh ? '帮我规划京都情侣游，2026-11-22 到 2026-11-25，2 个人' : "Plan a couple's trip to Kyoto, 2026-11-22 to 2026-11-25, 2 people");
+  check(`${locale}: kyoto draft reaches review`, draft.effect === 'itinerary' && draft.next.days.length >= 4);
+  check(`${locale}: kyoto draft links every night to a stay`, draft.next.days.slice(0, 3).every((d) => d.stayRef));
+  check(`${locale}: draft reply is a summary, not the plan`, (draft.reply ?? '').length < 600 && !/Day 2 \||第\s*2\s*天/.test(draft.reply ?? ''));
+
+  const lighter = await say(draft.next, zh ? '第三天太累了，能轻松一点吗？' : 'Day 3 looks too tiring, can you make it lighter?');
+  check(`${locale}: "day 3 lighter" is a revise of day 3`, lighter.effect === 'revise' && lighter.next.days[2] !== undefined);
+  const others = [0, 1, 3].every((i) => JSON.stringify(lighter.next.days[i]) === JSON.stringify(draft.next.days[i]));
+  check(`${locale}: other days are unchanged`, others);
+  check(`${locale}: day 3 changed`, JSON.stringify(lighter.next.days[2]) !== JSON.stringify(draft.next.days[2]));
+  check(`${locale}: every hotel is unchanged`, lighter.next.days.every((d, i) => d.stayRef === draft.next.days[i].stayRef));
+  check(`${locale}: revise reply is short`, Boolean(lighter.reply) && (lighter.reply ?? '').length < 600);
+  if (!others || lighter.effect !== 'revise') console.log(`  classified ${JSON.stringify(lighter.classified)}, reply ${JSON.stringify(lighter.reply)}`);
+
+  const cheaper = await say(lighter.next, zh ? '酒店换一家便宜点的' : 'Can we stay somewhere cheaper?');
+  check(`${locale}: "cheaper hotel" revises nights only`, cheaper.effect === 'revise' && cheaper.next.days.every((d, i) => d.title === lighter.next.days[i].title && d.body === lighter.next.days[i].body));
+  const price = (state: TripState) => state.stays?.items.find((h) => h.ref === state.days[0].stayRef)?.price?.amount ?? Infinity;
+  check(`${locale}: the new hotel is cheaper`, price(cheaper.next) < price(lighter.next));
+  if (process.env.PRINT_DRAFT) console.log(cheaper.reply);
 }
 
 await mcp.mcpManager.close();
