@@ -1,8 +1,8 @@
 import { createStore } from 'zustand/vanilla'
-import type { Component, StatusPhase, TripStreamEvent, TripView } from '@autix/contracts'
+import type { Component, TracePhase, TripStreamEvent, TripView, TurnTrace } from '@autix/contracts'
 
 export type StreamOutcome = 'running' | 'completed' | 'failed' | 'cancelled'
-export type ProgressPhase = 'waiting' | StatusPhase
+export type TraceStep = TurnTrace['steps'][number]
 
 type State = {
   requestId: string | null
@@ -11,15 +11,20 @@ type State = {
   /** The itinerary markdown while it is written; shown in the panel, never in the chat. */
   draft: string
   components: Component[]
-  phase: ProgressPhase | null
+  /** Phases this reply has reached, in the same shape the server saves as the message's trace. */
+  steps: TraceStep[]
   trip: TripView | null | undefined
   revision: number | undefined
   outcome: StreamOutcome
   terminal: boolean
 }
 const idle: State = {
-  requestId: null, conversationId: null, text: '', draft: '', components: [], phase: null,
+  requestId: null, conversationId: null, text: '', draft: '', components: [], steps: [],
   trip: undefined, revision: undefined, outcome: 'cancelled', terminal: true,
+}
+
+function reach(steps: TraceStep[], phase: TracePhase): TraceStep[] {
+  return steps.at(-1)?.phase === phase ? steps : [...steps, { phase, at: new Date().toISOString() }]
 }
 
 export function createAIUIStore() {
@@ -31,22 +36,25 @@ export function createAIUIStore() {
   }>((set, get) => ({
     ...idle,
     begin: (requestId, conversationId) =>
-      set({ ...idle, requestId, conversationId, phase: 'waiting', outcome: 'running', terminal: false }),
+      set({ ...idle, requestId, conversationId, steps: reach([], 'understanding'), outcome: 'running', terminal: false }),
     receive: (id, event) => {
       if (get().requestId !== id || get().terminal) return
+      const steps = get().steps
       switch (event.type) {
         case 'start':
           break
         case 'status':
-          set(event.phase === 'searching' ? { phase: event.phase, text: '', draft: '' } : { phase: event.phase })
+          set(event.phase === 'searching'
+            ? { steps: reach(steps, event.phase), text: '', draft: '' }
+            : { steps: reach(steps, event.phase) })
           break
+        // Only status events move the phase, matching the trace the server saves.
         case 'text':
-          set({ text: get().text + event.delta, phase: 'writing' })
+          set({ text: get().text + event.delta })
           break
         case 'draft':
-          set({ draft: get().draft + event.delta, phase: 'writing' })
+          set({ draft: get().draft + event.delta })
           break
-        // done/error keep the last phase so the ring can show 100% or the failure; cancel clears it.
         case 'done':
           set({
             terminal: true,
@@ -62,7 +70,7 @@ export function createAIUIStore() {
       }
     },
     cancel: (id) => {
-      if (get().requestId === id && !get().terminal) set({ terminal: true, outcome: 'cancelled', phase: null })
+      if (get().requestId === id && !get().terminal) set({ terminal: true, outcome: 'cancelled' })
     },
     reset: () => set(idle),
   }))

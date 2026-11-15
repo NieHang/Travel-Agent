@@ -1,0 +1,191 @@
+'use client'
+import { Button, Disclosure } from '@heroui/react'
+import type { Message, TraceVerification } from '@autix/contracts'
+import { AnimatePresence, motion } from 'motion/react'
+import { useFormatter, useTranslations } from 'next-intl'
+import { springs } from '@/lib/motion'
+import { useReducedMotion } from '@/lib/use-reduced-motion'
+import type { TraceStep } from '@/stores/ai-ui.store'
+
+export type ReplyTraceData = {
+  steps: TraceStep[]
+  /** Absent while the reply is still streaming. */
+  endedAt?: string
+  verification?: TraceVerification
+}
+
+export type ReplyStatus = Message['status'] | 'running'
+
+/**
+ * How a reply was produced, inside its bubble. While running with no text yet it lists the
+ * phases reached so far; once text streams in, or the reply is saved, it folds into one line
+ * that expands to the same list plus the paid-tier verification detail when the server sent it.
+ */
+export function ReplyTrace({
+  trace,
+  status,
+  folded,
+  onResume,
+}: {
+  trace: ReplyTraceData | null
+  status: ReplyStatus
+  folded: boolean
+  onResume?: () => void
+}) {
+  const t = useTranslations('chat.trace')
+  const reduced = useReducedMotion() ?? false
+  const steps = trace?.steps ?? []
+  const last = steps.at(-1)
+
+  if (!folded && status === 'running') {
+    return (
+      <ol role="status" aria-live="polite" className="flex flex-col gap-1">
+        <AnimatePresence initial={false}>
+          {steps.map((step, i) => (
+            <StepRow key={step.phase + step.at} step={step} next={steps[i + 1]} endedAt={trace?.endedAt} active={i === steps.length - 1} reduced={reduced} />
+          ))}
+        </AnimatePresence>
+      </ol>
+    )
+  }
+
+  const summary = summarize()
+  const detail = steps.length > 1 || trace?.verification
+  return (
+    <motion.div layout={!reduced} transition={springs.smooth} className="flex items-center gap-2">
+      {detail ? (
+        <Disclosure className="min-w-0 flex-1">
+          <Disclosure.Heading>
+            <Disclosure.Trigger className="flex items-center gap-1 text-sm text-ink/60 hover:text-ink">
+              <Summary text={summary} status={status} />
+              <Disclosure.Indicator className="ms-0" />
+            </Disclosure.Trigger>
+          </Disclosure.Heading>
+          <Disclosure.Content>
+            <Disclosure.Body className="px-0 pt-2 pb-0">
+              <ol className="flex flex-col gap-1">
+                {steps.map((step, i) => (
+                  <StepRow key={step.phase + step.at} step={step} next={steps[i + 1]} endedAt={trace?.endedAt} active={false} interrupted={i === steps.length - 1 && status !== 'complete' && status !== 'running'} reduced />
+                ))}
+              </ol>
+              {trace?.verification ? <Verification data={trace.verification} /> : null}
+            </Disclosure.Body>
+          </Disclosure.Content>
+        </Disclosure>
+      ) : (
+        <span className="min-w-0 flex-1 text-sm text-ink/60">
+          <Summary text={summary} status={status} />
+        </span>
+      )}
+      {onResume ? (
+        <Button size="sm" variant="ghost" onPress={onResume} className="shrink-0 text-ink">
+          {status === 'error' ? t('retry') : t('resume')}
+        </Button>
+      ) : null}
+    </motion.div>
+  )
+
+  function summarize(): string {
+    const phase = last ? t(`phase.${last.phase}`) : null
+    switch (status) {
+      case 'running':
+        return phase ?? ''
+      case 'partial':
+        return phase ? t('stopped', { phase }) : t('stoppedPlain')
+      case 'error':
+        return phase ? t('failed', { phase }) : t('failedPlain')
+      case 'complete':
+        return trace?.endedAt && steps[0] ? t('took', { duration: t('seconds', { n: secondsBetween(steps[0].at, trace.endedAt) }) }) : ''
+    }
+  }
+}
+
+/** One decimal under ten seconds, whole seconds above. */
+function secondsBetween(from: string, to: string): number {
+  const s = (Date.parse(to) - Date.parse(from)) / 1000
+  return s < 10 ? Math.max(0.1, Math.round(s * 10) / 10) : Math.round(s)
+}
+
+function Summary({ text, status }: { text: string; status: ReplyStatus }) {
+  return <span className={status === 'running' ? 'trace-shimmer' : status === 'error' ? 'text-danger' : undefined}>{text}</span>
+}
+
+function StepRow({ step, next, endedAt, active, interrupted = false, reduced }: {
+  step: TraceStep
+  next: TraceStep | undefined
+  endedAt: string | undefined
+  active: boolean
+  interrupted?: boolean
+  reduced: boolean
+}) {
+  const t = useTranslations('chat.trace')
+  const end = next?.at ?? endedAt
+  const duration = !active && end ? secondsBetween(step.at, end) : null
+  return (
+    <motion.li
+      initial={reduced ? false : { opacity: 0, y: 6, filter: 'blur(2px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      transition={springs.smooth}
+      className="flex items-center gap-2 text-sm"
+    >
+      <span className="grid size-4 shrink-0 place-items-center" aria-hidden>
+        <AnimatePresence mode="wait" initial={false}>
+          {active ? (
+            <motion.span key="spin" exit={reduced ? undefined : { scale: 0.4, opacity: 0 }} className="block size-3.5 animate-spin rounded-full border-2 border-ink/20 border-t-ink motion-reduce:animate-none" />
+          ) : interrupted ? (
+            <motion.span key="stop" className="block size-2.5 rounded-xs bg-ink/50" />
+          ) : (
+            <Check key="check" reduced={reduced} />
+          )}
+        </AnimatePresence>
+      </span>
+      <span className={active ? 'trace-shimmer' : 'text-ink/70'}>{t(`phase.${step.phase}`)}</span>
+      {duration !== null && !interrupted ? (
+        <span className="text-xs text-ink/40 tabular-nums">
+          {t('seconds', { n: duration })}
+        </span>
+      ) : null}
+    </motion.li>
+  )
+}
+
+function Check({ reduced }: { reduced: boolean }) {
+  return (
+    <motion.svg viewBox="0 0 16 16" className="size-4 text-ink" initial={reduced ? false : { scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springs.snappy}>
+      <motion.path
+        d="M3.5 8.5l3 3 6-7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={reduced ? false : { pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.28, ease: 'easeOut' }}
+      />
+    </motion.svg>
+  )
+}
+
+function Verification({ data }: { data: TraceVerification }) {
+  const t = useTranslations('chat.trace')
+  const format = useFormatter()
+  if (!data.lookups.length && !data.grounding) return null
+  return (
+    <div className="mt-3 flex flex-col gap-1 border-t border-ink/10 pt-3 text-sm">
+      <span className="text-xs font-bold text-ink/60">{t('verification')}</span>
+      <ul className="flex flex-col gap-1 text-ink/70">
+        {data.lookups.map((lookup, i) => (
+          <li key={i} className={lookup.ok ? undefined : 'text-danger'}>
+            {t('lookup', {
+              subject: lookup.subject ?? lookup.tool,
+              time: format.dateTime(new Date(lookup.at), { hour: '2-digit', minute: '2-digit' }),
+            })}
+            {lookup.ok ? (lookup.count !== null ? ` · ${t('lookupCount', { n: lookup.count })}` : '') : ` · ${t('lookupFailed')}`}
+          </li>
+        ))}
+        {data.grounding ? <li>{t('grounding', data.grounding)}</li> : null}
+      </ul>
+    </div>
+  )
+}

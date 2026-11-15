@@ -27,7 +27,7 @@ export type PlanDay = z.infer<typeof PlanDaySchema>;
  */
 export type Plan = { preamble: string | null; days: PlanDay[]; footer: string; stays: ResultGroup | null };
 
-export type DraftDay = Omit<PlanDay, 'stops'>;
+type DraftDay = Omit<PlanDay, 'stops'>;
 export type Draft = { preamble: string; days: DraftDay[]; footer: string };
 
 /** A day header: the skill's "Day 3 | …" / "**第3天 | …**", and older drafts' "## Day 3" or "Day 3: …". */
@@ -100,7 +100,7 @@ export function renderPlan(plan: Plan, locale: Locale, options: { numbered?: boo
   return [plan.preamble, ...days, plan.footer].filter(Boolean).join('\n\n');
 }
 
-export function stayLine(item: ResultItem, locale: Locale): string {
+function stayLine(item: ResultItem, locale: Locale): string {
   const name = item.title.original;
   const price = item.price ? `${item.price.amount} ${item.price.currency}` : null;
   if (locale === 'zh') return `- 今晚：${name}${price ? `（每晚 ${price} 起）` : ''}`;

@@ -38,7 +38,6 @@ import { MessageList, SkeletonBubbles } from './MessageList'
 import { TopBar } from './TopBar'
 import { useChatStream, type SendOutcome } from './use-chat-stream'
 import { useStickToBottom } from './use-stick-to-bottom'
-import { StreamProgress } from './StreamProgress'
 import { uiStateKey, useUIState } from './ui-state'
 
 const CHIP_COUNT = 4
@@ -125,7 +124,7 @@ export function ChatScreen(): ReactNode {
     generating &&
     stream.activeConversationId === viewId &&
     stream.outcome !== 'completed'
-      ? { text: stream.text, components: stream.components }
+      ? { text: stream.text, components: stream.components, steps: stream.steps }
       : null
   const revision = uiState.data?.revision ?? 0
 
@@ -368,12 +367,6 @@ export function ChatScreen(): ReactNode {
               {t('viewTrip')}
             </PillButton>
           ) : null}
-          {stream.streamConversationId === viewId && (
-            <StreamProgress
-              phase={stream.progressPhase}
-              outcome={stream.outcome}
-            />
-          )}
           <Composer
             ref={composerRef}
             value={input}

@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl'
 import { PillButton } from '@/components/ui/PillButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { ComponentMode } from '@/components/ai-ui/ComponentRenderer'
+import type { TraceStep } from '@/stores/ai-ui.store'
 import { MessageBubble } from './MessageBubble'
 
 const LOCKED: ComponentMode = { kind: 'locked' }
@@ -25,6 +26,7 @@ const LOCKED: ComponentMode = { kind: 'locked' }
 export type PendingReply = {
   text: string
   components?: Component[]
+  steps: TraceStep[]
 }
 
 export function SkeletonBubbles({ count }: { count: number }) {
@@ -171,8 +173,10 @@ export function MessageList({
             role={message.role}
             content={message.content}
             status={message.status}
+            trace={message.metadata?.trace ?? null}
             components={message.metadata?.components}
             mode={mode}
+            onResume={index === messages.length - 1 && !generating && onCommand ? resumeCommand(messages, index, onCommand) : undefined}
           />
         )
       }),
@@ -186,7 +190,8 @@ export function MessageList({
         key={pendingKey}
         role="ASSISTANT"
         content={pending.text}
-        typing={pending.text === ''}
+        status="running"
+        trace={{ steps: pending.steps }}
         components={pending.components}
       />,
     )
@@ -217,4 +222,16 @@ export function MessageList({
       </div>
     </div>
   )
+}
+
+/**
+ * A failed or stopped reply resends the command that asked for it. Its trip state was never
+ * saved, so sending it again from the current revision picks up where the reply left off.
+ */
+function resumeCommand(messages: Message[], index: number, onCommand: (command: Command) => void) {
+  const reply = messages[index]
+  const asked = messages[index - 1]
+  if (reply?.role !== 'ASSISTANT' || reply.status === 'complete' || asked?.role !== 'USER') return undefined
+  const command = CommandSchema.safeParse(asked.metadata?.command)
+  return command.success ? () => onCommand(command.data) : undefined
 }

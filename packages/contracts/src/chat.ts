@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { RequirementSchema } from './requirement';
+import { TurnTraceSchema } from './trace';
 
 export const MessageMetadataSchema = z.object({
   /** USER messages: the command that produced this message; the client parses it with CommandSchema. */
@@ -10,6 +11,8 @@ export const MessageMetadataSchema = z.object({
   revision: z.number().int().nonnegative().optional(),
   requirements: z.array(RequirementSchema).optional(),
   requirementError: z.literal(true).optional(),
+  /** ASSISTANT trip replies. A malformed trace is dropped rather than nulling the whole metadata. */
+  trace: TurnTraceSchema.optional().catch(undefined),
 });
 export type MessageMetadata = z.infer<typeof MessageMetadataSchema>;
 

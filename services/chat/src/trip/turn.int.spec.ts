@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { AIMessage, type BaseMessage } from '@langchain/core/messages';
-import type { SendTurnRequest, TripStreamEvent } from '@autix/contracts';
+import { TurnTraceSchema, type SendTurnRequest, type TripStreamEvent } from '@autix/contracts';
 import { createTestApp, createUser } from '../../test/helpers/app.js';
 import { resetDb } from '../../test/helpers/db.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
@@ -150,7 +150,51 @@ describe('TurnService', () => {
     expect(end.message.content).toBe('你好');
     expect(end.components).toEqual([]);
     expect(end.trip).toBeNull();
+    expect(end.message.metadata?.trace).toMatchObject({
+      steps: [{ phase: 'understanding' }, { phase: 'writing' }],
+      verification: { lookups: [], grounding: null },
+    });
     expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(1);
+  });
+
+  it('persists a localized tool trace in the done event and reloaded history', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-15T12:00:00.000Z'));
+    try {
+      const args = { place: '大阪', checkInParam: { checkInDate: '2026-12-01', stayNights: 2, adultCount: 2 } };
+      const result = { ...hotelResult, args };
+      llm.classifications.push(planned({ destination: '大阪', tripType: 'solo', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 1 }));
+      llm.responses.push([
+        { type: 'tool_call', name: 'load_skill', args: { names: ['japan-osaka'] } },
+        { type: 'tool_call', name: 'searchHotels', args },
+        { type: 'tool_results', results: [result] },
+        { type: 'tool_results', results: [result] },
+        { type: 'show_results', input: { panel: 'hotels', items: [hotelItem, { ...hotelItem, source: 'missing' }] }, results: [result] },
+        { type: 'text', delta: DRAFT },
+      ]);
+      const end = done(await send({ revision: 0, command: { type: 'message', text: '大阪三天' } }));
+      const trace = TurnTraceSchema.parse(end.message.metadata?.trace);
+      expect(trace).toEqual({
+        steps: [
+          { phase: 'understanding', at: '2026-11-15T12:00:00.000Z' },
+          { phase: 'searching', at: '2026-11-15T12:00:00.000Z' },
+          { phase: 'writing', at: '2026-11-15T12:00:00.000Z' },
+          { phase: 'organizing', at: '2026-11-15T12:00:00.000Z' },
+        ],
+        endedAt: '2026-11-15T12:00:00.000Z',
+        verification: {
+          lookups: [{ tool: 'searchHotels', subject: '大阪酒店 · 12/01–12/03', at: '2026-11-15T12:00:00.000Z', ok: true, count: 1 }],
+          grounding: { kept: 1, dropped: 1 },
+        },
+      });
+      const row = await prisma.message.findUniqueOrThrow({ where: { id: end.message.id } });
+      expect(row.metadata).toEqual(end.message.metadata);
+      const { userId } = await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } });
+      const history = await app.get(ConversationsService).listMessages(userId, conversationId, { limit: 50 });
+      expect(history.items.find((message) => message.id === row.id)?.metadata).toEqual(end.message.metadata);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('refuses a destination without responding, saves the refusal and offers Japan destinations', async () => {
@@ -179,6 +223,7 @@ describe('TurnService', () => {
 
     end = done(await send({ revision: 1, command: { type: 'set_trip_type', value: 'family' } }));
     expect(end.components[0]).toMatchObject({ type: 'form' });
+    expect(end.message.metadata).not.toHaveProperty('trace');
 
     llm.responses.push([...searchAndShow('hotels'), { type: 'text', delta: DRAFT }]);
     const events = await send({
@@ -201,6 +246,7 @@ describe('TurnService', () => {
 
     end = done(await send({ revision: 3, command: { type: 'confirm' } }));
     expect(end.trip!.status).toBe('confirmed');
+    expect(end.message.metadata).not.toHaveProperty('trace');
   });
 
   it('leaves the narration before a search out of the saved itinerary', async () => {
@@ -245,14 +291,21 @@ describe('TurnService', () => {
   it('uses a tool from any server with no code changes', async () => {
     llm.classifications.push(chatted);
     const other = { callId: 'p1', tool: 'otherServer__places', args: {}, content: '{"places":[{"name":"Lingyin Temple"}]}', isError: false };
+    const failed = { callId: 'p2', tool: 'otherServer__places', args: { query: 'Kyoto temples' }, content: 'Tool failed', isError: true };
     llm.responses.push([
       { type: 'tool_call', name: 'otherServer__places', args: {} },
       { type: 'tool_results', results: [other] },
+      { type: 'tool_call', name: 'otherServer__places', args: failed.args },
+      { type: 'tool_results', results: [other, failed] },
       { type: 'show_results', input: { panel: 'hotspots', items: [{ ...hotelItem, source: 'p1', id: null, price: null, rating: null, amenities: [], title: { original: 'Lingyin Temple', translation: '灵隐寺' } }] }, results: [other] },
       { type: 'text', delta: '灵隐寺' },
     ]);
     const end = done(await send({ revision: 0, command: { type: 'message', text: '杭州有什么寺庙' } }));
     expect(end.trip!.hotspots.map((h) => h.title.original)).toEqual(['Lingyin Temple']);
+    expect(end.message.metadata?.trace?.verification?.lookups).toEqual([
+      { tool: 'otherServer__places', subject: null, at: expect.any(String), ok: true, count: null },
+      { tool: 'otherServer__places', subject: 'Kyoto temples', at: expect.any(String), ok: false, count: null },
+    ]);
   });
 
   describe('scoped edits', () => {
@@ -384,9 +437,12 @@ describe('TurnService', () => {
   });
 
   it('keeps the newer components active when an older turn stops after another tab commits', async () => {
+    llm.classifications.push(chatted);
+    llm.responses.push([...searchAndShow('hotels'), { type: 'text', delta: 'old reply' }]);
     const stream = turns.run(conversationId, { revision: 0, command: { type: 'message', text: 'hello' } }, new AbortController().signal);
     try {
       expect((await stream.next()).value).toMatchObject({ type: 'start' });
+      expect((await stream.next()).value).toMatchObject({ type: 'status', phase: 'searching' });
       expect((await turns.getState(conversationId)).revision).toBe(1);
       llm.classifications.push(planned({ destination: 'Tokyo' }));
       const next = done(await send({ revision: 1, command: { type: 'message', text: 'second tab' } }));
@@ -395,7 +451,10 @@ describe('TurnService', () => {
       await stream.return(undefined);
     }
     expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(2);
-    expect(await prisma.message.findFirstOrThrow({ where: { conversationId, status: 'partial' } })).toMatchObject({ metadata: null });
+    const assistant = await prisma.message.findFirstOrThrow({ where: { conversationId, status: 'partial' } });
+    const trace = TurnTraceSchema.parse((assistant.metadata as { trace: unknown }).trace);
+    expect(trace.steps.map((step) => step.phase)).toEqual(['understanding', 'searching']);
+    expect(assistant.metadata).toEqual({ trace });
   });
 
   it('refuses a turn that loaded the state another turn then saved at the same revision', async () => {
@@ -440,7 +499,7 @@ describe('TurnService', () => {
       expect((await first.next()).value).toMatchObject({ type: 'start' });
       expect((await second.next()).value).toMatchObject({ type: 'start' });
       llm.classifications.push(chatted);
-      expect((await first.next()).value).toMatchObject({ type: 'error', message: { status: 'error', metadata: null } });
+      expect((await first.next()).value).toMatchObject({ type: 'error', message: { status: 'error', metadata: { trace: { steps: [{ phase: 'understanding' }] } } } });
       expect((await second.next()).value).toMatchObject({ type: 'error', message: { status: 'error', metadata: { revision: 3, components: previous.components } } });
     } finally {
       await first.return(undefined);
@@ -452,7 +511,7 @@ describe('TurnService', () => {
 
   it('saves a partial message and keeps the state when aborted mid-stream', async () => {
     llm.classifications.push(chatted);
-    llm.responses.push([{ type: 'text', delta: '第一段' }]);
+    llm.responses.push([...searchAndShow('hotels'), { type: 'text', delta: '第一段' }]);
     llm.hang = true;
     const controller = new AbortController();
     const seen: TripStreamEvent['type'][] = [];
@@ -465,7 +524,13 @@ describe('TurnService', () => {
     expect(assistant).toMatchObject({ status: 'partial', content: '第一段' });
     const row = await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } });
     expect(row.tripState).toBeNull();
-    expect(assistant.metadata).toEqual({ revision: 1, components: [] });
+    const trace = TurnTraceSchema.parse((assistant.metadata as { trace: unknown }).trace);
+    expect(trace.steps.map((step) => step.phase)).toEqual(['understanding', 'searching', 'writing']);
+    expect(trace.verification).toEqual({
+      lookups: [{ tool: 'searchHotels', subject: null, at: expect.any(String), ok: true, count: 1 }],
+      grounding: { kept: 1, dropped: 0 },
+    });
+    expect(assistant.metadata).toEqual({ revision: 1, components: [], trace });
     expect(row.tripRevision).toBe(1);
     const state = await turns.getState(conversationId);
     expect(state).toEqual({ revision: 1, trip: null, components: [] });
@@ -473,9 +538,18 @@ describe('TurnService', () => {
 
   it('reports a model failure as an error event with a saved error message', async () => {
     llm.classifications.push(planned({ destination: '杭州', tripType: 'solo', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 1 }));
-    llm.responses.push([]);
+    llm.responses.push(searchAndShow('hotels'));
     const events = await send({ revision: 0, command: { type: 'message', text: '…' } });
     expect(events.at(-1)).toMatchObject({ type: 'error', code: 'MODEL_FAILED', message: { status: 'error' } });
+    const error = events.at(-1)!;
+    if (error.type !== 'error' || !error.message) throw new Error('Expected saved error message');
+    const trace = TurnTraceSchema.parse(error.message.metadata?.trace);
+    expect(trace.steps.map((step) => step.phase)).toEqual(['understanding', 'searching']);
+    expect(trace.verification).toEqual({
+      lookups: [{ tool: 'searchHotels', subject: null, at: expect.any(String), ok: true, count: 1 }],
+      grounding: { kept: 1, dropped: 0 },
+    });
+    expect((await prisma.message.findUniqueOrThrow({ where: { id: error.message.id } })).metadata).toEqual(error.message.metadata);
     expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripRevision).toBe(1);
   });
 

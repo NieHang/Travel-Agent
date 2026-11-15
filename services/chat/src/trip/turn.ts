@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import { ConflictException, HttpException, Inject, Injectable, Logger } from '@nestjs/common';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
-import type { Command, Component, Message, SendTurnRequest, TripStreamEvent, TripUIState } from '@autix/contracts';
+import type { Command, Component, Message, SendTurnRequest, TripStreamEvent, TripUIState, TurnTrace } from '@autix/contracts';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { toMessageContract } from '../conversations/conversations.service.js';
@@ -9,11 +9,12 @@ import { deriveTitle } from '../chat/derive-title.js';
 import { errorName } from '../common/error-name.js';
 import { ContextManager } from '../llm/context-manager.js';
 import { CommandError, assertAllowed, reduce, uncheckedDestination } from './commands.js';
-import { copy } from './copy.js';
+import { copy, lookupSubject } from './copy.js';
 import { TRIP_LLM, type TripLlm } from './llm.js';
 import { runEffect } from './effect.js';
 import { readState, toTripView, type TripState } from './state.js';
 import { describe, render, stageMessage } from './view.js';
+import { lookupCount, TurnTraceBuilder } from './trace.js';
 
 @Injectable()
 export class TurnService {
@@ -46,6 +47,12 @@ export class TurnService {
       throw error;
     }
     let text = '';
+    const trace = new TurnTraceBuilder();
+    const lookups = new Set<string>();
+    // A turn gets a trace from its first LLM call on; pure button turns never make one.
+    const understand = () => {
+      if (!trace.started) trace.record({ type: 'phase', phase: 'understanding', at: new Date().toISOString() });
+    };
     let turn:
       | { status: 'unclaimed' }
       | { status: 'preparing' | 'streaming'; userCreatedAt: Date }
@@ -66,17 +73,36 @@ export class TurnService {
       // classify and respond add this turn's message themselves.
       const history = context.getMessages().filter((m) => m !== current);
       const command = request.command;
+      if (command.type === 'message') understand();
       const classified =
         command.type === 'message' ? await this.llm.classify({ text: command.text, state, history }, signal) : undefined;
       const destination = uncheckedDestination(state, command, classified);
+      if (destination) understand();
       const place = destination ? { destination, ...(await this.llm.locate(destination, signal)) } : undefined;
       const { state: next, effect } = reduce(state, command, classified, place);
       if (classified && !request.locale) next.locale = classified.locale;
 
       let reply: string | null = null;
       if (effect) {
+        understand();
         const input = { text: command.type === 'message' ? command.text : null, state: next, history };
-        const events = runEffect(this.llm, effect, input, signal);
+        const events = runEffect(this.llm, effect, input, signal, (event) => {
+          const at = new Date().toISOString();
+          if (event.type === 'grounding') trace.record({ ...event, at });
+          if (event.type !== 'tool_results') return;
+          // Loop events contain cumulative results; each call belongs in the trace only once.
+          for (const result of event.results) {
+            if (result.tool === 'load_skill' || lookups.has(result.callId)) continue;
+            lookups.add(result.callId);
+            trace.record({ type: 'lookup', lookup: {
+              tool: result.tool,
+              subject: lookupSubject(result.tool, result.args, next.locale),
+              at,
+              ok: !result.isError,
+              count: lookupCount(result.content),
+            } });
+          }
+        });
         try {
           for (let step = await events.next(); ; step = await events.next()) {
             signal.throwIfAborted();
@@ -85,6 +111,7 @@ export class TurnService {
               break;
             }
             const event = step.value;
+            if (event.type === 'status') trace.record({ type: 'phase', phase: event.phase, at: new Date().toISOString() });
             // Only chat text is kept as a partial reply; a half-written draft never lands in the chat.
             if (event.type === 'text') text += event.delta;
             if (event.type === 'status' && event.phase === 'searching') text = '';
@@ -97,7 +124,8 @@ export class TurnService {
       signal.throwIfAborted();
       const c = copy(next.locale);
       const components = render(next, c);
-      const message = await this.saveTurn(conversationId, next, reply ?? stageMessage(next, c, command), components, user.createdAt);
+      const message = await this.saveTurn(conversationId, next, reply ?? stageMessage(next, c, command), components, user.createdAt,
+        trace.started ? trace.finish(new Date().toISOString()) : undefined);
       turn = { status: 'saved' };
       yield { type: 'done', message, components, trip: toTripView(next) };
     } catch (error) {
@@ -108,7 +136,8 @@ export class TurnService {
     } finally {
       // Reached on abort, including when the consumer stops iterating: keep what was streamed.
       if (turn.status === 'preparing' || turn.status === 'streaming') {
-        const message = await this.saveAssistant(conversationId, text, status, turn.userCreatedAt, state);
+        const message = await this.saveAssistant(conversationId, text, status, turn.userCreatedAt, state,
+          trace.started ? trace.finish(new Date().toISOString()) : undefined);
         turn = { status: 'settled', message };
       }
     }
@@ -171,6 +200,7 @@ export class TurnService {
     content: string,
     components: Component[],
     userCreatedAt: Date,
+    trace: TurnTrace | undefined,
   ): Promise<Message> {
     const at = this.after(userCreatedAt);
     const row = await this.prisma.$transaction(async (tx) => {
@@ -186,7 +216,7 @@ export class TurnService {
           content,
           status: 'complete',
           createdAt: at,
-          metadata: { components, revision: next.revision } as unknown as Prisma.InputJsonValue,
+          metadata: { components, revision: next.revision, ...(trace ? { trace } : {}) } as unknown as Prisma.InputJsonValue,
         },
       });
     });
@@ -200,6 +230,7 @@ export class TurnService {
     status: 'partial' | 'error',
     userCreatedAt: Date,
     state: TripState,
+    trace: TurnTrace | undefined,
   ): Promise<Message> {
     const at = this.after(userCreatedAt);
     const row = await this.prisma.$transaction(async (tx) => {
@@ -209,8 +240,8 @@ export class TurnService {
         data: { updatedAt: at },
       });
       const metadata = owned.count === 1
-        ? { components: render(state, copy(state.locale)), revision: state.revision + 1 }
-        : undefined;
+        ? { components: render(state, copy(state.locale)), revision: state.revision + 1, ...(trace ? { trace } : {}) }
+        : trace ? { trace } : undefined;
       return tx.message.create({
         data: { conversationId, role: 'ASSISTANT', content, status, createdAt: at, metadata: metadata as Prisma.InputJsonValue | undefined },
       });

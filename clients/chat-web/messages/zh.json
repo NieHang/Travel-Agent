@@ -61,8 +61,6 @@
     "assistantName": "Hilda",
     "online": "你的旅行助手 · 在线",
     "typing": "正在输入…",
-    "stopped": "已停止",
-    "failed": "生成失败",
     "jumpToLatest": "回到最新",
     "chips": {
       "0": "每晚 1000 元以内的酒店",
@@ -79,14 +77,26 @@
     "startNew": "开始新对话",
     "sendFailed": "发送失败，请重试",
     "viewTrip": "查看行程",
-    "progress": {
-      "waiting": "理解需求",
-      "searching": "查询实时数据",
-      "writing": "生成回答与行程",
-      "organizing": "整理行程面板",
-      "completed": "已完成",
-      "failed": "生成失败",
-      "cancelled": "已停止"
+    "trace": {
+      "phase": {
+        "understanding": "理解需求",
+        "searching": "查询实时数据",
+        "writing": "撰写回复",
+        "organizing": "更新行程面板"
+      },
+      "took": "用时 {duration}",
+      "seconds": "{n} 秒",
+      "stopped": "已停止 · {phase}",
+      "stoppedPlain": "已停止",
+      "failed": "生成失败 · {phase}",
+      "failedPlain": "生成失败",
+      "retry": "重试",
+      "resume": "继续生成",
+      "verification": "数据核验",
+      "lookup": "{subject} · 查询于 {time}",
+      "lookupCount": "{n} 条结果",
+      "lookupFailed": "查询失败",
+      "grounding": "{dropped, plural, =0 {{kept} 条结果均与查询数据一致} other {{kept} 条结果与查询数据一致，{dropped} 条未通过核对}}"
     }
   },
   "drawer": {

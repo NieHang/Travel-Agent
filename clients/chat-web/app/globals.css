@@ -59,6 +59,37 @@
 }
 
 @layer components {
+  /* The phase a reply is in right now: a light band sweeps across the ink text. */
+  .trace-shimmer {
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-ink) 45%, transparent) 30%,
+        var(--color-ink) 50%,
+        color-mix(in srgb, var(--color-ink) 45%, transparent) 70%
+      )
+      0 0 / 250% 100%;
+    background-clip: text;
+    color: transparent;
+    animation: trace-shimmer 1.8s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .trace-shimmer {
+      animation: none;
+      background: none;
+      color: var(--color-ink);
+    }
+  }
+
+  @keyframes trace-shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -150% 0;
+    }
+  }
+
   /* HeroUI controls in the trip form (incl. its portalled popovers) use the site's lime/ink instead of HeroUI blue. */
   .trip-form {
     --accent: var(--color-lime);
