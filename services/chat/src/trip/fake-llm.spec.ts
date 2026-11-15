@@ -19,8 +19,14 @@ describe('FakeTripLlm', () => {
     for await (const e of llm.respond('itinerary', { text: null, state, history: [] }, signal))
       if (e.type === 'text') text += e.delta;
     expect(text).toContain('杭州行程草稿');
-    expect(await llm.extractDays(text, null, 'zh', signal)).toEqual([
-      { title: '第 1 天', stops: [{ name: '杭州市区漫步', note: null, time: null }], stayRef: null },
+    expect(await llm.extractStops({ title: '第 1 天 | 市区漫步（轻松）', body: '' }, 'zh', signal)).toEqual([
+      { name: '市区漫步', note: null, time: null },
     ]);
+  });
+  it('rewrites the first target day on revise', async () => {
+    const events = [];
+    for await (const e of llm.respond('revise', { text: 'x', state: initialState(), history: [], target: { days: [1], nights: [] } }, signal)) events.push(e);
+    expect(events.map((e) => e.type)).toEqual(['edit', 'text']);
+    expect(events[0]).toMatchObject({ call: { name: 'write_day', args: { day: 2 } } });
   });
 });

@@ -8,6 +8,8 @@ type State = {
   requestId: string | null
   conversationId: string | null
   text: string
+  /** The itinerary markdown while it is written; shown in the panel, never in the chat. */
+  draft: string
   components: Component[]
   phase: ProgressPhase | null
   trip: TripView | null | undefined
@@ -16,7 +18,7 @@ type State = {
   terminal: boolean
 }
 const idle: State = {
-  requestId: null, conversationId: null, text: '', components: [], phase: null,
+  requestId: null, conversationId: null, text: '', draft: '', components: [], phase: null,
   trip: undefined, revision: undefined, outcome: 'cancelled', terminal: true,
 }
 
@@ -36,10 +38,13 @@ export function createAIUIStore() {
         case 'start':
           break
         case 'status':
-          set(event.phase === 'searching' ? { phase: event.phase, text: '' } : { phase: event.phase })
+          set(event.phase === 'searching' ? { phase: event.phase, text: '', draft: '' } : { phase: event.phase })
           break
         case 'text':
           set({ text: get().text + event.delta, phase: 'writing' })
+          break
+        case 'draft':
+          set({ draft: get().draft + event.delta, phase: 'writing' })
           break
         // done/error keep the last phase so the ring can show 100% or the failure; cancel clears it.
         case 'done':

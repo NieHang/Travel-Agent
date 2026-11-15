@@ -7,6 +7,7 @@ import {
   type TripView,
 } from '@autix/contracts';
 import { ToolResultSchema } from './results.js';
+import { PlanDaySchema, StopSchema, parseDraft, renderPlan, segments, type PlanDay } from './itinerary.js';
 
 export type Locale = 'zh' | 'en';
 export const STAGES = ['idle', 'trip_type', 'requirements', 'review', 'confirmed'] as const;
@@ -21,23 +22,7 @@ export const ClarifySchema = z.object({
   options: z.array(z.string().min(1).max(100)).max(MAX_CLARIFY_OPTIONS),
 });
 
-export const TripDaySchema = z.object({
-  title: z.string().min(1).max(200),
-  stops: z
-    .array(
-      z.object({
-        name: z.string().min(1).max(200),
-        note: z.string().max(500).nullable(),
-        time: z.string().max(50).nullable(),
-      }),
-    )
-    .max(20),
-  stayRef: z.string().nullable(),
-});
-export type TripDay = z.infer<typeof TripDaySchema>;
-
-export const TripStateSchema = z.object({
-  version: z.literal(2),
+const TripStateFields = {
   revision: z.number().int().nonnegative(),
   stage: z.enum(STAGES),
   requirements: RequirementsSchema,
@@ -47,26 +32,66 @@ export const TripStateSchema = z.object({
     places: z.array(z.string().min(1).max(200)),
     japan: z.string().min(1).max(200).nullable(),
   }).strict().nullable().default(null),
-  itinerary: z.string().nullable(),
-  days: z.array(TripDaySchema).max(60),
   stays: ResultGroupSchema.nullable(),
   toolResults: z.array(ToolResultSchema).max(8),
   results: z.array(ResultGroupSchema).max(10),
   locale: z.enum(['zh', 'en']),
+};
+
+/** v3: the draft is stored as days with their own markdown; the full markdown is derived (renderPlan). */
+const TripStateV3Schema = z.object({
+  version: z.literal(3),
+  ...TripStateFields,
+  /** Title, overview and before-you-go of the draft; null until there is one. */
+  preamble: z.string().max(8000).nullable(),
+  days: z.array(PlanDaySchema).max(60),
+  footer: z.string().max(2000),
 });
-export type TripState = z.infer<typeof TripStateSchema>;
+export type TripState = z.infer<typeof TripStateV3Schema>;
+
+/** Stored before scoped edits: one markdown string plus days extracted from it. Read-only. */
+const TripStateV2Schema = z.object({
+  version: z.literal(2),
+  ...TripStateFields,
+  itinerary: z.string().nullable(),
+  days: z
+    .array(z.object({ title: z.string().min(1).max(200), stops: z.array(StopSchema).max(20), stayRef: z.string().nullable() }))
+    .max(60),
+});
+type TripStateV2 = z.infer<typeof TripStateV2Schema>;
+
+/**
+ * Must be deterministic: the turn claim compares two independent reads of the same row.
+ * A v2 draft is split like a new draft; stops come from the v2 days when the day counts match.
+ */
+function upgradeV2({ version, itinerary, days: v2Days, ...rest }: TripStateV2): TripState {
+  void version;
+  if (itinerary === null) return { ...rest, version: 3, preamble: null, days: [], footer: '' };
+  const draft = parseDraft(itinerary, rest.stays);
+  const days: PlanDay[] = draft.days.length === v2Days.length
+    ? draft.days.map((day, i) => ({ ...day, ...v2Days[i], stayRef: day.stayRef ?? v2Days[i].stayRef }))
+    : v2Days.map((day) => ({
+      ...day,
+      body: day.stops.map((s) => `- ${s.time ? `${s.time} ` : ''}${s.name}${s.note ? `: ${s.note}` : ''}`).join('\n'),
+    }));
+  return { ...rest, version: 3, preamble: draft.preamble, days, footer: draft.footer };
+}
+
+/** Any stored state, read as v3. */
+export const TripStateSchema = z.union([TripStateV3Schema, TripStateV2Schema.transform(upgradeV2)]);
 
 export function initialState(revision = 0, locale: Locale = 'zh'): TripState {
   return {
-    version: 2,
+    version: 3,
     revision,
     stage: 'idle',
     requirements: {},
     clarify: null,
     checkedDestination: null,
     outsideJapan: null,
-    itinerary: null,
+    preamble: null,
     days: [],
+    footer: '',
     stays: null,
     toolResults: [],
     results: [],
@@ -88,20 +113,26 @@ export function toTripView(s: TripState): TripView | null {
   const r = s.requirements;
   return {
     revision: s.revision,
-    status: s.stage === 'confirmed' ? 'confirmed' : s.itinerary ? 'draft' : 'collecting',
+    status: s.stage === 'confirmed' ? 'confirmed' : s.preamble !== null ? 'draft' : 'collecting',
     destination: r.destination ?? null,
     departureDate: r.departureDate ?? null,
     returnDate: r.returnDate ?? null,
     travelers: r.travelers ?? null,
     budget: r.budget ?? null,
     budgetCurrency: r.budgetCurrency ?? null,
-    itineraryMarkdown: s.itinerary,
+    overview: s.preamble,
+    itineraryMarkdown: renderPlan(s, s.locale),
     days: s.days.map((d) => ({
       title: d.title,
       stops: d.stops,
       stay: stays.find((h) => h.ref === d.stayRef) ?? null,
     })),
     hotels: stays.length ? stays : fromResults('hotels'),
+    stayPlan: s.preamble === null ? [] : segments(s).map((seg) => ({
+      nights: seg.nights,
+      stay: stays.find((h) => h.ref === seg.stayRef) ?? null,
+      options: stays,
+    })),
     routes: fromResults('routes'),
     hotspots: fromResults('hotspots'),
   };

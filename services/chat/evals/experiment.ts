@@ -4,6 +4,7 @@ import type { TripLlm } from '../src/trip/llm.js';
 import { initialState } from '../src/trip/state.js';
 import { gradeClassify } from './evaluators/classify.js';
 import { gradeExtractDays } from './evaluators/extract-days.js';
+import { parseDraft } from '../src/trip/itinerary.js';
 import { failedItineraryScores, gradeItinerary } from './evaluators/itinerary.js';
 import { turn, type TurnOutput } from './turn.js';
 import type { Entry, RunResult, Score, Suite } from './schemas.js';
@@ -44,7 +45,9 @@ async function runItem(item: Entry, llm: TripLlm, signal: AbortSignal, geography
     const output = await llm.classify({ text: item.text, state, history }, signal);
     return { id: item.id, category: item.category, output, scores: gradeClassify(output, item.expected) };
   }
-  const days = await llm.extractDays(item.draft, item.stays, item.locale, signal);
+  // The app's own path: the hotel per day comes from parsing, the stops from one call per day.
+  const draft = parseDraft(item.draft, item.stays);
+  const days = await Promise.all(draft.days.map(async (day) => ({ ...day, stops: await llm.extractStops(day, item.locale, signal) })));
   return {
     id: item.id, category: item.category,
     output: days.map((day) => ({ stops: day.stops.map((stop) => stop.name), stayRef: day.stayRef })),

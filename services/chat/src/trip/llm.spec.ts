@@ -39,7 +39,7 @@ async function respond(llm: ModelTripLlm, task: 'answer' | 'itinerary') {
 
 const history = Array.from({ length: 30 }, (_, i) => (i % 2 ? new AIMessage(`m${i}`) : new HumanMessage(`m${i}`)));
 const chatted: Classified = {
-  intent: 'chat', locale: 'zh', clarify: null,
+  intent: 'chat', locale: 'zh', clarify: null, revise: null,
   patch: { destination: null, tripType: null, departureDate: null, returnDate: null, travelers: null, preferences: null, budget: null, budgetCurrency: null },
 };
 
@@ -79,7 +79,7 @@ describe('ModelTripLlm', () => {
       .toContain('Today is 2026-01-15.');
   });
 
-  it('passes callbacks to classify, respond and extractDays', async () => {
+  it('passes callbacks to classify, respond and extractStops', async () => {
     class ExtraHandler extends BaseCallbackHandler { name = 'extra'; }
     const callbacks = [new ExtraHandler()];
     const llm = new ModelTripLlm(undefined, [], { callbacks });
@@ -87,12 +87,12 @@ describe('ModelTripLlm', () => {
     vi.mocked(createChatModel).mockClear();
     await llm.classify(input, signal());
     await respond(llm, 'answer');
-    model.classify.mockResolvedValue({ days: [] });
-    await llm.extractDays('Day 1', null, 'zh', signal());
+    model.classify.mockResolvedValue({ stops: [] });
+    await llm.extractStops({ title: 'Day 1', body: '' }, 'zh', signal());
     expect(vi.mocked(createChatModel).mock.calls).toEqual([
       [{ operation: 'trip.classify', callbacks }],
       [{ operation: 'trip.respond', callbacks }],
-      [{ operation: 'trip.extract_days', callbacks }],
+      [{ operation: 'trip.extract_stops', callbacks }],
     ]);
   });
 
@@ -105,9 +105,9 @@ describe('ModelTripLlm', () => {
     expect(model.classify.mock.calls.at(-1)?.[1]).toMatchObject({ runName: 'trip.locate' });
     await respond(llm, 'answer');
     expect(model.streamOptions.at(-1)).toMatchObject({ runName: 'trip.respond' });
-    model.classify.mockResolvedValue({ days: [] });
-    await llm.extractDays('Day 1', null, 'en', signal());
-    expect(model.classify.mock.calls.at(-1)?.[1]).toMatchObject({ runName: 'trip.extract_days' });
+    model.classify.mockResolvedValue({ stops: [] });
+    await llm.extractStops({ title: 'Day 1', body: '' }, 'en', signal());
+    expect(model.classify.mock.calls.at(-1)?.[1]).toMatchObject({ runName: 'trip.extract_stops' });
   });
 
   it('answers with every message of the context, not only the last 20', async () => {
@@ -184,16 +184,18 @@ describe('countNights', () => {
   });
 });
 
-describe('extractDays', () => {
-  it('reads a day without stayRef as no hotel that night', async () => {
-    model.classify.mockReset().mockResolvedValue({ days: [{ title: 'Day 1', stops: [] }] });
-    const days = await new ModelTripLlm().extractDays('Day 1', null, 'en', new AbortController().signal);
-    expect(days).toEqual([{ title: 'Day 1', stops: [], stayRef: null }]);
+describe('extractStops', () => {
+  it('reads one day, header and body, and returns its stops', async () => {
+    model.classify.mockReset().mockResolvedValue({ stops: [{ name: 'Nijo Castle', note: null, time: '09:30' }] });
+    const stops = await new ModelTripLlm().extractStops({ title: 'Day 3 | Nijo Castle (light)', body: '- 09:30 Nijo Castle' }, 'en', signal());
+    expect(stops).toEqual([{ name: 'Nijo Castle', note: null, time: '09:30' }]);
+    const [sent] = model.classify.mock.calls[0] as [BaseMessage[]];
+    expect(sent[1].text).toBe('Day 3 | Nijo Castle (light)\n- 09:30 Nijo Castle');
   });
 
   it('tells extraction that travel legs are not stops', async () => {
-    model.classify.mockReset().mockResolvedValue({ days: [] });
-    await new ModelTripLlm().extractDays('Day 1', null, 'en', new AbortController().signal);
+    model.classify.mockReset().mockResolvedValue({ stops: [] });
+    await new ModelTripLlm().extractStops({ title: 'Day 1', body: '' }, 'en', signal());
     const [sent] = model.classify.mock.calls[0] as [BaseMessage[]];
     expect(sent[0].text).toContain('Travel legs');
     // Lines like "Narita Airport → Ueno (Skyliner)" were extracted as stops in live runs, and eval drafts
@@ -203,5 +205,29 @@ describe('extractDays', () => {
     expect(sent[0].text).toContain('A station is a stop only where');
     // ...and walks like "清水寺 → 三年坂 → 八坂神社" became one stop.
     expect(sent[0].text).toContain('make each place its own stop');
+  });
+});
+
+describe('revise', () => {
+  const drafted = () => ({
+    ...initialState(3, 'en'),
+    stage: 'review' as const,
+    preamble: '**Overview**: 2 nights',
+    days: [
+      { title: 'Day 1 | A (light)', body: '- 10:00 A', stops: [], stayRef: null },
+      { title: 'Day 2 | B (light)', body: '- 10:00 B', stops: [], stayRef: null },
+    ],
+  });
+
+  it('binds the edit tools only for revise, and gives the model the numbered plan and 1-based target', async () => {
+    const llm = new ModelTripLlm();
+    for await (const _ of llm.respond('revise', { text: 'day 2 lighter', state: drafted(), history: [], target: { days: [1], nights: [] } }, signal()));
+    expect(model.bound).toEqual(['show_results', 'write_day', 'write_preamble', 'use_stay']);
+    const context = JSON.parse(model.seen[0].at(-2)?.text ?? '{}') as { serverContext: { plan: string; target: unknown } };
+    expect(context.serverContext.plan).toContain('[D2] **Day 2 | B (light)**');
+    expect(context.serverContext.target).toEqual({ days: [2], nights: [] });
+    expect(systemText(model.seen[0])).toContain('Task: change only part of the itinerary draft');
+    await respond(llm, 'answer');
+    expect(model.bound).toEqual(['show_results']);
   });
 });

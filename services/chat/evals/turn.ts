@@ -2,7 +2,8 @@ import type { BaseMessage } from '@langchain/core/messages';
 import { z } from 'zod';
 import { reduce, uncheckedDestination } from '../src/trip/commands.js';
 import type { TripLlm } from '../src/trip/llm.js';
-import { groundResults, linkStays, mergeStays, type ToolResult } from '../src/trip/results.js';
+import { runEffect } from '../src/trip/effect.js';
+import type { ToolResult } from '../src/trip/results.js';
 import type { TripState } from '../src/trip/state.js';
 import type { TurnOutputSchema } from './schemas.js';
 
@@ -18,31 +19,31 @@ export async function turn(
   const place = destination ? { destination, ...(await llm.locate(destination, signal)) } : undefined;
   const { state: next, effect } = reduce(state, command, classified, place);
   let draft = '';
+  let reply: string | null = null;
   const loaded: string[] = [];
   const calls: string[] = [];
   const toolCalls: { name: string; args: Record<string, unknown> }[] = [];
   const toolResults: ToolResult[] = [];
-  if (effect)
-    for await (const e of llm.respond(effect, { text, state: next, history }, signal)) {
-      if (e.type === 'text') draft += e.delta;
-      if (e.type === 'discard_text') draft = '';
+  if (effect) {
+    const events = runEffect(llm, effect, { text, state: next, history }, signal, (e) => {
       if (e.type === 'tool_call') {
         calls.push(e.name);
         toolCalls.push({ name: e.name, args: e.args });
         if (e.name === 'load_skill') loaded.push(...z.array(z.string()).parse(e.args.names));
       }
       if (e.type === 'tool_results') toolResults.splice(0, toolResults.length, ...e.results);
-      if (e.type === 'show_results') {
-        const group = groundResults(e.input, e.results);
-        if (effect === 'itinerary' && group.panel === 'hotels') next.stays = mergeStays(next.stays, group);
-        else if (group.items.length) next.results.push(group);
+    });
+    for (let step = await events.next(); ; step = await events.next()) {
+      if (step.done) {
+        reply = step.value;
+        break;
       }
+      // `draft` is the model's raw text (the itinerary markdown, or the reply for other effects).
+      if (step.value.type === 'status' && step.value.phase === 'searching') draft = '';
+      if (step.value.type !== 'status') draft += step.value.delta;
     }
-  if (effect === 'itinerary') {
-    next.itinerary = draft;
-    next.days = linkStays(await llm.extractDays(draft, next.stays, next.locale, signal), next.stays);
   }
-  return { classified, place, next, effect, draft, loaded, calls, toolCalls, toolResults };
+  return { classified, place, next, effect: effect?.type ?? null, draft, reply, loaded, calls, toolCalls, toolResults };
 }
 
 export type TurnOutput = z.infer<typeof TurnOutputSchema>;

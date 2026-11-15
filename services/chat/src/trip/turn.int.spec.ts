@@ -4,12 +4,13 @@ import type { SendTurnRequest, TripStreamEvent } from '@autix/contracts';
 import { createTestApp, createUser } from '../../test/helpers/app.js';
 import { resetDb } from '../../test/helpers/db.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import { COMPACT_THRESHOLD } from '../llm/compact.js';
 import { ConversationsService } from '../conversations/conversations.service.js';
 import { ROLLINGGO_COMPACT } from '../llm/mcp/rollinggo.fixture.js';
 import type { Classified, Place } from './commands.js';
 import { TRIP_LLM, type TripLlm } from './llm.js';
-import type { TripDay, TripState } from './state.js';
+import type { TripState } from './state.js';
 import type { LoopEvent } from './tool-loop.js';
 import { TurnService } from './turn.js';
 
@@ -18,8 +19,11 @@ const summarizer = vi.hoisted(() => ({ invoke: vi.fn() }));
 vi.mock('../llm/model.factory.js', () => ({ createChatModel: () => ({ invoke: summarizer.invoke }) }));
 
 const NULLS = { destination: null, tripType: null, departureDate: null, returnDate: null, travelers: null, preferences: null, budget: null, budgetCurrency: null };
-const planned = (patch: Partial<Classified['patch']>): Classified => ({ intent: 'plan', locale: 'zh', patch: { ...NULLS, ...patch }, clarify: null });
-const chatted: Classified = { intent: 'chat', locale: 'zh', patch: NULLS, clarify: null };
+const planned = (patch: Partial<Classified['patch']>): Classified => ({ intent: 'plan', locale: 'zh', patch: { ...NULLS, ...patch }, clarify: null, revise: null });
+const chatted: Classified = { intent: 'chat', locale: 'zh', patch: NULLS, clarify: null, revise: null };
+const revising = (days: number[]): Classified => ({ ...chatted, intent: 'revise', revise: { days, hotel: false, hotelDays: [] } });
+/** A two-day draft whose first night is at the hotel searchAndShow grounds. */
+const DRAFT = '## 杭州行程草稿\n\n**第 1 天 | 西湖（轻松）**\n- 10:00 西湖\n- 今晚：Casa do Fado Alfama\n\n**第 2 天 | 灵隐寺（轻松）**\n- 09:00 灵隐寺';
 const hotelResult = { callId: 'c1', tool: 'searchHotels', args: {}, content: ROLLINGGO_COMPACT, isError: false };
 // A hotel with a hotelId: the server fills address, price, rating, url and image from hotelResult.
 const hotelItem = {
@@ -37,7 +41,6 @@ class ScriptedLlm implements TripLlm {
   place: Place | null = null;
   classifications: Classified[] = [];
   responses: LoopEvent[][] = [];
-  days: TripDay[] = [{ title: '第 1 天', stops: [], stayRef: 'h1' }];
   /** When set, respond() yields its first event then waits for abort. */
   hang = false;
   /** What each respond() call received, for follow-up assertions; history as message texts. */
@@ -61,8 +64,8 @@ class ScriptedLlm implements TripLlm {
       await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true }));
     signal.throwIfAborted();
   }
-  async extractDays() {
-    return this.days;
+  async extractStops() {
+    return [];
   }
 }
 
@@ -79,7 +82,7 @@ describe('TurnService', () => {
   });
   beforeEach(async () => {
     await resetDb(prisma);
-    Object.assign(llm, { classifications: [], responses: [], inputs: [], classified: [], place: null, hang: false, days: [{ title: '第 1 天', stops: [], stayRef: 'h1' }] });
+    Object.assign(llm, { classifications: [], responses: [], inputs: [], classified: [], place: null, hang: false });
     summarizer.invoke.mockReset().mockResolvedValue(new AIMessage('SUMMARY'));
     const { user } = await createUser(app);
     conversationId = (await prisma.conversation.create({ data: { userId: user.id, title: '' } })).id;
@@ -177,17 +180,24 @@ describe('TurnService', () => {
     end = done(await send({ revision: 1, command: { type: 'set_trip_type', value: 'family' } }));
     expect(end.components[0]).toMatchObject({ type: 'form' });
 
-    llm.responses.push([...searchAndShow('hotels'), { type: 'text', delta: '## 杭州行程草稿' }]);
+    llm.responses.push([...searchAndShow('hotels'), { type: 'text', delta: DRAFT }]);
     const events = await send({
       revision: 2,
       command: { type: 'submit_requirements', values: { departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4 } },
     });
     expect(events.filter((e) => e.type === 'status').map((e) => e.type === 'status' && e.phase)).toEqual(['searching', 'writing', 'organizing']);
+    // The draft streams to the panel; the chat gets a short reply.
+    expect(events.filter((e) => e.type === 'text')).toEqual([]);
+    expect(events.filter((e) => e.type === 'draft').map((e) => e.type === 'draft' && e.delta).join('')).toBe(DRAFT);
     end = done(events);
-    expect(end.trip).toMatchObject({ status: 'draft', destination: '杭州', itineraryMarkdown: '## 杭州行程草稿' });
+    expect(end.message.content).toBe('完整行程在行程面板中。');
+    expect(end.trip).toMatchObject({ status: 'draft', destination: '杭州', overview: '## 杭州行程草稿' });
+    expect(end.trip!.itineraryMarkdown).toContain('**第 1 天 | 西湖（轻松）**\n- 10:00 西湖\n- 今晚：Casa do Fado Alfama');
     expect(end.trip!.hotels.map((h) => h.ref)).toEqual(['h1']);
-    expect(end.trip!.days[0].stay?.title.original).toBe('Casa do Fado Alfama');
-    expect(end.components.map((c) => c.type)).toEqual(['cards', 'buttons']);
+    expect(end.trip!.days.map((d) => d.stay?.title.original ?? null)).toEqual(['Casa do Fado Alfama', null]);
+    expect(end.trip!.stayPlan).toMatchObject([{ nights: { from: 0, to: 0 }, stay: { ref: 'h1' } }]);
+    // The panel is the only hotel list under a draft.
+    expect(end.components.map((c) => c.type)).toEqual(['buttons']);
 
     end = done(await send({ revision: 3, command: { type: 'confirm' } }));
     expect(end.trip!.status).toBe('confirmed');
@@ -199,13 +209,13 @@ describe('TurnService', () => {
     const events = await send({ revision: 0, command: { type: 'message', text: '杭州一日游' } });
     expect(events.filter((e) => e.type === 'status').map((e) => e.type === 'status' && e.phase)).toEqual(['writing', 'searching', 'writing', 'organizing']);
     const end = done(events);
-    expect(end.message.content).toBe('## 一日游草稿');
+    expect(end.message.content).toBe('完整行程在行程面板中。');
     expect(end.trip!.itineraryMarkdown).toBe('## 一日游草稿');
   });
 
   it('saves the itinerary without stays when the model does not search', async () => {
     llm.classifications.push(planned({ destination: '杭州', tripType: 'solo', departureDate: '2026-12-01', returnDate: '2026-12-01', travelers: 1 }));
-    llm.responses.push([{ type: 'text', delta: '一日游草稿' }]);
+    llm.responses.push([{ type: 'text', delta: '**第 1 天 | 西湖（轻松）**\n- 10:00 西湖' }]);
     const end = done(await send({ revision: 0, command: { type: 'message', text: '杭州一日游' } }));
     expect(end.trip).toMatchObject({ status: 'draft', hotels: [] });
     expect(end.trip!.days[0].stay).toBeNull();
@@ -243,6 +253,65 @@ describe('TurnService', () => {
     ]);
     const end = done(await send({ revision: 0, command: { type: 'message', text: '杭州有什么寺庙' } }));
     expect(end.trip!.hotspots.map((h) => h.title.original)).toEqual(['Lingyin Temple']);
+  });
+
+  describe('scoped edits', () => {
+    const tripState = async () => (await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripState as TripState;
+    async function draft() {
+      llm.classifications.push(planned({ destination: '杭州', tripType: 'solo', departureDate: '2026-12-01', returnDate: '2026-12-02', travelers: 1 }));
+      llm.responses.push([...searchAndShow('hotels'), { type: 'text', delta: DRAFT }]);
+      done(await send({ revision: 0, command: { type: 'message', text: '杭州两天' } }));
+      done(await send({ revision: 1, command: { type: 'confirm' } }));
+      return tripState();
+    }
+
+    it('rewrites one day, keeps the rest and the hotel, and replies with a summary', async () => {
+      const before = await draft();
+      llm.classifications.push(revising([2]));
+      llm.responses.push([
+        { type: 'edit', call: { name: 'write_day', args: { day: 2, markdown: '**第 2 天 | 茶园（轻松）**\n- 10:00 龙井茶园' } }, results: [] },
+        { type: 'text', delta: '第 2 天改成了茶园。' },
+      ]);
+      const events = await send({ revision: 2, command: { type: 'message', text: '第二天轻松点' } });
+      const end = done(events);
+      expect(end.message.content).toBe('第 2 天改成了茶园。');
+      expect(llm.inputs.at(-1)!.state.preamble).toBe(before.preamble);
+      const after = await tripState();
+      expect(after.days[0]).toEqual(before.days[0]);
+      expect(after.days[1]).toMatchObject({ title: '第 2 天 | 茶园（轻松）', body: '- 10:00 龙井茶园' });
+      expect(after).toMatchObject({ stage: 'review', stays: before.stays, preamble: before.preamble });
+      expect(end.trip!.status).toBe('draft');
+    });
+
+    it('keeps the draft and releases the claim when a revise fails', async () => {
+      const before = await draft();
+      llm.classifications.push(revising([2]));
+      llm.responses.push([{ type: 'edit', call: { name: 'write_day', args: { day: 2, markdown: '**第 2 天 | 茶园（轻松）**' } }, results: [] }, { type: 'text', delta: '改' }]);
+      vi.spyOn(llm, 'extractStops').mockRejectedValueOnce(new Error('model down'));
+      const events = await send({ revision: 2, command: { type: 'message', text: '第二天轻松点' } });
+      expect(events.at(-1)).toMatchObject({ type: 'error', code: 'MODEL_FAILED' });
+      expect(await tripState()).toEqual(before);
+      // The next turn can claim the following revision.
+      llm.classifications.push(chatted);
+      llm.responses.push([{ type: 'text', delta: '好' }]);
+      done(await send({ revision: 3, command: { type: 'message', text: '你好' } }));
+    });
+
+    it('chooses a hotel for a run of nights without calling the model', async () => {
+      await draft();
+      const before = await tripState();
+      const other = { ...before.stays!.items[0], ref: 'h2', id: '99', title: { original: 'Other Inn', translation: null } };
+      await prisma.conversation.update({ where: { id: conversationId }, data: { tripState: { ...before, stays: { panel: 'hotels', items: [...before.stays!.items, other] } } as unknown as Prisma.InputJsonValue } });
+      const calls = llm.inputs.length;
+      const events = await send({ revision: 2, command: { type: 'choose_stay', ref: 'h2', nights: { from: 0, to: 0 } } });
+      const end = done(events);
+      expect(llm.inputs.length).toBe(calls);
+      expect(events[0]).toMatchObject({ type: 'start', userMessage: { content: '第 1 晚住Other Inn' } });
+      expect(end.message.content).toBe('已将第 1 晚改为Other Inn。');
+      expect(end.trip!.days[0].stay?.ref).toBe('h2');
+      expect(end.trip!.itineraryMarkdown).toContain('- 今晚：Other Inn');
+      await expect(send({ revision: 3, command: { type: 'choose_stay', ref: 'h1', nights: { from: 0, to: 1 } } })).rejects.toMatchObject({ status: 409 });
+    });
   });
 
   it('rejects a stale revision and a command not allowed in the stage before streaming', async () => {
@@ -382,7 +451,7 @@ describe('TurnService', () => {
   });
 
   it('saves a partial message and keeps the state when aborted mid-stream', async () => {
-    llm.classifications.push(planned({ destination: '杭州', tripType: 'solo', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 1 }));
+    llm.classifications.push(chatted);
     llm.responses.push([{ type: 'text', delta: '第一段' }]);
     llm.hang = true;
     const controller = new AbortController();
@@ -438,8 +507,20 @@ describe('TurnService', () => {
     expect(await prisma.message.count({ where: { conversationId } })).toBe(16);
   });
 
-  it('keeps the context in step with what a stopped turn saved', async () => {
+  it('keeps a stopped draft out of the chat', async () => {
     llm.classifications.push(planned({ destination: '杭州', tripType: 'solo', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 1 }));
+    llm.responses.push([{ type: 'text', delta: '## 草稿' }]);
+    llm.hang = true;
+    const controller = new AbortController();
+    for await (const e of turns.run(conversationId, { revision: 0, command: { type: 'message', text: '…' } }, controller.signal))
+      if (e.type === 'draft') controller.abort();
+    const assistant = await prisma.message.findFirstOrThrow({ where: { conversationId, role: 'ASSISTANT' } });
+    expect(assistant).toMatchObject({ status: 'partial', content: '' });
+    expect((await prisma.conversation.findUniqueOrThrow({ where: { id: conversationId } })).tripState).toBeNull();
+  });
+
+  it('keeps the context in step with what a stopped turn saved', async () => {
+    llm.classifications.push(chatted);
     llm.responses.push([{ type: 'text', delta: '第一段' }]);
     llm.hang = true;
     const controller = new AbortController();

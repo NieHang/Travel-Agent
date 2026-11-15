@@ -36,7 +36,7 @@
       }
     },
     {
-      "files": ["src/trip/state.ts", "src/trip/commands.ts", "src/trip/view.ts", "src/trip/copy.ts"],
+      "files": ["src/trip/state.ts", "src/trip/commands.ts", "src/trip/view.ts", "src/trip/copy.ts", "src/trip/itinerary.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -53,7 +53,7 @@
                   "langchain/**",
                   "@langchain/**"
                 ],
-                "message": "trip/state.ts, commands.ts, view.ts and copy.ts must stay pure (no Nest, Prisma or LangChain imports). Do the I/O in src/trip/turn.ts and pass plain values in; see how turn.ts calls reduce()."
+                "message": "trip/state.ts, commands.ts, view.ts, copy.ts and itinerary.ts must stay pure (no Nest, Prisma or LangChain imports). Do the I/O in src/trip/turn.ts and pass plain values in; see how turn.ts calls reduce()."
               }
             ]
           }

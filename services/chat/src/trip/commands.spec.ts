@@ -1,15 +1,15 @@
 import type { Command } from '@autix/contracts';
 import { initialState, type TripState } from './state.js';
-import { CommandError, PlaceSchema, assertAllowed, merge, nextStage, reduce, uncheckedDestination, type Classified } from './commands.js';
+import { CommandError, PlaceSchema, assertAllowed, editTarget, merge, nextStage, reduce, uncheckedDestination, type Classified } from './commands.js';
 
 const empty: Classified['patch'] = {
   destination: null, tripType: null, departureDate: null, returnDate: null,
   travelers: null, preferences: null, budget: null, budgetCurrency: null,
 };
 const plan = (patch: Partial<Classified['patch']>, clarify: Classified['clarify'] = null): Classified => ({
-  intent: 'plan', locale: 'zh', patch: { ...empty, ...patch }, clarify,
+  intent: 'plan', locale: 'zh', patch: { ...empty, ...patch }, clarify, revise: null,
 });
-const chat: Classified = { intent: 'chat', locale: 'zh', patch: empty, clarify: null };
+const chat: Classified = { intent: 'chat', locale: 'zh', patch: empty, clarify: null, revise: null };
 const full = { destination: '杭州', tripType: 'family' as const, departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4 };
 const at = (patch: Partial<TripState>): TripState => ({ ...initialState(5), ...patch });
 const toolResults: TripState['toolResults'] = [{ callId: 't1', tool: 'searchHotels', args: {}, content: '{"hotels":[{"hotelId":"h1","name":"Hotel"}]}', isError: false }];
@@ -34,22 +34,22 @@ describe('Japan destinations', () => {
   });
   it('records a checked Kyoto destination and generates the completed trip', () => {
     const result = reduce(initialState(), command, plan({ ...full, destination: 'Kyoto' }), { destination: 'Kyoto', japan: 'Kyoto', outside: [] });
-    expect(result.effect).toBe('itinerary');
+    expect(result.effect).toEqual({ type: 'itinerary' });
     expect(result.state.checkedDestination).toBe('Kyoto');
     expect(result.state.requirements.destination).toBe('Kyoto');
   });
   it('keeps a checked confirmed Kyoto itinerary after refusing Paris', () => {
-    const before = at({ stage: 'confirmed', checkedDestination: 'Kyoto', requirements: { ...full, destination: 'Kyoto' }, itinerary: '# Kyoto', days: [{ title: 'Day 1', stops: [], stayRef: null }], stays: { panel: 'hotels', items: [] } });
+    const before = at({ stage: 'confirmed', checkedDestination: 'Kyoto', requirements: { ...full, destination: 'Kyoto' }, preamble: '# Kyoto', days: [{ title: 'Day 1', body: '', stops: [], stayRef: null }], stays: { panel: 'hotels', items: [] } });
     const result = reduce(before, command, plan({ destination: 'Paris' }), { destination: 'Paris', japan: null, outside: ['Paris'] });
     expect(result.effect).toBeNull();
-    expect(result.state).toMatchObject({ stage: 'confirmed', requirements: { destination: 'Kyoto' }, itinerary: '# Kyoto', days: [{ title: 'Day 1', stops: [], stayRef: null }], stays: { panel: 'hotels', items: [] }, checkedDestination: 'Kyoto' });
+    expect(result.state).toMatchObject({ stage: 'confirmed', requirements: { destination: 'Kyoto' }, preamble: '# Kyoto', days: [{ title: 'Day 1', body: '', stops: [], stayRef: null }], stays: { panel: 'hotels', items: [] }, checkedDestination: 'Kyoto' });
   });
   it('clears an unchecked legacy Lisbon trip even on a chat turn', () => {
-    const before = at({ stage: 'review', requirements: { ...full, destination: 'Lisbon' }, itinerary: '# Lisbon', days: [{ title: 'Day 1', stops: [], stayRef: null }], stays: { panel: 'hotels', items: [] } });
+    const before = at({ stage: 'review', requirements: { ...full, destination: 'Lisbon' }, preamble: '# Lisbon', days: [{ title: 'Day 1', body: '', stops: [], stayRef: null }], stays: { panel: 'hotels', items: [] } });
     const result = reduce(before, command, chat, { destination: 'Lisbon', japan: null, outside: ['Lisbon'] });
     expect(result.effect).toBeNull();
     expect(result.state.requirements.destination).toBeUndefined();
-    expect(result.state).toMatchObject({ stage: 'requirements', itinerary: null, days: [], stays: null });
+    expect(result.state).toMatchObject({ stage: 'requirements', preamble: null, days: [], stays: null });
   });
   it('keeps a trip type picked while a legacy destination is refused', () => {
     const before = at({ stage: 'trip_type', requirements: { destination: 'Lisbon' } });
@@ -102,8 +102,8 @@ describe('merge', () => {
     });
   });
   it('reports whether anything changed', () => {
-    expect(merge({ destination: '杭州' }, { destination: '杭州' }).changed).toBe(false);
-    expect(merge({ destination: '杭州' }, { destination: '苏州' }).changed).toBe(true);
+    expect(merge({ destination: '杭州' }, { destination: '杭州' }).changed).toEqual([]);
+    expect(merge({ destination: '杭州' }, { destination: '苏州' }).changed).toEqual(['destination']);
   });
 });
 
@@ -119,7 +119,7 @@ describe('reduce', () => {
   it('chat messages answer without changing the stage, bump revision and clear results', () => {
     const before = at({ stage: 'requirements', results: [{ panel: 'hotels', items: [] }], toolResults });
     const { state, effect } = reduce(before, { type: 'message', text: '天气？' }, chat);
-    expect(effect).toBe('answer');
+    expect(effect).toEqual({ type: 'answer' });
     expect(state.stage).toBe('requirements');
     expect(state.revision).toBe(6);
     expect(state.results).toEqual([]);
@@ -138,7 +138,7 @@ describe('reduce', () => {
   it('one-shot planning goes straight to review with an itinerary effect', () => {
     const { state, effect } = reduce(at({}), { type: 'message', text: '…' }, plan(full));
     expect(state.stage).toBe('review');
-    expect(effect).toBe('itinerary');
+    expect(effect).toEqual({ type: 'itinerary' });
   });
 
   it('set_trip_type then submit_requirements reaches review', () => {
@@ -148,7 +148,7 @@ describe('reduce', () => {
       type: 'submit_requirements',
       values: { departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4, preferences: '' },
     });
-    expect(done.effect).toBe('itinerary');
+    expect(done.effect).toEqual({ type: 'itinerary' });
     expect(done.state.requirements.preferences).toBeUndefined();
   });
 
@@ -163,34 +163,34 @@ describe('reduce', () => {
 
   it('a changed requirement clears the draft, days and stays', () => {
     const { state, effect } = reduce(
-      at({ stage: 'review', requirements: full, itinerary: '# 草稿', days: [{ title: 'D1', stops: [], stayRef: 'h1' }], stays: { panel: 'hotels', items: [] } }),
+      at({ stage: 'review', requirements: full, preamble: '# 草稿', days: [{ title: 'D1', body: '', stops: [], stayRef: 'h1' }], stays: { panel: 'hotels', items: [] } }),
       { type: 'message', text: '改成 5 人' },
       plan({ travelers: 5 }),
     );
-    expect(state).toMatchObject({ itinerary: null, days: [], stays: null, stage: 'review' });
-    expect(effect).toBe('itinerary');
+    expect(state).toMatchObject({ preamble: null, days: [], stays: null, stage: 'review' });
+    expect(effect).toEqual({ type: 'itinerary' });
   });
 
   it('an unchanged plan message keeps a confirmed trip confirmed', () => {
-    const { state, effect } = reduce(at({ stage: 'confirmed', requirements: full, itinerary: '# 草稿' }), { type: 'message', text: '杭州' }, plan({ destination: '杭州' }));
+    const { state, effect } = reduce(at({ stage: 'confirmed', requirements: full, preamble: '# 草稿' }), { type: 'message', text: '杭州' }, plan({ destination: '杭州' }));
     expect(state.stage).toBe('confirmed');
     expect(effect).toBeNull();
   });
 
   it.each(['review', 'confirmed'] as const)('clears previous tool results when resubmitting unchanged requirements after editing a %s trip', (stage) => {
-    const before = at({ stage, requirements: full, itinerary: '# Draft', toolResults });
+    const before = at({ stage, requirements: full, preamble: '# Draft', toolResults });
     const edited = reduce(before, { type: 'edit' });
     expect(edited.state.toolResults).toEqual(toolResults);
     const result = reduce(edited.state, { type: 'submit_requirements', values: full });
-    expect(result.effect).toBe('itinerary');
+    expect(result.effect).toEqual({ type: 'itinerary' });
     expect(result.state.toolResults).toEqual([]);
     expect(before.toolResults).toEqual(toolResults);
   });
 
   it('confirm, edit and resume', () => {
-    const review = at({ stage: 'review', requirements: full, itinerary: '# 草稿', stays: { panel: 'hotels', items: [] } });
+    const review = at({ stage: 'review', requirements: full, preamble: '# 草稿', stays: { panel: 'hotels', items: [] } });
     expect(reduce(review, { type: 'confirm' }).state.stage).toBe('confirmed');
-    expect(reduce(review, { type: 'edit' }).state).toMatchObject({ stage: 'requirements', itinerary: null, stays: null, requirements: full });
+    expect(reduce(review, { type: 'edit' }).state).toMatchObject({ stage: 'requirements', preamble: null, stays: null, requirements: full });
     expect(reduce(review, { type: 'resume' }).state.stage).toBe('review');
   });
 });
@@ -216,5 +216,80 @@ describe('assertAllowed', () => {
   it('always allows messages', () => {
     for (const stage of ['idle', 'trip_type', 'requirements', 'review', 'confirmed'] as const)
       expect(() => assertAllowed(at({ stage }), { type: 'message', text: 'hi' })).not.toThrow();
+  });
+});
+
+describe('scoped edits', () => {
+  const day = (n: number, stayRef: string | null) => ({ title: `Day ${n} | Place`, body: `- 10:00 Place ${n}`, stops: [], stayRef });
+  const hotel = (ref: string, id: string) => ({
+    ref, id, title: { original: `Hotel ${id}`, translation: null }, address: null, price: null, rating: null,
+    url: null, image: null, details: [], amenities: [], summary: null,
+  });
+  const drafted = (stage: 'review' | 'confirmed' = 'review') => at({
+    stage, requirements: { ...full, preferences: 'food' }, toolResults,
+    preamble: '**Overview**: 3 nights', footer: '',
+    days: [day(1, 'h1'), day(2, 'h1'), day(3, 'h1'), day(4, null)],
+    stays: { panel: 'hotels', items: [hotel('h1', '100'), hotel('h2', '200')] },
+  });
+  const revise = (r: NonNullable<Classified['revise']>, patch: Partial<Classified['patch']> = {}): Classified => ({
+    ...plan(patch), intent: 'revise', revise: r,
+  });
+
+  it.each([
+    ['a named day', { days: [3], hotel: false, hotelDays: [] }, [], { days: [2], nights: [] }],
+    ['a hotel for named nights', { days: [], hotel: true, hotelDays: [2, 3] }, [], { days: [], nights: [1, 2] }],
+    ['a hotel for every night', { days: [], hotel: true, hotelDays: [] }, [], { days: [], nights: [0, 1, 2] }],
+    ['out-of-range numbers', { days: [0, 9], hotel: true, hotelDays: [4] }, [], null],
+    ['a pace change for the whole trip', null, ['preferences'], { days: [0, 1, 2, 3], nights: [] }],
+    ['a budget change', null, ['budget'], { days: [], nights: [0, 1, 2] }],
+    ['a named day plus a pace change', { days: [3], hotel: false, hotelDays: [] }, ['preferences'], { days: [2], nights: [] }],
+  ] as const)('targets %s', (_, r, changed, expected) => {
+    expect(editTarget(drafted(), r && { ...r, days: [...r.days], hotelDays: [...r.hotelDays] }, [...changed])).toEqual(expected);
+  });
+
+  it('revises one day without touching the draft, stays or tool results', () => {
+    const before = drafted('confirmed');
+    const { state, effect } = reduce(before, { type: 'message', text: 'day 3 lighter' }, revise({ days: [3], hotel: false, hotelDays: [] }));
+    expect(effect).toEqual({ type: 'revise', target: { days: [2], nights: [] } });
+    expect(state).toMatchObject({ stage: 'review', preamble: before.preamble, days: before.days, stays: before.stays, toolResults });
+  });
+
+  it('merges a preference change into the requirements and revises every day', () => {
+    const { state, effect } = reduce(drafted(), { type: 'message', text: 'slower please' }, plan({ preferences: 'food, slow pace' }));
+    expect(effect).toEqual({ type: 'revise', target: { days: [0, 1, 2, 3], nights: [] } });
+    expect(state.requirements.preferences).toBe('food, slow pace');
+    expect(state.days).toEqual(drafted().days);
+  });
+
+  it('drafts again when the dates change', () => {
+    const { state, effect } = reduce(drafted(), { type: 'message', text: 'a day later' }, revise({ days: [], hotel: false, hotelDays: [] }, { returnDate: '2026-12-04' }));
+    expect(effect).toEqual({ type: 'itinerary' });
+    expect(state).toMatchObject({ preamble: null, days: [], stays: null, toolResults: [] });
+  });
+
+  it('answers a revise request that names nothing it can change', () => {
+    const { state, effect } = reduce(drafted(), { type: 'message', text: 'nicer?' }, revise({ days: [], hotel: false, hotelDays: [] }));
+    expect(effect).toEqual({ type: 'answer' });
+    expect(state.days).toEqual(drafted().days);
+  });
+
+  it('chooses a stay for one run of nights without the LLM', () => {
+    const before = drafted('confirmed');
+    const { state, effect } = reduce(before, { type: 'choose_stay', ref: 'h2', nights: { from: 0, to: 2 } });
+    expect(effect).toBeNull();
+    expect(state.days.map((d) => d.stayRef)).toEqual(['h2', 'h2', 'h2', null]);
+    expect(state.stage).toBe('review');
+    expect(state.days[3]).toEqual(before.days[3]);
+  });
+
+  it.each([
+    ['nights that are not one current run', { type: 'choose_stay', ref: 'h2', nights: { from: 0, to: 1 } }],
+    ['a hotel that is not an option', { type: 'choose_stay', ref: 'h9', nights: { from: 0, to: 2 } }],
+  ] as const)('refuses %s', (_, command) => {
+    expect(() => assertAllowed(drafted(), { ...command, nights: { ...command.nights } })).toThrow(CommandError);
+  });
+
+  it('refuses choose_stay without a draft', () => {
+    expect(() => assertAllowed(at({ stage: 'requirements' }), { type: 'choose_stay', ref: 'h1', nights: { from: 0, to: 0 } })).toThrow(CommandError);
   });
 });

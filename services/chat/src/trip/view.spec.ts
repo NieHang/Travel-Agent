@@ -76,7 +76,7 @@ describe('render', () => {
   });
 
   it('prefills every field when editing a review, including explicit solo traveler counts', () => {
-    const review = at({ stage: 'review', itinerary: 'draft', requirements: { tripType: 'solo', destination: 'Kyoto', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 3, preferences: 'Food' } });
+    const review = at({ stage: 'review', preamble: 'draft', requirements: { tripType: 'solo', destination: 'Kyoto', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 3, preferences: 'Food' } });
     const { state } = reduce(review, { type: 'edit' });
     expect(state.stage).toBe('requirements');
     const [form] = render(state, en);
@@ -98,9 +98,10 @@ describe('render', () => {
   });
 
   it('review shows stays and confirm/edit; confirmed shows edit only', () => {
-    expect(types(render(at({ stage: 'review', itinerary: 'x', stays: hotels }), zh))).toEqual(['cards', 'buttons']);
-    expect(types(render(at({ stage: 'review', itinerary: 'x' }), zh))).toEqual(['buttons']);
-    const [buttons] = render(at({ stage: 'confirmed', itinerary: 'x' }), en);
+    // The panel is the only hotel list under a draft.
+    expect(types(render(at({ stage: 'review', preamble: 'x', stays: hotels }), zh))).toEqual(['buttons']);
+    expect(types(render(at({ stage: 'review', preamble: 'x' }), zh))).toEqual(['buttons']);
+    const [buttons] = render(at({ stage: 'confirmed', preamble: 'x' }), en);
     expect(buttons.type === 'buttons' && buttons.buttons.map((b) => b.command)).toEqual(['edit']);
   });
 
@@ -111,6 +112,17 @@ describe('render', () => {
   });
 });
 
+describe('choose_stay', () => {
+  const hotel = { ref: 'h2', id: '2', title: { original: 'Miyako Hotel', translation: null }, address: null, price: null, rating: null, url: null, image: null, details: [], amenities: [], summary: null };
+  const s = at({ stage: 'review', stays: { panel: 'hotels', items: [hotel] } });
+  it('names the hotel and nights, 1-based, in the user message and the reply', () => {
+    const command = { type: 'choose_stay', ref: 'h2', nights: { from: 0, to: 2 } } as const;
+    expect(describeCommand(command, en, s)).toBe('Stay at Miyako Hotel for nights 1–3');
+    expect(describeCommand({ ...command, nights: { from: 1, to: 1 } }, zh, s)).toBe('第 2 晚住Miyako Hotel');
+    expect(stageMessage(s, en, command)).toBe('Updated nights 1–3: Miyako Hotel.');
+  });
+});
+
 describe('stageMessage / describe', () => {
   it('prefers the clarify question', () => {
     expect(stageMessage(at({ stage: 'trip_type' }), zh)).toBe('请选择旅游类型。');
@@ -118,15 +130,15 @@ describe('stageMessage / describe', () => {
     expect(stageMessage(at({ stage: 'confirmed' }), en)).toBe('Your itinerary has been confirmed and saved.');
   });
   it('turns commands into readable user messages', () => {
-    expect(describeCommand({ type: 'message', text: '去杭州' }, zh)).toBe('去杭州');
-    expect(describeCommand({ type: 'set_trip_type', value: 'family' }, zh)).toBe('亲子游');
-    expect(describeCommand({ type: 'submit_requirements', values: { travelers: 4, departureDate: '2026-12-01' } }, zh)).toBe('出行人数：4');
-    expect(describeCommand({ type: 'confirm' }, en)).toBe('Confirm itinerary');
+    expect(describeCommand({ type: 'message', text: '去杭州' }, zh, at({}))).toBe('去杭州');
+    expect(describeCommand({ type: 'set_trip_type', value: 'family' }, zh, at({}))).toBe('亲子游');
+    expect(describeCommand({ type: 'submit_requirements', values: { travelers: 4, departureDate: '2026-12-01' } }, zh, at({}))).toBe('出行人数：4');
+    expect(describeCommand({ type: 'confirm' }, en, at({}))).toBe('Confirm itinerary');
   });
   it('describes submitted values in form order with a combined date range in Chinese', () => {
-    expect(describeCommand({ type: 'submit_requirements', values: { destination: '京都', tripType: 'family', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4, preferences: '美食、慢节奏', budget: 100000, budgetCurrency: 'JPY' } }, zh))
+    expect(describeCommand({ type: 'submit_requirements', values: { destination: '京都', tripType: 'family', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4, preferences: '美食、慢节奏', budget: 100000, budgetCurrency: 'JPY' } }, zh, at({})))
       .toBe('目的地：京都\n出行日期：2026-12-01 → 2026-12-03\n出行人数：4\n兴趣与特殊需求：美食、慢节奏');
-    expect(describeCommand({ type: 'submit_requirements', values: { preferences: '' } }, zh)).toBe('');
-    expect(describeCommand({ type: 'submit_requirements', values: {} }, en)).toBe('');
+    expect(describeCommand({ type: 'submit_requirements', values: { preferences: '' } }, zh, at({}))).toBe('');
+    expect(describeCommand({ type: 'submit_requirements', values: {} }, en, at({}))).toBe('');
   });
 });

@@ -66,7 +66,6 @@ export function render(s: TripState, c: Copy): Component[] {
       out.push(requirementsForm(s, c));
       break;
     case 'review':
-      if (s.stays?.items.length) out.push({ type: 'cards', items: s.stays.items });
       out.push({ type: 'buttons', buttons: [{ command: 'confirm', label: c.confirm }, { command: 'edit', label: c.edit }] });
       break;
     case 'confirmed':
@@ -77,7 +76,8 @@ export function render(s: TripState, c: Copy): Component[] {
 }
 
 /** Assistant text for turns where the LLM wrote nothing. */
-export function stageMessage(s: TripState, c: Copy): string {
+export function stageMessage(s: TripState, c: Copy, command?: Command): string {
+  if (command?.type === 'choose_stay') return c.stayChosen(hotelName(s, command.ref), c.nights(command.nights.from, command.nights.to));
   if (s.outsideJapan) return c.outsideJapan(s.outsideJapan.places, s.outsideJapan.japan);
   if (s.clarify) return s.clarify.question;
   switch (s.stage) {
@@ -94,8 +94,10 @@ export function stageMessage(s: TripState, c: Copy): string {
   }
 }
 
-/** The user-visible message saved for a command. */
-export function describe(command: Command, c: Copy): string {
+const hotelName = (s: TripState, ref: string) => s.stays?.items.find((h) => h.ref === ref)?.title.original ?? ref;
+
+/** The user-visible message saved for a command; `s` is the state the command applies to. */
+export function describe(command: Command, c: Copy, s: TripState): string {
   switch (command.type) {
     case 'message':
       return command.text;
@@ -117,5 +119,7 @@ export function describe(command: Command, c: Copy): string {
       return c.edit;
     case 'resume':
       return c.resume;
+    case 'choose_stay':
+      return c.chooseStay(hotelName(s, command.ref), c.nights(command.nights.from, command.nights.to));
   }
 }

@@ -1,9 +1,9 @@
 import type { BaseMessage } from '@langchain/core/messages';
-import type { ResultGroup } from '@autix/contracts';
 import { FAKE_REPLY_CHUNKS } from '../llm/chat-reply/fakes.js';
 import type { Classified, Place } from './commands.js';
-import type { LlmTask, TripLlm } from './llm.js';
-import type { Locale, TripDay, TripState } from './state.js';
+import type { PlanDay, Stop } from './itinerary.js';
+import type { LlmTask, RespondInput, TripLlm } from './llm.js';
+import type { Locale, TripState } from './state.js';
 import type { LoopEvent } from './tool-loop.js';
 
 const CITIES = ['杭州', '里斯本'];
@@ -29,31 +29,30 @@ export class FakeTripLlm implements TripLlm {
       locale: input.state.locale,
       patch: { ...NULL_PATCH, destination: city },
       clarify: null,
+      revise: null,
     };
   }
 
-  async *respond(
-    task: LlmTask,
-    input: { text: string | null; state: TripState; history: BaseMessage[] },
-    signal: AbortSignal,
-  ): AsyncIterable<LoopEvent> {
+  async *respond(task: LlmTask, input: RespondInput, signal: AbortSignal): AsyncIterable<LoopEvent> {
+    if (task === 'revise') {
+      // Rewrites the first target day and replies with a one-line summary.
+      const day = (input.target?.days[0] ?? 0) + 1;
+      yield { type: 'edit', call: { name: 'write_day', args: { day, markdown: `**第 ${day} 天 | 慢节奏**\n- 10:00 市区散步` } }, results: [] };
+      yield { type: 'text', delta: `已调整第 ${day} 天。` };
+      return;
+    }
     const chunks =
       task === 'answer'
         ? FAKE_REPLY_CHUNKS
-        : [`## ${input.state.requirements.destination ?? ''}行程草稿\n\n`, '第 1 天：市区漫步。'];
+        : [`## ${input.state.requirements.destination ?? ''}行程草稿\n\n**总览**：轻松\n\n`, '**第 1 天 | 市区漫步（轻松）**\n- 10:00 市区漫步'];
     for (const delta of chunks) {
       signal.throwIfAborted();
       yield { type: 'text', delta };
     }
   }
 
-  async extractDays(
-    draft: string,
-    _stays: ResultGroup | null,
-    _locale: Locale,
-    _signal?: AbortSignal,
-  ): Promise<TripDay[]> {
-    const city = draft.match(/## (.+)行程草稿/)?.[1] ?? '';
-    return [{ title: '第 1 天', stops: [{ name: `${city}市区漫步`, note: null, time: null }], stayRef: null }];
+  async extractStops(day: Pick<PlanDay, 'title' | 'body'>, _locale: Locale, _signal?: AbortSignal): Promise<Stop[]> {
+    const name = day.title.split('|')[1]?.replace(/（.*）/, '').trim() || day.title;
+    return [{ name, note: null, time: null }];
   }
 }

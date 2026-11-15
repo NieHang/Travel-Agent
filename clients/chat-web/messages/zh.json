@@ -147,7 +147,9 @@
       "budget": "预算 {amount} {currency}",
       "waiting": "完善需求后生成行程草稿",
       "noResults": "暂时没有经过验证的结果",
-      "empty": "开始规划后，行程会显示在这里"
+      "empty": "开始规划后，行程会显示在这里",
+      "night": "第 {n} 晚",
+      "nights": "第 {from}–{to} 晚"
     }
   },
   "resultCard": {

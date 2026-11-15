@@ -55,6 +55,8 @@ function invalidateMessages(queryClient: QueryClient, conversationId: string) {
 export function useChatStream(conversationId: string | null): {
   phase: StreamPhase
   text: string
+  /** The itinerary being written in this stream, for the panel. */
+  draft: string
   activeConversationId: string | null
   components: Component[]
   progressPhase: ProgressPhase | null
@@ -181,6 +183,8 @@ export function useChatStream(conversationId: string | null): {
                 case 'text':
                   accText += event.delta
                   break
+                case 'draft':
+                  break
                 case 'done':
                   upsertMessage(queryClient, targetId, event.message)
                   queryClient.setQueryData(uiStateKey(targetId), {
@@ -275,6 +279,7 @@ export function useChatStream(conversationId: string | null): {
   return {
     phase,
     text: phase === 'idle' ? '' : ui.text || text,
+    draft: phase === 'idle' ? '' : ui.draft,
     activeConversationId,
     send,
     stop,

@@ -30,7 +30,7 @@ it('flags any candidate intent failure only when every base trial passed, and ga
   const classify = (name: string, intent: number, hallucination: number): RunResult => ({
     suite: 'classify', runName: name, metadata: {}, scores: [{ name: 'clarify_recall', value: 1 }],
     items: [{ id: 'cls-01', category: 'partial', output: {
-      intent: 'plan', locale: 'en', clarify: null,
+      intent: 'plan', locale: 'en', clarify: null, revise: null,
       patch: { destination: null, tripType: null, departureDate: null, returnDate: null, travelers: null, preferences: null, budget: null, budgetCurrency: null },
     }, scores: [{ name: 'intent_acc', value: intent }, { name: 'patch_exact', value: 1 }, { name: 'patch_hallucination', value: hallucination }] }],
   });
@@ -75,7 +75,7 @@ it('reads prefix-matched results from disk and compares a fake-LLM extraction en
   try {
     const item = await executeItem({
       id: 'ext-01', category: 'single_city', locale: 'zh', today: '2026-10-30',
-      draft: '## 杭州行程草稿', stays: null, expected: { days: [{ stops: ['杭州市区漫步'], stayRef: null }] },
+      draft: '## 杭州行程草稿\n\n**第 1 天 | 杭州市区漫步**', stays: null, expected: { days: [{ stops: ['杭州市区漫步'], stayRef: null }] },
     }, new FakeTripLlm());
     const result = { suite: 'extract-days', runName: 'extract-days@abc1234#1', metadata: {}, scores: [], items: [item] };
     await writeFile(join(folder, 'extract-days@abc1234_1.json'), JSON.stringify(result));

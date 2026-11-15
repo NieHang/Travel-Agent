@@ -25,6 +25,13 @@ export const RequirementsSchema = z
   .strict();
 export type Requirements = z.infer<typeof RequirementsSchema>;
 
+/** Inclusive range of night indices; night 0 is the night after day 1. */
+export const NightRangeSchema = z
+  .object({ from: z.number().int().nonnegative(), to: z.number().int().nonnegative() })
+  .strict()
+  .refine((r) => r.from <= r.to);
+export type NightRange = z.infer<typeof NightRangeSchema>;
+
 export const CommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('message'), text: z.string().trim().min(1).max(4000) }).strict(),
   z.object({ type: z.literal('set_trip_type'), value: TripTypeSchema }).strict(),
@@ -33,6 +40,8 @@ export const CommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('confirm') }).strict(),
   z.object({ type: z.literal('edit') }).strict(),
   z.object({ type: z.literal('resume') }).strict(),
+  /** Sent by the panel: put one grounded stay on one current run of nights (night 0 = the night after day 1). */
+  z.object({ type: z.literal('choose_stay'), ref: z.string().min(1).max(20), nights: NightRangeSchema }).strict(),
 ]);
 export type Command = z.infer<typeof CommandSchema>;
 
@@ -129,6 +138,8 @@ const TripViewSchema = z
     travelers: z.number().int().nullable(),
     budget: z.number().nullable(),
     budgetCurrency: z.string().nullable(),
+    /** The draft's overview and before-you-go section. */
+    overview: z.string().nullable(),
     itineraryMarkdown: z.string().nullable(),
     days: z.array(
       z.object({
@@ -138,6 +149,10 @@ const TripViewSchema = z
       }),
     ),
     hotels: z.array(ResultItemSchema),
+    /** Runs of consecutive nights on the same stay, with every grounded stay the user can switch to. */
+    stayPlan: z.array(
+      z.object({ nights: NightRangeSchema, stay: ResultItemSchema.nullable(), options: z.array(ResultItemSchema) }).strict(),
+    ),
     routes: z.array(ResultItemSchema),
     hotspots: z.array(ResultItemSchema),
   })
@@ -168,6 +183,8 @@ export const TripStreamEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('start'), userMessage: MessageSchema }),
   z.object({ type: z.literal('status'), phase: StatusPhaseSchema }),
   z.object({ type: z.literal('text'), delta: z.string() }),
+  // The itinerary markdown while it is written; it goes to the panel, not the chat bubble.
+  z.object({ type: z.literal('draft'), delta: z.string() }),
   z.object({
     type: z.literal('done'),
     message: MessageSchema,

@@ -31,8 +31,8 @@ describe('fromLegacySnapshot', () => {
     const state = fromLegacySnapshot(legacy('reviewing_itinerary'), 7)!;
     expect(state.revision).toBe(7);
     expect(state.requirements).toEqual({ destination: '杭州', tripType: 'family', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4 });
-    expect(state.itinerary).toBe('# 草稿');
-    expect(state.days).toEqual([{ title: '第 1 天', stops: [{ name: '西湖', note: null, time: null }], stayRef: null }]);
+    expect(state.preamble).toBe('# 草稿');
+    expect(state.days).toEqual([{ title: '第 1 天', body: '- 西湖', stops: [{ name: '西湖', note: null, time: null }], stayRef: null }]);
     expect(state.toolResults[0]).toMatchObject({ callId: 'legacy-1', tool: 'searchHotels' });
     expect(state.locale).toBe('en');
   });

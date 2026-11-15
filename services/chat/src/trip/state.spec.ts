@@ -19,10 +19,11 @@ const state = (patch: Partial<TripState>): TripState => ({ ...initialState(4), .
 
 describe('readState', () => {
   it('keeps legacy state data and defaults the destination check fields', () => {
-    const saved: Record<string, unknown> = { ...initialState(4), stage: 'review', requirements: { destination: 'Kyoto', travelers: 2 }, itinerary: '# Kyoto' };
+    const { preamble: _, footer: __, ...fresh } = initialState(4);
+    const saved: Record<string, unknown> = { ...fresh, version: 2, stage: 'review', requirements: { destination: 'Kyoto', travelers: 2 }, itinerary: '# Kyoto' };
     delete saved.checkedDestination;
     delete saved.outsideJapan;
-    expect(readState(saved, 9)).toEqual({ ...initialState(9), stage: 'review', requirements: { destination: 'Kyoto', travelers: 2 }, itinerary: '# Kyoto', checkedDestination: null, outsideJapan: null });
+    expect(readState(saved, 9)).toEqual({ ...initialState(9), stage: 'review', requirements: { destination: 'Kyoto', travelers: 2 }, preamble: '# Kyoto', checkedDestination: null, outsideJapan: null });
   });
   it('falls back to the initial state and always uses the column revision', () => {
     expect(readState(null, 7)).toEqual(initialState(7));
@@ -38,8 +39,8 @@ describe('toTripView', () => {
 
   it('maps stage to status', () => {
     expect(toTripView(state({ stage: 'trip_type' }))!.status).toBe('collecting');
-    expect(toTripView(state({ stage: 'review', itinerary: '# 草稿' }))!.status).toBe('draft');
-    expect(toTripView(state({ stage: 'confirmed', itinerary: '# 草稿' }))!.status).toBe('confirmed');
+    expect(toTripView(state({ stage: 'review', preamble: '# 草稿' }))!.status).toBe('draft');
+    expect(toTripView(state({ stage: 'confirmed', preamble: '# 草稿' }))!.status).toBe('confirmed');
   });
 
   it('takes hotels from stays, falling back to hotel results', () => {
@@ -54,15 +55,17 @@ describe('toTripView', () => {
     const view = toTripView(
       state({
         stage: 'review',
-        itinerary: '# 草稿',
+        preamble: '# 草稿',
         stays: group('hotels', ['h1']),
         days: [
-          { title: '第 1 天', stops: [], stayRef: 'h1' },
-          { title: '第 2 天', stops: [], stayRef: null },
+          { title: '第 1 天', body: '', stops: [], stayRef: 'h1' },
+          { title: '第 2 天', body: '', stops: [], stayRef: null },
         ],
       }),
     )!;
     expect(view.days.map((d) => d.stay?.ref ?? null)).toEqual(['h1', null]);
+    expect(view.stayPlan).toEqual([{ nights: { from: 0, to: 0 }, stay: expect.objectContaining({ ref: 'h1' }), options: [expect.objectContaining({ ref: 'h1' })] }]);
+    expect(view.itineraryMarkdown).toBe('# 草稿\n\n**第 1 天**\n- 今晚：Hotel h1\n\n**第 2 天**');
   });
 
   it('copies requirements and routes/hotspots groups', () => {

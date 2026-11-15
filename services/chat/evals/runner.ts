@@ -5,7 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { LangfuseClient } from '@langfuse/client';
 import { CallbackHandler } from '@langfuse/langchain';
 import { loadLangChainConfig } from '../src/config/load-langchain-config.js';
-import { CLASSIFY_PROMPT, extractDaysPrompt, ModelTripLlm } from '../src/trip/llm.js';
+import { CLASSIFY_PROMPT, extractStopsPrompt, ModelTripLlm } from '../src/trip/llm.js';
 import { gradeClarify } from './evaluators/classify.js';
 import { gradeLiveAssertions } from './evaluators/itinerary.js';
 import { executeItem, runName, type ItemResult } from './experiment.js';
@@ -26,7 +26,7 @@ export async function run(args: string[]): Promise<void> {
   const sha = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim();
   const dirty = Boolean(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim());
   const skills = suite === 'itinerary' ? (await import('../src/skills/registry.js')).loadSkills() : [];
-  const prompt = suite === 'classify' ? CLASSIFY_PROMPT : suite === 'itinerary' ? await (await import('./itinerary-runner.js')).itineraryPromptHashInput(skills) : extractDaysPrompt('en', null);
+  const prompt = suite === 'classify' ? CLASSIFY_PROMPT : suite === 'itinerary' ? await (await import('./itinerary-runner.js')).itineraryPromptHashInput(skills) : extractStopsPrompt('en');
   const itinerary = suite === 'itinerary' ? await (await import('./itinerary-runner.js')).itineraryContext(values['google-details'], values['defer-geography']) : null;
   const metadata = {
     model: llm.model, temperature: llm.temperature, thinking: llm.thinking ?? null, maxTokens: llm.maxTokens ?? null,

@@ -386,7 +386,7 @@ export function ChatScreen(): ReactNode {
         </section>
         {isDesktop ? (
           <aside className="min-h-0 flex-1 overflow-y-auto rounded-panel bg-ink">
-            <TripPanels tab={panelTab} data={panelData} />
+            <TripPanels tab={panelTab} data={panelData} draft={stream.draft} busy={generating || uiState.isPending} onCommand={(command) => void sendCommand(command)} />
           </aside>
         ) : null}
       </div>
@@ -398,7 +398,7 @@ export function ChatScreen(): ReactNode {
             </div>
             <SaveTripButton />
           </div>
-          <TripPanels tab={panelTab} data={panelData} />
+          <TripPanels tab={panelTab} data={panelData} draft={stream.draft} busy={generating || uiState.isPending} onCommand={(command) => void sendCommand(command)} />
         </MobileSheet>
       ) : null}
     </div>

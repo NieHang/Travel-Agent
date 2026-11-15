@@ -173,7 +173,7 @@ function gatedLlm(sched: Scheduler, turn: string): TripLlm {
   return {
     locate: async (d, signal) => (await step('model: locate', signal), inner.locate(d, signal)),
     classify: async (input, signal) => (await step('model: classify', signal), inner.classify(input, signal)),
-    extractDays: async (draft, stays, locale, signal) => (await step('model: extract days', signal), inner.extractDays(draft, stays, locale, signal)),
+    extractStops: async (day, locale, signal) => (await step('model: extract stops', signal), inner.extractStops(day, locale, signal)),
     respond: async function* (task, input, signal) {
       await step('model: respond', signal);
       yield* inner.respond(task, input, signal);
