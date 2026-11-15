@@ -37,7 +37,7 @@ export interface StreamingModel {
 }
 
 export const WRITE_DAY = 'write_day';
-export const WRITE_PREAMBLE = 'write_preamble';
+const WRITE_PREAMBLE = 'write_preamble';
 export const USE_STAY = 'use_stay';
 
 const EDIT_SCHEMAS = {

@@ -26,7 +26,7 @@ export const RequirementsSchema = z
 export type Requirements = z.infer<typeof RequirementsSchema>;
 
 /** Inclusive range of night indices; night 0 is the night after day 1. */
-export const NightRangeSchema = z
+const NightRangeSchema = z
   .object({ from: z.number().int().nonnegative(), to: z.number().int().nonnegative() })
   .strict()
   .refine((r) => r.from <= r.to);
