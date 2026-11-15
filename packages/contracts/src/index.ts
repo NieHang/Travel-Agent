@@ -6,5 +6,6 @@ export * from './auth';
 export * from './users';
 export * from './conversations';
 export * from './chat';
+export * from './trace';
 
 export * from './trip-flow';
