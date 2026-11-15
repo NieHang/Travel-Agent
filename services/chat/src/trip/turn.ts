@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { ConflictException, HttpException, Inject, Injectable, Logger } from '@nestjs/common';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import type { Command, Component, Message, SendTurnRequest, TripStreamEvent, TripUIState } from '@autix/contracts';
@@ -53,7 +54,7 @@ export class TurnService {
       | { status: 'settled'; message: Message } = { status: 'unclaimed' };
     let status: 'partial' | 'error' = 'partial';
     try {
-      const user = await this.saveUserMessage(conversationId, describe(request.command, copy(state.locale)), request.revision, request.command);
+      const user = await this.saveUserMessage(conversationId, describe(request.command, copy(state.locale)), loaded, request.command);
       turn = { status: 'preparing', userCreatedAt: user.createdAt };
       const context = await this.context(conversationId, user.id);
       const current = new HumanMessage(user.content);
@@ -139,14 +140,18 @@ export class TurnService {
     return readState(row.tripState, row.tripRevision);
   }
 
-  private async saveUserMessage(conversationId: string, content: string, revision: number, command: Command) {
+  private async saveUserMessage(conversationId: string, content: string, loaded: TripState, command: Command) {
     // A failed user save must roll back the claim without creating an orphan assistant reply.
     return this.prisma.$transaction(async (tx) => {
       const claim = await tx.conversation.updateMany({
-        where: { id: conversationId, tripRevision: revision },
+        where: { id: conversationId, tripRevision: loaded.revision },
         data: { tripRevision: { increment: 1 } },
       });
       if (claim.count !== 1) throw new ConflictException('Trip state has changed');
+      // A commit keeps the revision, so a turn that loaded while another turn held this revision
+      // can still claim it after that turn saved. Re-read under the row lock the claim now holds.
+      const row = await tx.conversation.findUniqueOrThrow({ where: { id: conversationId }, select: { tripState: true } });
+      if (!isDeepStrictEqual(readState(row.tripState, loaded.revision), loaded)) throw new ConflictException('Trip state has changed');
       const user = await tx.message.create({ data: { conversationId, role: 'USER', content, metadata: { command } } });
       await tx.conversation.updateMany({ where: { id: conversationId, title: '' }, data: { title: deriveTitle(content) } });
       return user;
