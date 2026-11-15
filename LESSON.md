@@ -90,3 +90,14 @@ _None yet. Entries graduate here at Seen 3×._
 - Fix: process, from abd1e46 onward (conventional scopes + explanatory body).
 - Done right: a9701ca: names the live-run symptom and the two causes.
 - Seen 1× (2026-10-11).
+
+**Do not merge a PR while its CI is red.**
+- PR #15 (4b3f446) added four exports used only in their own files
+  (`NightRangeSchema`, `stayLine`, `WRITE_PREAMBLE`, `DraftDay`). Its
+  `checks` job failed at knip, but it was merged anyway, so `main` stayed
+  red and the next branch cut from it inherited the failure.
+- Fix: 875f134 (dropped the four `export` keywords, in PR #16)
+- Done right: wait for `checks` to pass before merging; if it fails, fix
+  it in the same PR. Run root `bun run check` (typecheck, lint, knip)
+  locally before pushing, not only the workspace tests.
+- Seen 1× (2026-11-15).
