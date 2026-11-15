@@ -329,6 +329,28 @@ describe('TurnService', () => {
     expect(await prisma.message.findFirstOrThrow({ where: { conversationId, status: 'partial' } })).toMatchObject({ metadata: null });
   });
 
+  it('refuses a turn that loaded the state another turn then saved at the same revision', async () => {
+    llm.classifications.push(planned({ destination: 'Tokyo' }));
+    const first = turns.run(conversationId, { revision: 0, command: { type: 'message', text: 'Tokyo' } }, new AbortController().signal);
+    expect((await first.next()).value).toMatchObject({ type: 'start' });
+    // The second tab read revision 1 while the first turn held it; the first turn saves after the
+    // second loads and before the second claims.
+    const transaction = prisma.$transaction.bind(prisma);
+    const saved: TripStreamEvent[] = [];
+    const spy = vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (work) => {
+      for await (const e of first) saved.push(e);
+      return transaction(work);
+    });
+    try {
+      await expect(send({ revision: 1, command: { type: 'message', text: 'second tab' } })).rejects.toMatchObject({ status: 409 });
+    } finally {
+      spy.mockRestore();
+    }
+    const committed = done(saved);
+    expect(await turns.getState(conversationId)).toMatchObject({ revision: 1, components: committed.components });
+    expect(await prisma.message.count({ where: { conversationId, role: 'USER' } })).toBe(1);
+  });
+
   it('accepts the reported column revision after a turn dies holding its claim', async () => {
     llm.classifications.push(planned({ destination: 'Tokyo' }), chatted);
     const previous = done(await send({ revision: 0, command: { type: 'message', text: 'Tokyo' } }));
