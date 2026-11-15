@@ -2,10 +2,6 @@
 
 ## Rules
 
-- **Reuse HeroUI before building UI.** Before you create or change a React component, check whether HeroUI already provides it, and use that instead of writing your own.
-
-- **Let the layout do the explaining.** Avoid unnecessary secondary labels and descriptions.
-
 - **`main` is the base branch.** Base branches and worktrees on `origin/main`, target PRs at `main`, and diff against `origin/main` unless told otherwise.
 
 ## Style Guide
@@ -35,6 +31,16 @@ These apply to new and changed code. Do not rewrite untouched code just to match
 - **Comment the non-obvious only.** Write comments for surprising constraints and behavior, not for obvious assignments or control flow.
 - **Load heavy frontend modules lazily.** In `clients/chat-web`, use `next/dynamic` or a dynamic `import()` for large components or libraries needed only on some paths, and keep the import inside the branch that needs it.
 - **Tests exercise the real implementation.** Do not copy the logic under test into the test to compute the expected value; assert against concrete expected output.
+
+## UI
+
+- **Reuse HeroUI before building UI.** Before you create or change a React component, check whether HeroUI already provides it, and use that instead of writing your own.
+- **Let the layout do the explaining.** Avoid unnecessary secondary labels and descriptions.
+- **Manage UI as components backed by design tokens.** Build UI from components, and define style and color as a system of variables (design tokens) so the look stays consistent across the product.
+- **Choose components by semantics.** Model the component library's semantics on mature industry libraries, and keep Do / Don't examples. Pick each component for its correct meaning and use case, and replace components in the current product that are used for the wrong purpose.
+- **Manage corner radii with global variables.** Use one set of global radius variables and keep nested radii concentric (inner radius = outer radius − inset). Where supported and cheap enough to render, use continuous (squircle) corners.
+- **Use a global spacing scale in multiples of 4.** Assign spacing by how elements nest logically: tighter inside a group, wider between groups. When one element is nested in another, keep the padding equal on all four sides where the case calls for it.
+- **Remove unnecessary UX copy.** First decide what the page is for, then keep only the core heading and the key label–value text. Descriptive text follows formal written style, not marketing or conversational tone. Based on how often users are likely to need it, fold it into a tooltip, alert or similar instead of showing it permanently.
 
 <!-- BEGIN:turborepo-agent-rules -->
 
