@@ -1,10 +1,9 @@
 import { defineConfig } from 'vitest/config';
-import tsconfigPaths from 'vite-tsconfig-paths';
 
 // Exhaustive schedule checks in verify/. Kept out of `bun run test` because they report findings
 // in current code and take longer than unit tests. See .claude/skills/verify-turn-claim/SKILL.md.
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  resolve: { tsconfigPaths: true },
   test: {
     globals: true,
     root: './',
