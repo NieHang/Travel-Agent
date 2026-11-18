@@ -1,11 +1,11 @@
 import type { BaseMessage } from '@langchain/core/messages';
-import { FAKE_REPLY_CHUNKS } from '../llm/chat-reply/fakes.js';
 import type { Classified, Place } from './commands.js';
 import type { PlanDay, Stop } from './itinerary.js';
 import type { LlmTask, RespondInput, TripLlm } from './llm.js';
 import type { Locale, TripState } from './state.js';
 import type { LoopEvent } from './tool-loop.js';
 
+const FAKE_REPLY_CHUNKS = ['好的，', '这是一段', '用于测试的回复。'];
 const CITIES = ['杭州', '里斯本'];
 const NULL_PATCH: Classified['patch'] = {
   destination: null, tripType: null, departureDate: null, returnDate: null,

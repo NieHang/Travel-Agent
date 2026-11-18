@@ -18,6 +18,7 @@ describe('auth HTTP', () => {
   let server: Server;
 
   beforeAll(async () => {
+    vi.stubEnv('LLM_DEMO_ROUTES', '1');
     ({ app, prisma, server } = await createTestApp());
   });
 
@@ -27,6 +28,7 @@ describe('auth HTTP', () => {
 
   afterAll(async () => {
     await app?.close();
+    vi.unstubAllEnvs();
   });
 
   it('注册：201、AuthResult、Cookie 属性正确、响应体不含 refresh token', async () => {
@@ -272,6 +274,7 @@ describe('auth HTTP 限流', () => {
 
   afterAll(async () => {
     await app?.close();
+    vi.unstubAllEnvs();
   });
 
   const hit = (path: string) => request(server).post(path);

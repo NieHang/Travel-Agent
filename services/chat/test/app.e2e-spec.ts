@@ -13,7 +13,7 @@ describe('AppController (e2e)', () => {
   beforeEach(async () => {
     vi.stubEnv('JWT_ACCESS_SECRET', 'test-access-secret-at-least-32-chars-long');
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [AppModule.register()],
     })
       .overrideProvider(PrismaService)
       .useValue({})

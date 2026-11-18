@@ -15,7 +15,7 @@ import type {
 } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-export type { ConversationRow, MessageRow };
+export type { ConversationRow };
 
 function toConversationContract(row: ConversationRow): Conversation {
   return {

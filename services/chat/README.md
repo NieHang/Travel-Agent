@@ -58,6 +58,7 @@ bun run db:generate
 | `REFRESH_TTL_DAYS`  | `30`                    | refresh token 有效期                                            |
 | `COOKIE_SECURE`     | `false`                 | 生产环境设为 `true`                                             |
 | `TRUST_PROXY`       | `false`                 | 是否信任反向代理传来的客户端 IP；设为 `true` 时只信任紧邻的一跳反向代理 |
+| `LLM_DEMO_ROUTES`   | 未设置                  | 设为 `1` 或 `true` 时注册 LangChain 示例路由，仅供开发使用；与 `NODE_ENV=production` 同时出现时启动失败 |
 | `LLM_FAKE`          | 未设置                  | 设为 `1` 或 `true` 时使用假模型，不需要模型密钥；与 `NODE_ENV=production` 同时出现时启动失败 |
 | `CORS_ORIGIN`       | `http://localhost:3002` | 允许携带 Cookie 的前端来源                                      |
 
@@ -68,8 +69,9 @@ bun run db:generate
 ### 哪些接口需要登录
 
 除 `/api/auth/*` 下的四个接口（`register`、`login`、`refresh`、`logout`）和 `/health` 之外，所有路由都需要
-`Authorization: Bearer <access token>`，原有的演示接口（`/requirement/extract`、`/api/langchain/*`、
-`/api/files/chat`、`/api/embedding/*` 等）也不例外；下文的 curl 示例需要自行加上这个请求头。
+`Authorization: Bearer <access token>`。原有的 LangChain 演示接口（`/requirement/extract`、`/api/langchain/*`、
+`/api/memory/*`、`/api/files/chat`、`/api/embedding/*`、`/api/agents/*`、`/api/advanced/*`）默认不注册，
+本地设置 `LLM_DEMO_ROUTES=1` 后才可用，同样需要登录；下文的 curl 示例需要自行加上这个请求头。
 
 `clients/chat-web` 用户前端已接入注册、登录与对话接口；本地运行和浏览器验收见其 README。
 
@@ -87,14 +89,16 @@ bun run db:generate
 
 ### 对话接口
 
-`POST /api/conversations/:id/messages`，请求体 `{ "content": "..." }`（去首尾空白后 1–4000 字符），
-需要 `Authorization: Bearer <accessToken>`，每个用户每分钟 20 次。校验通过后响应为
-`text/event-stream`，每个事件写成 `event: <名>\ndata: <JSON>\n\n`，事件依次为 `user_message`、
-若干 `delta`、可选的 `requirement`，最后是 `done` 或 `error` 之一。流开始前的失败
-（401、`VALIDATION_FAILED`、`CONVERSATION_NOT_FOUND`、`RATE_LIMITED`）是普通 JSON 错误。
+`POST /api/conversations/:id/messages`，请求体 `{ revision, command, locale? }`（`SendTurnRequestSchema`，
+见 `packages/contracts/src/trip-flow.ts`）。`command` 是自由文本 `{ type: "message", text }`（1–4000 字符）
+或界面组件发回的指令；`revision` 必须等于 `GET /api/conversations/:id/ui-state` 返回的当前值，
+否则返回 409。每个用户每分钟 20 次。校验通过后响应为 `text/event-stream`，每个事件写成
+`event: message\ndata: <TripStreamEvent JSON>\n\n`：先是 `start`（已保存的用户消息），中间是
+`status`、`text`、`draft`，最后是 `done`（助手消息、组件与行程）或 `error` 之一。流开始前的失败
+（401、409、`VALIDATION_FAILED`、`CONVERSATION_NOT_FOUND`、`RATE_LIMITED`）是普通 JSON 错误。
 
 客户端的义务：流在没有收到 `done` 或 `error` 事件的情况下结束（连接中断、服务重启等），要当作失败处理，
-不能把已收到的 `delta` 当成完整回复；access token 的刷新与重试规则同上面的"前端接入须知"。
+不能把已收到的 `text` 当成完整回复；access token 的刷新与重试规则同上面的"前端接入须知"。
 客户端中途断开时，服务端会把已生成的部分以 `partial` 状态保存。
 
 ### 测试库
@@ -103,7 +107,7 @@ bun run db:generate
 
 1. 把 `.env.test.example` 复制为 `.env.test`（不提交 Git），把 `DATABASE_URL` 换成本机的连接信息。
    库名必须以 `_test` 结尾（约定为 `travel_agent_test`），否则测试拒绝运行，以免误清开发库。
-   `.env.test` 里的 `LLM_FAKE=1` 让这些测试使用假模型。
+   `.env.test` 里的 `LLM_FAKE=1` 让这些测试使用假模型。示例路由测试单独启用 `LLM_DEMO_ROUTES`。
 2. 创建测试库并应用迁移（建在开发库所在的 PostgreSQL 上；Schema 有变化后重新执行）：
 
    ```sh

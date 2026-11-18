@@ -106,9 +106,10 @@ describe('filesystem HTTP integration', () => {
     );
     vi.stubEnv('HTTPS_PROXY', '');
     vi.stubEnv('HTTP_PROXY', '');
-    const { LlmModule } = await import('../llm.module.js');
+    vi.stubEnv('LLM_DEMO_ROUTES', '1');
+    const { DemoRoutesModule } = await import('../demo-routes.module.js');
     const module = await Test.createTestingModule({
-      imports: [LlmModule],
+      imports: [DemoRoutesModule.register()],
     }).compile();
     app = module.createNestApplication();
     await app.init();

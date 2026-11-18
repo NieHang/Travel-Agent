@@ -32,6 +32,8 @@ const call = (
   });
 
 describe('filesystem tool loop', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   beforeEach(() => {
     vi.resetAllMocks();
     mocks.bindTools.mockReturnValue({ invoke: mocks.invoke });
@@ -182,9 +184,10 @@ describe('filesystem tool loop', () => {
   });
 
   it('registers POST /api/files/chat and rejects invalid input before model invocation', async () => {
-    const { LlmModule } = await import('../llm.module.js');
+    const { DemoRoutesModule } = await import('../demo-routes.module.js');
+    vi.stubEnv('LLM_DEMO_ROUTES', '1');
     const module = await Test.createTestingModule({
-      imports: [LlmModule],
+      imports: [DemoRoutesModule.register()],
     }).compile();
     const app = module.createNestApplication();
     await app.init();

@@ -19,7 +19,7 @@ import { PrismaService } from '../../src/prisma/prisma.service.js';
 export async function createTestApp(
   opts: { throttling?: boolean; configure?: (builder: TestingModuleBuilder) => void } = {},
 ): Promise<{ app: INestApplication; prisma: PrismaService; server: Server }> {
-  const builder = Test.createTestingModule({ imports: [AppModule] });
+  const builder = Test.createTestingModule({ imports: [AppModule.register()] });
   if (!opts.throttling) {
     // 它通过 @UseGuards 绑定，是 enhancer 而不是 provider：overrideProvider 换不掉它。
     builder.overrideGuard(AppThrottlerGuard).useValue({ canActivate: () => true });

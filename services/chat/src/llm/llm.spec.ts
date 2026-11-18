@@ -103,9 +103,10 @@ describe.each(['direct', 'HTTPS_PROXY', 'HTTP_PROXY'])(
         'OPENAI_BASE_URL',
         `http://127.0.0.1:${(server.address() as AddressInfo).port}/v1`,
       );
-      const { LlmModule } = await import('./llm.module.js');
+      vi.stubEnv('LLM_DEMO_ROUTES', '1');
+      const { DemoRoutesModule } = await import('./demo-routes.module.js');
       const module = await Test.createTestingModule({
-        imports: [LlmModule],
+        imports: [DemoRoutesModule.register()],
       }).compile();
       app = module.createNestApplication();
       await app.init();

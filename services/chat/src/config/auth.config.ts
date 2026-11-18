@@ -23,6 +23,10 @@ export function isLlmFakeEnabled(env: NodeJS.ProcessEnv = process.env): boolean 
   return isTruthy(env.LLM_FAKE);
 }
 
+export function isLlmDemoRoutesEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return isTruthy(env.LLM_DEMO_ROUTES);
+}
+
 export function loadAuthConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig {
   const accessSecret = env.JWT_ACCESS_SECRET;
   if (!accessSecret || accessSecret.length < MIN_SECRET_LENGTH) {
@@ -43,6 +47,10 @@ export function loadAuthConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig
   const llmFake = isLlmFakeEnabled(env);
   if (llmFake && env.NODE_ENV === 'production') {
     throw new Error('LLM_FAKE must not be enabled in production');
+  }
+
+  if (isLlmDemoRoutesEnabled(env) && env.NODE_ENV === 'production') {
+    throw new Error('LLM_DEMO_ROUTES must not be enabled in production');
   }
 
   return {

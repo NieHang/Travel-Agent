@@ -1,33 +1,10 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  Inject,
-  Post,
-} from '@nestjs/common';
-import type { RequirementResult } from '@autix/contracts';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { AppService } from './app.service.js';
 import { Public } from './auth/decorators.js';
-import { RequirementService } from './llm/requirement.service.js';
 
 @Controller()
 export class AppController {
-  constructor(
-    @Inject(AppService) private readonly appService: AppService,
-    @Inject(RequirementService)
-    private readonly requirementService: RequirementService,
-  ) {}
-
-  @Post('requirement/extract')
-  extractRequirement(
-    @Body() body: { input: string },
-  ): Promise<RequirementResult> {
-    if (typeof body?.input !== 'string') {
-      throw new BadRequestException('input must be a string');
-    }
-    return this.requirementService.extract(body.input);
-  }
+  constructor(@Inject(AppService) private readonly appService: AppService) {}
 
   @Public()
   @Get('health')
