@@ -4,7 +4,7 @@ import type { Command, ResultItem, TripView } from '@autix/contracts'
 import { useFormatter, useTranslations } from 'next-intl'
 import { ResultCard } from '@/components/ai-ui/ResultCard'
 import { Markdown } from '@/components/ui/Markdown'
-import type { PanelTab } from './mock/types'
+import type { PanelTab } from './tabs'
 
 function ResultList({ items }: { items: ResultItem[] }) {
   const t = useTranslations('panels')

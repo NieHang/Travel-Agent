@@ -30,7 +30,7 @@ import {
   SaveTripButton,
   TripPanels,
 } from '@/features/panels/TripPanels'
-import { STAGE_COLOR, type PanelTab } from '@/features/panels/mock/types'
+import { STAGE_COLOR, type PanelTab } from '@/features/panels/tabs'
 import { MobileSheet } from '@/features/panels/MobileSheet'
 import { useIsDesktop } from '@/lib/use-media-query'
 import { Composer } from './Composer'
