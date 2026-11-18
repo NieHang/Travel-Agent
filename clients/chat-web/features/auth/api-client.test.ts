@@ -1,4 +1,5 @@
 import { http, HttpResponse, delay } from 'msw'
+import { UserSchema } from '@autix/contracts'
 import { server, apiUrl } from '@/test/server'
 import { makeUser } from '@/test/fixtures'
 import { api, ApiRequestError } from './api-client'
@@ -6,6 +7,8 @@ import { authStore } from './auth-store'
 import { resetRefreshForTests } from './refresh'
 
 const user = makeUser()
+/** These tests are about transport, so any body passes. */
+const anything = { parse: (data: unknown) => data }
 const expired = () =>
   HttpResponse.json({ code: 'TOKEN_EXPIRED', message: '' }, { status: 401 })
 
@@ -21,7 +24,7 @@ it('A 的迟到过期请求不会使用 B 的 token 重试', async () => {
     await gate
     return tokens.length === 1 ? expired() : HttpResponse.json(makeUser({ id: 'B' }))
   }))
-  const request = catchError(api('/api/users/me', { method: 'PATCH', body: { locale: 'en' } }))
+  const request = catchError(api('/api/users/me', anything, { method: 'PATCH', body: { locale: 'en' } }))
   await started
   authStore.setAuthed({ accessToken: 'B', user: makeUser({ id: 'B' }) })
   release()
@@ -70,7 +73,7 @@ it('带上 Authorization 与凭据', async () => {
       return HttpResponse.json({ ok: true })
     }),
   )
-  await api('/api/things')
+  await api('/api/things', anything)
   expect(auth).toBe('Bearer old')
   expect(fetchSpy).toHaveBeenCalledTimes(1)
   expect(fetchSpy.mock.calls[0][1]).toMatchObject({ credentials: 'include' })
@@ -86,7 +89,7 @@ it('TOKEN_EXPIRED：刷新后用新 token 重试一次并成功', async () => {
     }),
   )
   useRefresh()
-  await expect(api('/api/things')).resolves.toEqual({ ok: true })
+  await expect(api('/api/things', anything)).resolves.toEqual({ ok: true })
   expect(refreshCalls).toBe(1)
   expect(thingCalls).toBe(2)
   expect(authStore.getState()).toMatchObject({ status: 'authed', accessToken: 'new' })
@@ -101,7 +104,7 @@ it('并发的三个 TOKEN_EXPIRED 只触发一次刷新', async () => {
     ),
   )
   useRefresh()
-  await Promise.all([api('/api/things'), api('/api/things'), api('/api/things')])
+  await Promise.all([api('/api/things', anything), api('/api/things', anything), api('/api/things', anything)])
   expect(refreshCalls).toBe(1)
 })
 
@@ -119,8 +122,8 @@ it('别的请求已换过 token：迟到的 TOKEN_EXPIRED 直接用新 token 重
     }),
   )
   useRefresh()
-  const slow = api('/api/things?slow=1')
-  await api('/api/things')
+  const slow = api('/api/things?slow=1', anything)
+  await api('/api/things', anything)
   expect(refreshCalls).toBe(1)
   release()
   await expect(slow).resolves.toEqual({ ok: true })
@@ -140,8 +143,8 @@ it('刷新失败（REUSED）后迟到的 TOKEN_EXPIRED：不再刷新，保留 r
       return HttpResponse.json({ code: 'REFRESH_REUSED', message: '' }, { status: 401 })
     }),
   )
-  const slow = catchError(api('/api/things?slow=1'))
-  const fast = catchError(api('/api/things'))
+  const slow = catchError(api('/api/things?slow=1', anything))
+  const fast = catchError(api('/api/things', anything))
   expect((await fast).code).toBe('TOKEN_EXPIRED')
   expect(authStore.getState()).toEqual({ status: 'guest', reason: 'reused' })
   release()
@@ -158,7 +161,7 @@ it('重试后仍是 TOKEN_EXPIRED：不再刷新，抛出', async () => {
     }),
   )
   useRefresh()
-  await expect(api('/api/things')).rejects.toMatchObject({ code: 'TOKEN_EXPIRED' })
+  await expect(api('/api/things', anything)).rejects.toMatchObject({ code: 'TOKEN_EXPIRED' })
   expect(thingCalls).toBe(2)
   expect(refreshCalls).toBe(1)
 })
@@ -170,7 +173,7 @@ it('刷新失败：抛原来的 TOKEN_EXPIRED，状态为 guest', async () => {
       HttpResponse.json({ code: 'REFRESH_REUSED', message: '' }, { status: 401 }),
     ),
   )
-  await expect(api('/api/things')).rejects.toMatchObject({ code: 'TOKEN_EXPIRED' })
+  await expect(api('/api/things', anything)).rejects.toMatchObject({ code: 'TOKEN_EXPIRED' })
   expect(authStore.getState()).toEqual({ status: 'guest', reason: 'reused' })
 })
 
@@ -181,7 +184,7 @@ it('TOKEN_INVALID 不触发刷新', async () => {
     ),
   )
   useRefresh()
-  await expect(api('/api/things')).rejects.toMatchObject({ code: 'TOKEN_INVALID', status: 401 })
+  await expect(api('/api/things', anything)).rejects.toMatchObject({ code: 'TOKEN_INVALID', status: 401 })
   expect(refreshCalls).toBe(0)
 })
 
@@ -194,7 +197,7 @@ it('RATE_LIMITED 带 retryAfter', async () => {
       ),
     ),
   )
-  const e = await catchError(api('/api/things'))
+  const e = await catchError(api('/api/things', anything))
   expect(e).toBeInstanceOf(ApiRequestError)
   expect(e).toMatchObject({ code: 'RATE_LIMITED', status: 429, retryAfter: 17 })
 })
@@ -212,7 +215,7 @@ it.each([
       ),
     ),
   )
-  const e = await catchError(api('/api/things'))
+  const e = await catchError(api('/api/things', anything))
   expect(e.retryAfter).toBe(60)
 })
 
@@ -223,7 +226,7 @@ it('VALIDATION_FAILED 保留 details', async () => {
       HttpResponse.json({ code: 'VALIDATION_FAILED', message: '', details }, { status: 400 }),
     ),
   )
-  const e = await catchError(api('/api/things'))
+  const e = await catchError(api('/api/things', anything))
   expect(e).toMatchObject({ code: 'VALIDATION_FAILED', status: 400 })
   expect((e.details as typeof details).fieldErrors.email).toEqual(['bad'])
 })
@@ -237,7 +240,7 @@ it('错误体不是 JSON → INTERNAL_ERROR，status 保留', async () => {
       }),
     ),
   )
-  await expect(api('/api/things')).rejects.toMatchObject({ code: 'INTERNAL_ERROR', status: 502 })
+  await expect(api('/api/things', anything)).rejects.toMatchObject({ code: 'INTERNAL_ERROR', status: 502 })
 })
 
 it('code 不在契约里 → INTERNAL_ERROR', async () => {
@@ -246,12 +249,12 @@ it('code 不在契约里 → INTERNAL_ERROR', async () => {
       HttpResponse.json({ code: 'WAT', message: '' }, { status: 418 }),
     ),
   )
-  await expect(api('/api/things')).rejects.toMatchObject({ code: 'INTERNAL_ERROR', status: 418 })
+  await expect(api('/api/things', anything)).rejects.toMatchObject({ code: 'INTERNAL_ERROR', status: 418 })
 })
 
 it('网络失败 → NETWORK', async () => {
   server.use(http.get(apiUrl('/api/things'), () => HttpResponse.error()))
-  await expect(api('/api/things')).rejects.toMatchObject({ code: 'NETWORK', status: 0 })
+  await expect(api('/api/things', anything)).rejects.toMatchObject({ code: 'NETWORK', status: 0 })
 })
 
 it('中止 → ABORTED', async () => {
@@ -262,14 +265,19 @@ it('中止 → ABORTED', async () => {
     }),
   )
   const controller = new AbortController()
-  const p = api('/api/things', { signal: controller.signal })
+  const p = api('/api/things', anything, { signal: controller.signal })
   setTimeout(() => controller.abort(), 10)
   await expect(p).rejects.toMatchObject({ code: 'ABORTED', status: 0 })
 })
 
-it('204 返回 undefined', async () => {
-  server.use(http.delete(apiUrl('/api/x'), () => new HttpResponse(null, { status: 204 })))
-  await expect(api('/api/x', { method: 'DELETE' })).resolves.toBeUndefined()
+it('响应体不符合契约 → INTERNAL_ERROR，status 保留', async () => {
+  server.use(http.get(apiUrl('/api/users/me'), () => HttpResponse.json({ ...user, locale: 'fr' })))
+  await expect(api('/api/users/me', UserSchema)).rejects.toMatchObject({ code: 'INTERNAL_ERROR', status: 200 })
+})
+
+it('响应体按契约解析后返回', async () => {
+  server.use(http.get(apiUrl('/api/users/me'), () => HttpResponse.json({ ...user, extra: 1 })))
+  await expect(api('/api/users/me', UserSchema)).resolves.toEqual(user)
 })
 
 it('body 传对象时序列化并带 Content-Type: application/json', async () => {
@@ -282,7 +290,7 @@ it('body 传对象时序列化并带 Content-Type: application/json', async () =
       return HttpResponse.json({ ok: true })
     }),
   )
-  await api('/api/x', { method: 'POST', body: { a: 1 } })
+  await api('/api/x', anything, { method: 'POST', body: { a: 1 } })
   expect(contentType).toBe('application/json')
   expect(received).toEqual({ a: 1 })
 })

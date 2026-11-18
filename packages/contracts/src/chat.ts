@@ -26,27 +26,3 @@ export const MessageSchema = z.object({
   createdAt: z.string().datetime(),
 });
 export type Message = z.infer<typeof MessageSchema>;
-
-export const ChatStreamEventSchema = z.discriminatedUnion('event', [
-  z.object({
-    event: z.literal('user_message'),
-    data: z.object({ message: MessageSchema }),
-  }),
-  z.object({
-    event: z.literal('delta'),
-    data: z.object({ text: z.string() }),
-  }),
-  z.object({
-    event: z.literal('requirement'),
-    data: z.object({ requirements: z.array(RequirementSchema) }),
-  }),
-  z.object({
-    event: z.literal('done'),
-    data: z.object({ message: MessageSchema }),
-  }),
-  z.object({
-    event: z.literal('error'),
-    data: z.object({ code: z.literal('MODEL_FAILED'), message: MessageSchema }),
-  }),
-]);
-export type ChatStreamEvent = z.infer<typeof ChatStreamEventSchema>;

@@ -2,16 +2,17 @@ import 'reflect-metadata';
 import { EventEmitter } from 'node:events';
 import { inspect } from 'node:util';
 import { Logger } from '@nestjs/common';
-import type { ChatStreamEvent } from '@autix/contracts';
+import type { SendTurnRequest, TripStreamEvent } from '@autix/contracts';
 import type { Response } from 'express';
 import type { ConversationsService } from '../conversations/conversations.service.js';
 import { ChatController } from './chat.controller.js';
-import type { ChatService } from './chat.service.js';
+import type { TurnService } from '../trip/turn.js';
 
 const SENTINEL = 'SENTINEL-user-text-7f3a';
 const CONVERSATION_ID = 'conv-1';
 const user = { userId: 'user-1' };
-const delta: ChatStreamEvent = { event: 'delta', data: { text: 'hi' } };
+const text: TripStreamEvent = { type: 'text', delta: 'hi' };
+const turn: SendTurnRequest = { revision: 3, command: { type: 'confirm' }, locale: 'en' };
 
 /** 只实现控制器用到的那部分 Response。 */
 function fakeResponse(state: { destroyed?: boolean } = {}) {
@@ -22,7 +23,7 @@ function fakeResponse(state: { destroyed?: boolean } = {}) {
     written: [] as string[],
     ended: false,
     status: () => res,
-    setHeader: () => res,
+    setHeader: vi.fn(() => res),
     flushHeaders: () => {
       res.headersSent = true;
     },
@@ -34,10 +35,10 @@ function fakeResponse(state: { destroyed?: boolean } = {}) {
   return res;
 }
 
-function controller(send: ChatService['send']) {
+function controller(run: TurnService['run']) {
   return new ChatController(
-    { send } as unknown as ChatService,
     { assertOwned: async () => undefined } as unknown as ConversationsService,
+    { run } as unknown as TurnService,
   );
 }
 
@@ -49,8 +50,8 @@ describe('ChatController.send', () => {
     const res = fakeResponse({ destroyed: true });
     await controller(async function* (_id, _content, signal) {
       abortedAtStart = signal.aborted;
-      yield delta;
-    }).send(user, CONVERSATION_ID, { revision: 0, command: { type: 'message', text: 'x' } }, res as unknown as Response);
+      yield text;
+    }).send(user, CONVERSATION_ID, turn, res as unknown as Response);
     expect(abortedAtStart).toBe(true);
     expect(res.written).toEqual([]);
     expect(res.listenerCount('close')).toBe(0);
@@ -59,12 +60,19 @@ describe('ChatController.send', () => {
   it('连接正常时信号未中止，事件照常写出', async () => {
     let abortedAtStart: boolean | undefined;
     const res = fakeResponse();
-    await controller(async function* (_id, _content, signal) {
+    await controller(async function* (id, request, signal) {
+      expect(id).toBe(CONVERSATION_ID);
+      expect(request).toBe(turn);
       abortedAtStart = signal.aborted;
-      yield delta;
-    }).send(user, CONVERSATION_ID, { revision: 0, command: { type: 'message', text: 'x' } }, res as unknown as Response);
+      yield text;
+    }).send(user, CONVERSATION_ID, turn, res as unknown as Response);
     expect(abortedAtStart).toBe(false);
-    expect(res.written).toEqual([`event: delta\ndata: ${JSON.stringify(delta.data)}\n\n`]);
+    expect(res.setHeader.mock.calls).toEqual([
+      ['Content-Type', 'text/event-stream'],
+      ['Cache-Control', 'no-cache'],
+      ['Connection', 'keep-alive'],
+    ]);
+    expect(res.written).toEqual(['event: message\ndata: {"type":"text","delta":"hi"}\n\n']);
     expect(res.ended).toBe(true);
   });
 
@@ -72,9 +80,9 @@ describe('ChatController.send', () => {
     const spy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     const res = fakeResponse();
     await controller(async function* () {
-      yield delta;
+      yield text;
       throw new TypeError(`model said: ${SENTINEL}`);
-    }).send(user, CONVERSATION_ID, { revision: 0, command: { type: 'message', text: 'x' } }, res as unknown as Response);
+    }).send(user, CONVERSATION_ID, turn, res as unknown as Response);
     expect(res.ended).toBe(true);
     expect(spy).toHaveBeenCalledTimes(1);
     const logged = inspect(spy.mock.calls, { depth: 10 });

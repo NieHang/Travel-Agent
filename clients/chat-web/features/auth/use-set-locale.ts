@@ -3,7 +3,7 @@
 import { useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
-import type { Locale, User } from '@autix/contracts'
+import { UserSchema, type Locale } from '@autix/contracts'
 import { writeLocaleCookie } from '@/i18n/locale'
 import { api } from './api-client'
 import { authStore } from './auth-store'
@@ -18,7 +18,7 @@ export function useSetLocale(): (locale: Locale) => void {
       router.refresh()
       if (authStore.getState().status !== 'authed') return
       const generation = authStore.getGeneration()
-      api<User>('/api/users/me', { method: 'PATCH', body: { locale } })
+      api('/api/users/me', UserSchema, { method: 'PATCH', body: { locale } })
         .then((user) => {
           const state = authStore.getState()
           if (authStore.getGeneration() === generation && state.status === 'authed' && state.user.id === user.id) authStore.setUser(user)

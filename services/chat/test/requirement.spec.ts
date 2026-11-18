@@ -68,6 +68,7 @@ describe('requirement extraction', () => {
       'OPENAI_BASE_URL',
       `http://127.0.0.1:${(server.address() as AddressInfo).port}/v1`,
     );
+    vi.stubEnv('LLM_DEMO_ROUTES', '1');
     vi.stubEnv('HTTPS_PROXY', '');
     vi.stubEnv('HTTP_PROXY', '');
     vi.stubEnv('JWT_ACCESS_SECRET', 'test-access-secret-at-least-32-chars-long');
@@ -77,7 +78,7 @@ describe('requirement extraction', () => {
     ];
     const { AppModule } = await import('../src/app.module.js');
     const module = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [AppModule.register()],
     })
       .overrideProvider(PrismaService)
       .useValue({})

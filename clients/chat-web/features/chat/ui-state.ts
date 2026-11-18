@@ -10,6 +10,6 @@ export function useUIState(id: string | null) {
     enabled: id !== null,
     retry: false,
     queryFn: async ({ signal }): Promise<TripUIState> =>
-      TripUIStateSchema.parse(await api(`/api/conversations/${encodeURIComponent(id!)}/ui-state`, { signal })),
+      api(`/api/conversations/${encodeURIComponent(id!)}/ui-state`, TripUIStateSchema, { signal }),
   })
 }

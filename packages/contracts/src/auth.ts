@@ -33,7 +33,7 @@ export const LoginRequestSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 
-const UserSchema = z.object({
+export const UserSchema = z.object({
   id: z.string(),
   email: z.string(),
   nickname: z.string(),

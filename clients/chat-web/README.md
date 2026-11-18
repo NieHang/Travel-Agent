@@ -1,6 +1,6 @@
 # Hilda 用户前端
 
-Next.js App Router + HeroUI + Motion，支持中文和英文。登录态通过内存 access token 与 HttpOnly refresh Cookie 恢复；对话接入真实 API，右侧行程、酒店、路线、热点使用双语示例数据。保存和预订当前只展示提示。
+Next.js App Router + HeroUI + Motion，支持中文和英文。登录态通过内存 access token 与 HttpOnly refresh Cookie 恢复；对话与右侧行程、酒店、路线、热点面板都来自服务端的行程状态。首页浮动卡片使用双语示例数据（`features/panels/mock`）。「保存行程」当前只展示提示。
 
 ## 页面
 
@@ -9,7 +9,7 @@ Next.js App Router + HeroUI + Motion，支持中文和英文。登录态通过�
 | `/` | 首页、示例提示、开始规划 |
 | `/login`、`/register` | 认证、next 跳转、登录后消费暂存提示 |
 | `/chat` | 新对话，需登录 |
-| `/chat/[id]` | 消息历史、SSE 回复、停止生成、需求卡片、历史抽屉 |
+| `/chat/[id]` | 消息历史、SSE 回复、停止生成、行程组件（选项、表单、按钮、结果卡片）、历史抽屉 |
 
 桌面显示聊天与行程双栏；窄屏通过「查看行程」打开底部面板，拖动顶部手柄或点击关闭收起。
 
@@ -33,6 +33,7 @@ bun run dev
 ```sh
 bun run test        # Vitest：纯逻辑、组件与 MSW API 场景；不连接数据库
 bun run typecheck
+bun run lint        # oxlint --type-aware
 bun run build
 ```
 

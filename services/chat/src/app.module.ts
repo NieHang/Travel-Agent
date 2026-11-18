@@ -1,4 +1,4 @@
-import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
+import { type DynamicModule, Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { createObserveModule } from '@nestjs/observe';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -11,7 +11,7 @@ import { ChatModule } from './chat/chat.module.js';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import { ConversationsModule } from './conversations/conversations.module.js';
 import { ConfigModule } from './config/config.module.js';
-import { LlmModule } from './llm/llm.module.js';
+import { DemoRoutesModule } from './llm/demo-routes.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -29,7 +29,6 @@ export const ObserveInstrument = observe.ObserveInstrument;
     UsersModule,
     ConversationsModule,
     ChatModule,
-    LlmModule,
     // Distributed tracing, auto-correlated logs, request/job metrics, error
     // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
     // observe.ObserveModule.forRoot({
@@ -47,6 +46,10 @@ export const ObserveInstrument = observe.ObserveInstrument;
   ],
 })
 export class AppModule implements NestModule {
+  static register(): DynamicModule {
+    return { module: AppModule, imports: [DemoRoutesModule.register()] };
+  }
+
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(cookieParser()).forRoutes('{*splat}');
   }

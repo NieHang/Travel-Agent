@@ -4,7 +4,6 @@ import {
   Get,
   Inject,
   Logger,
-  Optional,
   Param,
   Post,
   Res,
@@ -19,7 +18,6 @@ import { errorName } from '../common/error-name.js';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { ConversationsService } from '../conversations/conversations.service.js';
 import { TurnService } from '../trip/turn.js';
-import { ChatService } from './chat.service.js';
 
 const CHAT_LIMIT = { default: { limit: 20, ttl: 60_000 } };
 
@@ -28,18 +26,15 @@ export class ChatController {
   private readonly logger = new Logger(ChatController.name);
 
   constructor(
-    @Inject(ChatService) private readonly chat: ChatService,
     @Inject(ConversationsService)
     private readonly conversations: ConversationsService,
-    @Optional() @Inject(TurnService) private readonly turns?: TurnService,
+    @Inject(TurnService) private readonly turns: TurnService,
   ) {}
 
   @Get(':id/ui-state')
   async uiState(@CurrentUser() current: AuthUser, @Param('id') id: string) {
     await this.conversations.assertOwned(current.userId, id);
-    return this.turns
-      ? this.turns.getState(id)
-      : { revision: 0, trip: null, components: [] };
+    return this.turns.getState(id);
   }
 
   /**
@@ -64,14 +59,7 @@ export class ChatController {
     // 归属校验期间连接就断开的话，close 事件已经错过了。
     if (res.destroyed || res.closed) abort.abort();
     try {
-      const stream = this.turns
-        ? this.turns.run(id, body, abort.signal)
-        : this.chat.send(
-            id,
-            body.command.type === 'message' ? body.command.text : '',
-            abort.signal,
-          );
-      for await (const event of stream) {
+      for await (const event of this.turns.run(id, body, abort.signal)) {
         if (abort.signal.aborted) break;
         if (!res.headersSent) {
           res.status(200);
@@ -80,12 +68,7 @@ export class ChatController {
           res.setHeader('Connection', 'keep-alive');
           res.flushHeaders();
         }
-        if ('type' in event)
-          res.write(`event: message\ndata: ${JSON.stringify(event)}\n\n`);
-        else
-          res.write(
-            `event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`,
-          );
+        res.write(`event: message\ndata: ${JSON.stringify(event)}\n\n`);
       }
       if (!abort.signal.aborted) res.end();
     } catch (error) {

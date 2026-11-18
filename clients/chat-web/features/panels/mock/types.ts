@@ -1,9 +1,4 @@
-export type PanelTab = 'plan' | 'hotels' | 'routes' | 'hotspots'
 export type HotspotCategory = 'food' | 'views' | 'nightlife' | 'hidden'
-export const STAGE_COLOR: Record<PanelTab, string> = {
-  plan: 'var(--color-stage-orange)', hotels: 'var(--color-stage-purple)',
-  routes: 'var(--color-stage-green)', hotspots: 'var(--color-stage-pink)',
-}
 export type TripMock = {
   city: string
   duration: string

@@ -45,6 +45,7 @@ describe('local embeddings and vector HTTP API', () => {
 
   afterEach(async () => {
     await app?.close();
+    vi.unstubAllEnvs();
   });
 
   it('shares one model load across concurrent query/document embeddings and preserves order', async () => {
@@ -92,9 +93,10 @@ describe('local embeddings and vector HTTP API', () => {
   });
 
   async function createApp() {
-    const { LlmModule } = await import('../llm.module.js');
+    const { DemoRoutesModule } = await import('../demo-routes.module.js');
+    vi.stubEnv('LLM_DEMO_ROUTES', '1');
     const module = await Test.createTestingModule({
-      imports: [LlmModule],
+      imports: [DemoRoutesModule.register()],
     }).compile();
     app = module.createNestApplication();
     await app.init();

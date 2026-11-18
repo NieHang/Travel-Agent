@@ -6,8 +6,7 @@
     "cancel": "取消",
     "close": "关闭",
     "retry": "重试",
-    "loadFailed": "加载失败",
-    "sample": "示例"
+    "loadFailed": "加载失败"
   },
   "errors": {
     "generic": "出了点问题，请重试",
@@ -122,31 +121,8 @@
     },
     "saveTrip": "保存行程",
     "saveTripSoon": "保存行程即将上线",
-    "kicker": {
-      "plan": "你的行程",
-      "hotels": "住在哪",
-      "routes": "最佳步行路线",
-      "hotspots": "当地人去哪"
-    },
-    "day": "第 {n} 天",
-    "stops": "{count} 个站点",
     "perNight": "每晚",
-    "fullStay": "全程",
     "book": "预订 {hotel}",
-    "bookSoon": "预订功能即将上线",
-    "walk": "步行",
-    "tram": "28 路电车",
-    "mapAlt": "地图示意：路线依次经过六个站点，从 1 号到 6 号",
-    "filters": {
-      "all": "全部",
-      "food": "美食",
-      "views": "风景",
-      "nightlife": "夜生活",
-      "hidden": "小众"
-    },
-    "add": "+ 添加",
-    "added": "已添加 ✓",
-    "emptyFilter": "这个分类下暂时没有地点",
     "live": {
       "title": "你的行程",
       "untitled": "待定目的地",

@@ -1,4 +1,5 @@
 import type { Server } from 'node:http';
+import type { Requirement } from '@autix/contracts';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { bearer, createTestApp, createUser } from '../../test/helpers/app.js';
@@ -177,9 +178,22 @@ describe('conversations HTTP', () => {
 
   it('消息：倒序分页，含 status 与 metadata', async () => {
     const c = await seed(me, 'x', 5);
+    const legacyRequirement: Requirement = {
+      action: 'Plan a trip',
+      constraints: ['Five days'],
+      entities: ['Osaka'],
+    };
+    await prisma.message.updateMany({
+      where: { conversationId: c.id, role: 'ASSISTANT' },
+      data: { metadata: { requirements: [legacyRequirement] } },
+    });
     const p1 = await api.get(`/api/conversations/${c.id}/messages?limit=3`).expect(200);
     expect(p1.body.items).toHaveLength(3);
     expect(p1.body.items[0]).toMatchObject({ conversationId: c.id, status: 'complete', metadata: null });
+    expect(p1.body.items[1]).toMatchObject({
+      role: 'ASSISTANT',
+      metadata: { requirements: [legacyRequirement] },
+    });
     const p2 = await api.get(`/api/conversations/${c.id}/messages?limit=3&cursor=${p1.body.nextCursor}`).expect(200);
     expect(p2.body.items).toHaveLength(2);
     expect(p2.body.nextCursor).toBeNull();

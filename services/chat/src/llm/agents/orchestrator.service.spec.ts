@@ -29,21 +29,23 @@ vi.mock('../model.factory.js', () => ({
     }),
 }));
 
-import { LlmModule } from '../llm.module.js';
+import { DemoRoutesModule } from '../demo-routes.module.js';
 
 const input =
   '开发一个面向需求分析师的会话记忆系统，支持多轮澄清并自动裁剪长对话上下文';
 describe('fixed requirement orchestration HTTP', () => {
   let app: INestApplication;
   beforeAll(async () => {
+    vi.stubEnv('LLM_DEMO_ROUTES', '1');
     const module = await Test.createTestingModule({
-      imports: [LlmModule],
+      imports: [DemoRoutesModule.register()],
     }).compile();
     app = module.createNestApplication();
     await app.init();
   });
   afterAll(async () => {
     await app?.close();
+    vi.unstubAllEnvs();
   });
   beforeEach(() => {
     state.calls = [];

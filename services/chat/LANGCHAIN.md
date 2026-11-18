@@ -1,123 +1,13 @@
 # LangChain 模型调用基础
 
-## 前端聊天的统一 UI 流
+本文说明模型配置和 `src/llm/` 下的 LangChain 演示接口。演示接口默认不注册，本地设置 `LLM_DEMO_ROUTES=1`
+后才可用；生产环境启用该变量会拒绝启动。`LLM_FAKE=1` 仅供非生产测试。
 
-实际 `/chat` 页面使用 `POST /api/conversations/:id/messages`（Bearer 登录及会话归属校验）。
-请求为 `{ content, locale? }`，或 `{ action, sourceMessageId, revision, locale? }`。
-服务端在 SSE 开始前校验来源、版本、选项及表单值；过期动作返回 409，无效值返回 400，均不创建消息。
+实际聊天页面使用的行程流程（`POST /api/conversations/:id/messages`、`GET /api/conversations/:id/ui-state`）
+不在本文范围内，见 `src/trip/`、`packages/contracts/src/trip-flow.ts` 与
+`docs/superpowers/specs/2026-10-11-trip-flow-refactor-design.md`。
 
-所有事件使用 `event: message`，JSON 信封为 `{ messageType, timestamp, payload }`：
-`markdown` 累积真实模型 token（`isChunk: true`），`ui` 仅发布完整组件数组，
-`progress` 表示理解、生成、更新面板、保存等阶段，`meta` 带用户消息或行程快照，
-`done` 带已持久化的助手消息及行程，`error` 表示失败。JSON 意图识别和结构化日程生成静默收集，
-不把未完成 JSON 推到界面；确定性的选择、表单及确认不增加模型调用。
-
-该路径复用旅游 UIFlowService 状态机，通过 UIStreamService 进行轻量编排；
-原有软件需求分析的五 Agent 不改作旅游用途。阶段百分比不是模型 token 的完成比例。
-
-助手成功消息同时保存公开组件、interactionState、trip 和私有 uiFlowSnapshot。
-组件在保存成功后才对外发布；中止/失败消息不会覆盖最近成功状态。
-私有快照不进入公共消息接口。`GET /api/conversations/:id/ui-state` 返回
-`{ trip, activeMessage }`，独立于消息分页，用于刷新后的面板恢复和有效组件定位。
-前端 Zustand 存储本次流，React Query 存储历史和最新持久化 UI 状态，账户切换会清理两者。
-
-`LLM_FAKE=1` 仅供非生产测试；正常配置仍调用真实模型。
-当前生成互斥锁是单进程实现；部署多个聊天服务实例前需要数据库或分布式锁。
-连接中断和停止会保留 partial；若数据库已提交成功则刷新展示提交的完整结果。
-酒店/航线/景点卡片仍是模型输出，不能当作已验证的实时库存或报价。
-
-以下 `/api/ui-chat/*` 是保留的 JSON 示例接口，实际聊天页面不使用它。
-
-## 旅游 UI Structured Output
-
-`POST /api/ui-chat/chat` 与 `POST /api/ui-chat/action` 沿用全局 Bearer 登录保护。
-返回 `{ message, intent, components }`，组件由 `type` 区分 text、selection、form、
-confirmation、card、steps、table、action_buttons。所有组件都有服务端生成的 `id`。
-模型通过 `withStructuredOutput(uiModelJsonSchema, { method: 'functionCalling', strict: true })`
-在一次调用中生成 `{ semantics, response }`。内部 semantics 包含意图、操作建议、回复语言及
-明确需求增量；HTTP 只返回 response，不暴露 semantics。自定义校验不传入 SDK 的严格
-JSON Schema。服务端根据稳定字段推进状态，不从用户输入、标题或标签中匹配语言关键词。
-`uiModelJsonSchema` 从同一份 Zod schema 生成，并展开本地引用，避免 SDK 生成的属性路径引用
-被实际模型接口拒绝；模型返回值仍经过完整的 Zod 与业务校验。
-
-selection 包含 `purpose: trip_type | query_filter | query_candidate`；规划类型选项 value
-固定为 business/family/solo/couple，不随语言变化。独立查询不能返回 trip_type selection。
-
-chat/action 都可传可选 `locale`（语言标记，例如 zh、en、en-US），省略仍有效。
-显式 locale 会保存为会话偏好，优先于当前输入语言；没有偏好时由模型理解当前输入语言，
-数字、日期或短回复沿用会话语言。纯 UI Action 继承会话语言。固定组件文案目前提供中英文，
-其他语言固定文案回退英文；模型内容可使用其他语言，增加字典不需要修改状态机。
-
-聊天请求：
-
-```json
-{ "sessionId": "travel-demo", "input": "我要去日本旅游" }
-```
-
-英文界面示例（输入语言与展示偏好可以不同）：
-
-```json
-{ "sessionId": "travel-demo-en", "input": "Plan a solo trip to Tokyo for 2 people, budget 5000", "locale": "en" }
-```
-
-模型将自然语言转换成结构化需求，已给出的需求不重复询问。预算币种可选，不出现在
-规划表单，也不要求用户填写三位币种代码；只有预算金额仍可继续规划。明确提供币种时模型
-可保存为内部信息，未明确时不默认人民币或其他币种。日期保留用户表达的角色：只提供返程
-日期不会被当作出发日期，角色不明确的日期不自动写入需求。
-
-该请求缺少旅游类型时返回 selection；选择后只展示尚未收集的旅游需求表单。
-以下 Action 的 componentId 必须替换为最近一次响应中的真实组件 ID：
-
-```json
-{ "sessionId": "travel-demo", "action": { "type": "selection", "componentId": "返回的组件ID", "values": ["solo"] } }
-```
-
-表单只提交实际展示的字段。number 使用 JSON 数字，date 使用合法 YYYY-MM-DD。
-下例适用于目的地已从原始输入收集、表单要求日期/人数/预算的情况：
-
-```json
-{ "sessionId": "travel-demo", "action": { "type": "form_submit", "componentId": "返回的表单ID", "values": [
-  { "name": "departureDate", "value": "2026-11-01" },
-  { "name": "returnDate", "value": "2026-11-03" },
-  { "name": "travelers", "value": 1 },
-  { "name": "budget", "value": 5000 }
-] } }
-```
-
-完成需求后返回路线草案 card、steps 和操作按钮。可输入“确认旅游路线”，
-或提交真实按钮 ID，进入 confirmation + steps：
-
-```json
-{ "sessionId": "travel-demo", "action": { "type": "button_click", "componentId": "返回的按钮组ID", "buttonId": "confirm" } }
-```
-
-```json
-{ "sessionId": "travel-demo", "action": { "type": "confirmation", "componentId": "返回的确认ID", "confirmed": true } }
-```
-
-`confirmed: false` 返回路线预览。确认只保存会话中的路线，不进行预订或支付。
-英文 `Confirm this itinerary` 等同样通过语义操作进入确认，不清空已有草案；自然语言确认
-只展示确认入口，最终 confirmed 必须由有效的 confirmation Action 设置。实际需求改变才
-使旧草案失效，重复同值需求不会重新生成。缺少草案时返回正常说明。
-
-普通聊天的语义解析和 UI 生成不额外增加调用。首次需求齐备或实际需求改变后，沿用独立的
-路线预览生成调用，基于服务端已经验证并合并的需求生成草案。
-
-“查看某某地点或者酒店”返回详情 card；“帮我找杭州西湖附近500米的酒店”直接进入
-hotel_search，不经过旅游类型向导，保留地点、距离、预算等完整原始查询条件。
-独立查询不会覆盖规划需求；已有规划时返回 resume_planning 按钮恢复原阶段。
-refine_search 展示筛选表单，view_details 继续查询详情。
-查询中的 selection 支持单选、多选筛选或候选选择，所选 value 与 label 会连同原始条件
-传入下一次查询，不改变路线规划阶段。普通旅游知识问答直接返回 text。
-
-本模块没有接入旅游供应商，card 标记 `sourceStatus: unverified`；没有可信搜索结果时
-table.rows 应为空。输出是说明、需求收集或建议，不能作为实时价格、库存或距离证明。
-
-会话按认证 userId 和客户端 sessionId 隔离，同会话请求串行，生成失败不提交状态。
-交互 ID 每轮更新，旧组件及重复提交返回 409；无效请求/字段返回 400，未知或过期会话的
-Action 返回 404，模型/输出校验失败返回 502。最多 1000 个活动会话，超限返回 429。
-会话闲置 30 分钟过期，历史仅保留最近 20 条消息。状态存于进程内存，重启清空，
-不支持多实例共享。过期条目在请求时清理。
+## 模型配置
 
 模型参数读取 `config/langchain.yaml` 的 `llm` 节点。模型工厂仅支持
 `provider: openai`，也可通过环境变量连接 OpenAI 兼容服务。
@@ -235,8 +125,8 @@ curl -X POST http://localhost:4001/api/langchain/prompt-to-model
 
 `AdvancedModule` 统一注册会话记忆、Embedding、向量库、文件服务、多 Agent 编排
 和 `AdvancedAnalysisService`。五个 Controller 定义在 `src/llm/advanced.controller.ts`，
-原有 `/api/memory`、`/api/files`、`/api/embedding`、`/api/agents` 路由继续可用。
-`AppModule` 导入该模块；`LlmModule` 也导入并导出该模块，复用同一组服务。
+`LlmModule` 导入并导出 `AdvancedModule`。启用 `LLM_DEMO_ROUTES` 后，
+`DemoRoutesModule` 注册示例控制器，并通过 `LlmModule` 复用同一组服务。
 
 `POST /api/advanced/analyze` 接收 `{ sessionId, input }`。服务读取该 session 的完整
 历史后执行固定多 Agent 流程，区分用户提供的信息与助手建议。需要澄清时直接返回

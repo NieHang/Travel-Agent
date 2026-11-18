@@ -6,8 +6,7 @@
     "cancel": "Cancel",
     "close": "Close",
     "retry": "Retry",
-    "loadFailed": "Couldn't load",
-    "sample": "Sample"
+    "loadFailed": "Couldn't load"
   },
   "errors": {
     "generic": "Something went wrong. Try again",
@@ -122,31 +121,8 @@
     },
     "saveTrip": "Save trip",
     "saveTripSoon": "Saving trips is coming soon",
-    "kicker": {
-      "plan": "Your itinerary",
-      "hotels": "Where to stay",
-      "routes": "Best walking route",
-      "hotspots": "Where locals go"
-    },
-    "day": "Day {n}",
-    "stops": "{count} stops",
     "perNight": "Per night",
-    "fullStay": "Full stay",
     "book": "Book {hotel}",
-    "bookSoon": "Booking is coming soon",
-    "walk": "Walk",
-    "tram": "Tram 28",
-    "mapAlt": "Map sketch: the route passes six stops in order, from 1 to 6",
-    "filters": {
-      "all": "All",
-      "food": "Food",
-      "views": "Views",
-      "nightlife": "Nightlife",
-      "hidden": "Hidden"
-    },
-    "add": "+ Add",
-    "added": "Added ✓",
-    "emptyFilter": "Nothing here yet",
     "live": {
       "title": "Your trip",
       "untitled": "Destination pending",

@@ -2,7 +2,6 @@ import {
   APP_NAME, EmailSchema, PasswordSchema, NicknameSchema, RegisterRequestSchema,
   LoginRequestSchema, UpdateMeRequestSchema, RenameConversationRequestSchema,
   ListConversationsQuerySchema, SendTurnRequestSchema, ErrorCodeSchema,
-  ChatStreamEventSchema,
 } from '@autix/contracts';
 
 describe('contracts', () => {
@@ -57,12 +56,10 @@ describe('contracts', () => {
     expect(ListConversationsQuerySchema.parse({ q: '   ' }).q).toBeUndefined();
   });
 
-  it('错误码与事件', () => {
+  it('错误码', () => {
     for (const c of ['VALIDATION_FAILED','TOKEN_MISSING','TOKEN_EXPIRED','TOKEN_INVALID',
       'INVALID_CREDENTIALS','REFRESH_INVALID','REFRESH_REUSED','CONVERSATION_NOT_FOUND',
       'NOT_FOUND','EMAIL_TAKEN','RATE_LIMITED','MODEL_FAILED','INTERNAL_ERROR'])
       expect(ErrorCodeSchema.safeParse(c).success).toBe(true);
-    expect(ChatStreamEventSchema.safeParse({ event: 'delta', data: { text: 'hi' } }).success).toBe(true);
-    expect(ChatStreamEventSchema.safeParse({ event: 'nope', data: {} }).success).toBe(false);
   });
 });

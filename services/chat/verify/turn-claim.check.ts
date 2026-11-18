@@ -17,7 +17,6 @@ import { EventEmitter } from 'node:events';
 import type { Response } from 'express';
 import type { SendTurnRequest } from '@autix/contracts';
 import { ChatController } from '../src/chat/chat.controller.js';
-import type { ChatService } from '../src/chat/chat.service.js';
 import type { ConversationsService } from '../src/conversations/conversations.service.js';
 import type { PrismaService } from '../src/prisma/prisma.service.js';
 import { FakeTripLlm } from '../src/trip/fake-llm.js';
@@ -216,7 +215,6 @@ async function runOnce(choices: number[]): Promise<Run> {
     const turn: Turn = { name, res, outcome: null, disconnected: false };
     turns.push(turn);
     const controller = new ChatController(
-      {} as ChatService,
       { assertOwned: async () => undefined } as unknown as ConversationsService,
       new TurnService(fakePrisma(db, sched, name) as unknown as PrismaService, gatedLlm(sched, name)),
     );

@@ -7,7 +7,7 @@ import { applyTrustProxy } from './config/trust-proxy.js';
 import { TraceMiddleware } from './observability/trace.middleware.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.register(), {
     instrument: ObserveInstrument,
   });
   // Register before init: Nest's body parsers run ahead of module middleware.

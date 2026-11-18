@@ -54,9 +54,10 @@ describe('requirement memory', () => {
     );
     vi.stubEnv('HTTPS_PROXY', '');
     vi.stubEnv('HTTP_PROXY', '');
-    const { LlmModule } = await import('../llm.module.js');
+    const { DemoRoutesModule } = await import('../demo-routes.module.js');
+    vi.stubEnv('LLM_DEMO_ROUTES', '1');
     const module = await Test.createTestingModule({
-      imports: [LlmModule],
+      imports: [DemoRoutesModule.register()],
     }).compile();
     app = module.createNestApplication();
     await app.init();
