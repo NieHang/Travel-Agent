@@ -113,19 +113,27 @@ export async function apiFetch(
   }
 }
 
-/** JSON 便捷封装；204 返回 undefined。body 传对象时自动序列化并加 Content-Type。 */
+/** A contracts Zod schema; only `parse` is needed, so this package does not depend on zod. */
+type ResponseSchema<T> = { parse(data: unknown): T }
+
+/**
+ * JSON 便捷封装：响应体在这里按契约校验一次，不符合时抛 INTERNAL_ERROR（保留 status）。
+ * body 传对象时自动序列化并加 Content-Type。无响应体的请求用 apiFetch。
+ */
 export async function api<T>(
   path: string,
+  schema: ResponseSchema<T>,
   init?: Omit<RequestInit, 'body'> & { body?: unknown },
 ): Promise<T> {
   const { body, ...rest } = init ?? {}
   const headers = new Headers(rest.headers)
-  let payload: BodyInit | undefined
-  if (body !== undefined) {
-    headers.set('Content-Type', 'application/json')
-    payload = JSON.stringify(body)
-  }
+  if (body !== undefined) headers.set('Content-Type', 'application/json')
+  const payload = body === undefined ? undefined : JSON.stringify(body)
   const res = await apiFetch(path, { ...rest, headers, body: payload })
-  if (res.status === 204) return undefined as T
-  return (await res.json()) as T
+  const data: unknown = await res.json()
+  try {
+    return schema.parse(data)
+  } catch {
+    throw new ApiRequestError('INTERNAL_ERROR', res.status)
+  }
 }

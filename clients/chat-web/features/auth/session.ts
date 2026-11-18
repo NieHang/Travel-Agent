@@ -1,4 +1,4 @@
-import type { AuthResult, LoginRequest, RegisterRequest, User } from '@autix/contracts'
+import { AuthResultSchema, type LoginRequest, type RegisterRequest, type User } from '@autix/contracts'
 import type { QueryClient } from '@tanstack/react-query'
 import { API_BASE_URL } from '@/lib/api-base'
 import { writeLocaleCookie } from '@/i18n/locale'
@@ -34,7 +34,7 @@ export function resetChannelForTests(): void {
 }
 
 async function authenticate(path: string, body: unknown): Promise<User> {
-  const result = await api<AuthResult>(path, { method: 'POST', body })
+  const result = await api(path, AuthResultSchema, { method: 'POST', body })
   // 在发布登录态（会触发路由跳转）前写入，目标页面的服务端渲染才能读取账号语言。
   writeLocaleCookie(result.user.locale)
   authStore.setAuthed(result)
