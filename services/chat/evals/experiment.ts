@@ -6,6 +6,7 @@ import { gradeClassify } from './evaluators/classify.js';
 import { gradeExtractDays } from './evaluators/extract-days.js';
 import { parseDraft } from '../src/trip/itinerary.js';
 import { failedItineraryScores, gradeItinerary } from './evaluators/itinerary.js';
+import { gradePlaces } from './evaluators/places.js';
 import { turn, type TurnOutput } from './turn.js';
 import type { Entry, RunResult, Score, Suite } from './schemas.js';
 
@@ -37,7 +38,7 @@ async function runItem(item: Entry, llm: TripLlm, signal: AbortSignal, geography
     const history = item.history.map((message) => message.role === 'user' ? new HumanMessage(message.text) : new AIMessage(message.text));
     const output = await turn(llm, initialState(0, item.locale), item.text, { history, signal });
     if (!geography) throw new Error('L3 requires a geography grader with an approved Google request budget');
-    return { id: item.id, category: item.category, output, scores: [...gradeItinerary(item, output), ...await geography(output)] };
+    return { id: item.id, category: item.category, output, scores: [...gradeItinerary(item, output), ...gradePlaces(item, output), ...await geography(output)] };
   }
   if ('state' in item) {
     const state = { ...initialState(0, item.locale), ...item.state };

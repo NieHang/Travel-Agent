@@ -211,10 +211,12 @@ describe('streamToolLoop', () => {
       [callChunk('c2', 'searchHotels', { city: '大阪' })],
       [callChunk('c3', 'searchHotels', { city: '京都' })],
       [callChunk('c4', 'searchHotels', { city: '奈良' })],
+      [callChunk('c5', 'searchHotels', { city: '东京' })],
+      [callChunk('c6', 'searchHotels', { city: '京都' })],
       textChunks('## 第1天'),
     ]);
     const events = await collectUnrecorded(model, 'NOTES');
-    expect(model.toolChoices).toEqual([undefined, undefined, undefined, undefined, undefined, 'none']);
+    expect(model.toolChoices).toEqual([...Array<undefined>(7).fill(undefined), 'none']);
     expect(model.seen[MAX_TOOL_ROUNDS].at(-1)).toBeInstanceOf(HumanMessage);
     expect(model.seen[MAX_TOOL_ROUNDS].at(-1)?.text).toContain('No more tool calls');
     expect(events.filter((e) => e.type === 'tool_call')).toHaveLength(MAX_TOOL_ROUNDS);

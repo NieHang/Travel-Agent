@@ -10,7 +10,7 @@ Suggestions only, not checked facts. The japan-travel rules decide the plan; the
 - Nara Park: deer roam freely.
 - Todai-ji: the Great Buddha Hall.
 - Kasuga Taisha: shrine with hundreds of lanterns.
-- Kofuku-ji: five-storey pagoda.
+- Kofuku-ji.
 - Naramachi: old merchant streets and cafes.
 - Horyu-ji: one of the oldest wooden temples.
 - Nara National Museum.

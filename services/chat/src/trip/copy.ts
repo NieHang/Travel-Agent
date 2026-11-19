@@ -1,3 +1,4 @@
+import type { Finding } from '../places/index.js';
 import type { FormFieldName, TripType } from '@autix/contracts';
 import { z } from 'zod';
 
@@ -104,4 +105,32 @@ export function lookupSubject(tool: string, args: Record<string, unknown>, local
   const end = new Date(checkInParam.checkInDate);
   end.setUTCDate(end.getUTCDate() + checkInParam.stayNights);
   return `${subject} · ${checkInParam.checkInDate.slice(5).replace('-', '/')}–${end.toISOString().slice(5, 10).replace('-', '/')}`;
+}
+
+export function findingText(f: Finding, locale: 'en' | 'zh'): string {
+  const zh = locale === 'zh';
+  switch (f.kind) {
+    case 'before_opening':
+      return zh ? `这一站安排在 ${f.opens} 开门之前。` : `The visit starts before opening at ${f.opens}.`;
+    case 'past_closing': {
+      const basis = {
+        stated: ['The scheduled visit', '按标注的游览时段'],
+        next_stop: ['Using the next stop’s start time, the visit', '按下一站的开始时间推算'],
+        visit_minutes: ['At the estimated visit duration, the visit', '按预计停留时间推算'],
+      }[f.endsBy];
+      return zh ? `${basis[1]}，这一站会超过 ${f.closes} 的关门时间。` : `${basis[0]} runs past closing at ${f.closes}.`;
+    }
+    case 'closed_day':
+      switch (f.scope.type) {
+        case 'whole': return zh ? '这一天不开放。' : 'Closed on the day of this visit.';
+        case 'most_shops': return zh ? '这一天多数店铺休息。' : 'Most shops are closed on the day of this visit.';
+        case 'part': return zh ? `${f.scope.name.zh}这一天不开放。` : `The ${f.scope.name.en} is closed on the day of this visit.`;
+      }
+    case 'works':
+      return zh ? `${f.part?.zh ?? '此处'}暂不开放，预计至 ${f.until}。` : `${f.part ? 'The ' + f.part.en : 'This site'} is closed through ${f.until}.`;
+    case 'wrong_rail': {
+      const mode = { subway: ['subway', '地铁'], jr: ['JR', 'JR'], private_rail: ['private rail', '私铁'] }[f.stated];
+      return zh ? `${mode[1]}不到达这一站。` : `This stop is not served by ${mode[0]}.`;
+    }
+  }
 }
