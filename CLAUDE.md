@@ -47,7 +47,7 @@ bun run lint                        # oxlint --type-aware
 bun run test:e2e                    # Playwright, Chromium only; builds/starts backend with fake LLM on 4101, web on 3102
 ```
 
-Env: `services/chat/.env` needs `DATABASE_URL`, `JWT_ACCESS_SECRET` (≥32 chars, startup fails otherwise), `OPENAI_API_KEY`/`OPENAI_BASE_URL` for real models, `ROLLING_GO`/`ROLLING_GO_API_KEY` for the hotel MCP server. `LLM_FAKE=1` swaps in a fake model (refused when `NODE_ENV=production`). Integration/e2e tests read `services/chat/.env.test` (copy `.env.test.example`); its DB name must end in `_test` or tests refuse to run, because each test file truncates tables. Frontend API base is `NEXT_PUBLIC_API_BASE_URL` (build-time, default `http://localhost:4001`) and must match backend `CORS_ORIGIN`.
+Env: `services/chat/.env` needs `DATABASE_URL`, `JWT_ACCESS_SECRET` (≥32 chars, startup fails otherwise), `OPENAI_API_KEY`/`OPENAI_BASE_URL` for real models, `ROLLING_GO`/`ROLLING_GO_API_KEY` for the hotel MCP server. Setting `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and `LANGFUSE_BASE_URL` there turns on Langfuse tracing of chat turns (`src/observability/langfuse.ts`: one trace per turn, one session per conversation, message content included); without the keys nothing is sent. `LLM_FAKE=1` swaps in a fake model (refused when `NODE_ENV=production`). Integration/e2e tests read `services/chat/.env.test` (copy `.env.test.example`); its DB name must end in `_test` or tests refuse to run, because each test file truncates tables. Frontend API base is `NEXT_PUBLIC_API_BASE_URL` (build-time, default `http://localhost:4001`) and must match backend `CORS_ORIGIN`.
 
 ## Architecture
 

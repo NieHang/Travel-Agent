@@ -1,7 +1,9 @@
+import { CallbackHandler } from '@langfuse/langchain';
 import { Module } from '@nestjs/common';
 import { isLlmFakeEnabled } from '../config/auth.config.js';
 import { McpModule } from '../llm/mcp/mcp.module.js';
 import { McpService } from '../llm/mcp/mcp.service.js';
+import { langfuseEnabled } from '../observability/langfuse.js';
 import { FakeTripLlm } from './fake-llm.js';
 import { ModelTripLlm, TRIP_LLM } from './llm.js';
 import { TurnService } from './turn.js';
@@ -13,7 +15,7 @@ import { loadSkills } from '../skills/registry.js';
     {
       provide: TRIP_LLM,
       inject: [McpService],
-      useFactory: (mcp: McpService) => (isLlmFakeEnabled() ? new FakeTripLlm() : new ModelTripLlm(mcp, loadSkills())),
+      useFactory: (mcp: McpService) => (isLlmFakeEnabled() ? new FakeTripLlm() : new ModelTripLlm(mcp, loadSkills(), { callbacks: langfuseEnabled ? [new CallbackHandler()] : [] })),
     },
     TurnService,
   ],

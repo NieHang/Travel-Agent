@@ -94,9 +94,17 @@
 - **建议**：先测量认证恢复与首屏耗时，优先优化现有路径；收益明确时再评估同源代理或服务端会话。
 - **代码**：`clients/chat-web/app/providers.tsx`、`clients/chat-web/features/auth/AuthGate.tsx`。
 
+### [ ] TODO-17 Langfuse 追踪脱敏
+
+- **触发条件**：正式环境开启 Langfuse 追踪（在 `services/chat/.env` 配置 `LANGFUSE_*`），或追踪数据需要给团队以外的人查看。
+- **现状**：开启后每轮对话的用户消息、模型输入输出和工具返回会原文发送到 Langfuse 云端（美国区），没有脱敏。用户标识是内部用户 ID，不含邮箱。目前密钥只在 `.env.eval`，正式服务不发送。
+- **建议**：先确定需要遮蔽的内容（姓名、联系方式、证件号等），再用 `LangfuseSpanProcessor` 的 `mask` 选项在导出前统一处理。
+- **验收**：含上述信息的消息在 Langfuse 的追踪输入输出里已被遮蔽；模型实际收到的内容不变。
+- **代码**：`services/chat/src/observability/langfuse.ts`、`services/chat/src/chat/chat.controller.ts`。
+
 ## 建议推进顺序
 
 1. TODO-05、TODO-06：补齐崩溃恢复，确定「保存行程」的去留。
 2. TODO-04、TODO-09、TODO-12：消息对应关系、认证故障区分和长连接。
 3. TODO-11 在 TODO-04 之后做，避免先拆后改。
-4. TODO-13～16 在需求或测量结果支持时再实施。
+4. TODO-13～17 在需求或测量结果支持时再实施。
