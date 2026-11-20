@@ -1,10 +1,19 @@
 # Trip evals
 
 `evals/` holds offline evaluation scripts for the trip model calls. The plan is
-`docs/superpowers/plans/2026-10-28-eval-pipeline.md`. Production tracing is not
-enabled; only eval scripts send data to Langfuse.
+`docs/superpowers/plans/2026-10-28-eval-pipeline.md`. The chat service
+also traces its turns to Langfuse when the `LANGFUSE_*` keys are in
+`services/chat/.env` (`src/observability/langfuse.ts`); the eval scripts always do.
 
-## Local Langfuse
+## Langfuse setup
+
+Langfuse Cloud requires no Docker. In `services/chat/.env.eval`, set
+`LANGFUSE_BASE_URL` to the project’s regional URL (`https://us.cloud.langfuse.com`
+for the US or `https://cloud.langfuse.com` for the EU), and set `LANGFUSE_PUBLIC_KEY`
+and `LANGFUSE_SECRET_KEY` to that project's API keys. When using Langfuse Cloud,
+the eval scripts send prompts, model outputs and recorded hotel results to Langfuse's servers.
+
+### Local Langfuse
 
 Langfuse runs from the [official Docker Compose file](https://langfuse.com/self-hosting/deployment/docker-compose),
 kept outside this repo in a sibling folder of Travel-Agent (`../../../langfuse`
@@ -90,6 +99,18 @@ to be recorded again. Replay cannot catch live MCP regressions;
 `scripts/test-trip-live.ts` remains responsible for those.
 
 ## Datasets, runs and compare
+
+### Current baselines
+
+This table names the accepted A/A pair of each suite. Earlier "is the new
+baseline" sentences below are history. The result files are local only (see
+"Local-only data").
+
+| Suite | Baseline | A/A partner | Notes |
+|---|---|---|---|
+| `classify` | `classify@22b1f56-base-a` | `-base-b` | 2026-11-20 |
+| `itinerary` | `itinerary@22b1f56-base-a` | `-base-b` | 2026-11-20; cassette hash `b60333f2dd62`, prompt hash `1c13f598` |
+| `extract-days` | none | | Not rebuilt on 2026-11-20. Run an A/A pair before the next extraction change. |
 
 From `services/chat` (sync and eval use Langfuse; eval also calls the live model):
 
@@ -1033,6 +1054,68 @@ remain:
 
 Spot checks catch both. The result files keep the old scores, as above, and
 the gates are unchanged.
+
+### Place facts baseline (2026-11-20)
+
+Every earlier result file, cassette and the geocache were lost with the
+machine's local Langfuse, so both baselines were rebuilt from nothing on
+commit `22b1f56`, against Langfuse Cloud. This commit carries the place fact
+library (`placeFacts` and `placeChecks` in every prompt, `MAX_TOOL_ROUNDS` 7).
+
+**Grader change first.** `gradePlaces` now scores only turns whose effect is
+`itinerary` and leaves out a rate with no denominator. Before, the ten
+refusal, chat and hotel-question scenarios added zeros to every place mean.
+
+**Classify.** `classify@22b1f56-base-a` / `-b`, 864 calls, model cost $0.23.
+`intent_acc` 0.993 in both sets, `patch_exact` 0.975 / 0.965, `clarify_match`
+0.970 / 0.975. No suggested gate exceeds the current one and `eval:compare`
+passes, so the classify gates are unchanged.
+
+**Itinerary cassettes.** Recorded on 2026-11-20 for all 20 scenarios. Four
+Chinese scenarios (`l3-zh-family`, `l3-zh-hotel-question`, `l3-zh-multi-city`,
+`l3-zh-tight-budget`) started with a search whose place ended in "日本" and
+returned hotels in China; their first Japan search was moved to the front and
+nothing else changed. An unpaired warm-up set (`itinerary@22b1f56-warm`, never
+scored for geography) had 9 replay misses in 60 scenario-trials; its eight
+argument variants were then recorded with `--refresh`.
+
+**Itinerary pair.** `itinerary@22b1f56-base-a` / `-b`, model cost $0.27
+($0.15 more for the warm-up set). `task_error` is 0 in all six trials.
+`replay_miss` is 0.033 in both sets: four misses, all in `l3-zh-tight-budget`,
+each falling back to that cassette's Osaka search. `has_stays` and
+`every_night_linked` are 1.000 in every trial, so the pair was kept without a
+second refresh.
+
+| Metric | `base-a` | `base-b` |
+|---|---:|---:|
+| `place_conflict_rate` | 0.037 | 0.076 |
+| `place_caution_rate` | 0.024 | 0.018 |
+| `place_unverified_share` | 0.426 | 0.478 |
+| `pacing_ok` | 1.000 | 1.000 |
+| `tool_args_ok` | 1.000 | 1.000 |
+| `code_checks_pass` | 0.767 | 0.800 |
+| `legs_mode_only` | 0.667 | 0.667 |
+| `full_day_alternatives` | 0.900 | 0.933 |
+| `day_km_max` | 48.7 | 56.4 |
+| `hotel_far` | 23.4 | 27.1 |
+| `geocode_conflict` | 0.167 | 0.167 |
+
+**Gates.** The three place metrics are gated on rises at the values
+`eval:noise` suggested: `place_conflict_rate` 0.09, `place_caution_rate` 0.03,
+`place_unverified_share` 0.07. The share is gated because the other two are
+rates over matched stops, so a plan that moves to places outside the library
+would otherwise look like fewer conflicts. `eval:compare` of the pair passes
+every existing gate, so none was changed, although `eval:noise` suggests wider
+gates for `invented_hotel` (0.09), `code_checks_pass` (0.15) and `replay_miss`
+(0.07). The place gates come from one pair; earlier pairs of the same code
+differed by more than one pair's noise, so expect to widen them.
+
+**Google.** 108 Text Search Essentials (IDs Only) requests for 108 uncached
+stops, no retries, and 60 Place Details Essentials requests (`location` only).
+
+Not done: `extract-days` (its prompt and input did not change), and no run on
+`main` for comparison, so these numbers do not show whether the place facts
+moved the older metrics.
 
 ## P4: subjective quality, judged by Claude
 

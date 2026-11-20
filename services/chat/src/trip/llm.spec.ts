@@ -2,6 +2,12 @@ import { AIMessage, AIMessageChunk, HumanMessage, type BaseMessage } from '@lang
 import type { Classified } from './commands.js';
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 
+// The checks run against fixture records only, so the real library can change without touching these expectations.
+vi.mock('../places/records/kyoto.js', async () => ({ kyoto: (await import('../../test/fixtures/place-records.js')).records }));
+vi.mock('../places/records/nara.js', () => ({ nara: [] }));
+vi.mock('../places/records/osaka.js', () => ({ osaka: [] }));
+vi.mock('../places/records/tokyo.js', () => ({ tokyo: [] }));
+
 const model = vi.hoisted(() => ({ seen: [] as BaseMessage[][], streamOptions: [] as { runName?: string }[], bound: [] as string[], classify: vi.fn() }));
 vi.mock('../llm/model.factory.js', () => ({
   createChatModel: vi.fn(() => ({
@@ -213,9 +219,10 @@ describe('revise', () => {
     ...initialState(3, 'en'),
     stage: 'review' as const,
     preamble: '**Overview**: 2 nights',
+    requirements: { destination: 'Kyoto', departureDate: '2026-11-30', returnDate: '2026-12-01' },
     days: [
       { title: 'Day 1 | A (light)', body: '- 10:00 A', stops: [], stayRef: null },
-      { title: 'Day 2 | B (light)', body: '- 10:00 B', stops: [], stayRef: null },
+      { title: 'Day 2 | B (light)', body: '- 10:00 B', stops: [{ name: '兴福寺', time: null, note: null }, { name: '东本愿寺', time: '16:00', note: null }], stayRef: null },
     ],
   });
 
@@ -225,6 +232,11 @@ describe('revise', () => {
     expect(model.bound).toEqual(['show_results', 'write_day', 'write_preamble', 'use_stay']);
     const context = JSON.parse(model.seen[0].at(-2)?.text ?? '{}') as { serverContext: { plan: string; target: unknown } };
     expect(context.serverContext.plan).toContain('[D2] **Day 2 | B (light)**');
+    expect(context.serverContext).toMatchObject({
+      placeFacts: ['Higashi Hongan-ji (东本愿寺): open 06:20–16:30 on your dates', 'Fushimi Inari Taisha (伏见稻荷大社): rail access: JR, private rail'],
+      placeChecks: ['[D2] 兴福寺: The five-storey pagoda is closed through 2031-03-31.',
+        '[D2] 东本愿寺 (16:00): At the estimated visit duration, the visit runs past closing at 16:30.'],
+    });
     expect(context.serverContext.target).toEqual({ days: [2], nights: [] });
     expect(systemText(model.seen[0])).toContain('Task: change only part of the itinerary draft');
     await respond(llm, 'answer');

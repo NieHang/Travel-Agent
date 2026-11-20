@@ -135,7 +135,15 @@
       "noResults": "暂时没有经过验证的结果",
       "empty": "开始规划后，行程会显示在这里",
       "night": "第 {n} 晚",
-      "nights": "第 {from}–{to} 晚"
+      "nights": "第 {from}–{to} 晚",
+      "check": {
+        "ok": "已核实",
+        "caution": "注意",
+        "conflict": "冲突",
+        "unverified": "未核实",
+        "source": "来源",
+        "checkedOn": "核实于 {date}"
+      }
     }
   },
   "resultCard": {

@@ -85,7 +85,10 @@
     "outside_refused": { "maxDrop": 0.02 },
     "refusal_names_city": { "maxDrop": 0.02 },
     "offers_japan_part": { "maxDrop": 0.02 },
-    "live_assertion_accuracy": { "maxDrop": 0.03 }
+    "live_assertion_accuracy": { "maxDrop": 0.03 },
+    "place_conflict_rate": { "maxRise": 0.09 },
+    "place_caution_rate": { "maxRise": 0.03 },
+    "place_unverified_share": { "maxRise": 0.07 }
   },
   "extract-days": {
     "day_count_exact": {

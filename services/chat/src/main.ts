@@ -1,3 +1,5 @@
+// First import: the tracer must be registered before any module creates a span.
+import './observability/langfuse.js';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule, ObserveInstrument } from './app.module.js';

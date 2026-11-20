@@ -2,6 +2,8 @@ import { HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/m
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import type { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import { z } from 'zod';
+import { checkPlan, placeFacts } from '../places/index.js';
+import { findingText } from './copy.js';
 import { createChatModel } from '../llm/model.factory.js';
 import { LOAD_SKILL, loadSkillTool } from '../skills/load-skill-tool.js';
 import type { Skill } from '../skills/registry.js';
@@ -112,13 +114,12 @@ const hotelNameRule = (locale: Locale) =>
     ? 'Name a hotel in text as its name with its nameEn in full-width brackets: <name>（<nameEn>）, or name alone when it has no nameEn.'
     : 'Name a hotel in text by its nameEn alone; when it has no nameEn, translate its name and put the name in brackets.';
 
-const FACTS_RULE = 'Never invent prices, availability, addresses or distances; only state facts that come from tool results.';
-// No tool gives transit or location facts yet, so with the Japan rules loaded a travel leg names only its mode.
-const SKILL_FACTS_RULE = `Never invent prices, availability, addresses, opening hours, travel times or distances; only state facts that come from tool results. Skills give rules and unchecked suggestions, not facts. Give each travel leg its mode only. Time spent at a place may be estimated; mark it as approximate ("约" in Chinese, "approx." in English).`;
+const FACTS_RULE = 'State concrete facts only from tool results or serverContext.placeFacts. Schedule around those facts. When revising, fix every serverContext.placeChecks line within the edit target.';
+const SKILL_FACTS_RULE = `${FACTS_RULE} Never invent prices, availability, addresses, opening hours, travel times or distances. Skills give rules and unchecked suggestions, not facts. Give each travel leg its mode only. Time spent at a place may be estimated; mark it as approximate ("约" in Chinese, "approx." in English).`;
 
 function systemPrompt(task: LlmTask, locale: Locale, always: Skill[], onDemand: Skill[], today: string): string {
   let prompt = `You are Hilda, a travel assistant. Reply in ${language(locale)}. ${DATA_RULE}
-${always.length ? SKILL_FACTS_RULE : FACTS_RULE}
+${always.length ? SKILL_FACTS_RULE : 'Never invent prices, availability, addresses or distances. ' + FACTS_RULE}
 Use show_results to show items from tool results as cards. ${hotelNameRule(locale)}
 ${TOOL_RULES}
 Today is ${today}.
@@ -150,6 +151,12 @@ const context = (state: TripState, target?: EditTarget) =>
         nights: countNights(state.requirements),
         locale: state.locale,
         toolResults: state.toolResults,
+        placeFacts: placeFacts(state.requirements, 'en'),
+        placeChecks: checkPlan(state).days.flatMap((day, i) => day.flatMap((check, j) => {
+          if (check.status === 'unmatched') return [];
+          const { name, time } = state.days[i].stops[j];
+          return check.findings.map((finding) => '[D' + (i + 1) + '] ' + name + (time ? ' (' + time + ')' : '') + ': ' + findingText(finding, 'en'));
+        })),
         plan: renderPlan(state, state.locale, { numbered: true }),
         ...target ? { target: { days: oneBased(target.days), nights: oneBased(target.nights) } } : {},
       },

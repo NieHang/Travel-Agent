@@ -11,7 +11,7 @@ try {
     readRuns(folder, aPrefix), readRuns(folder, bPrefix), readFile(new URL('./thresholds.json', import.meta.url), 'utf8'),
   ]);
   const gates = ThresholdsSchema.parse(JSON.parse(rawThresholds))[a[0].suite] ?? {};
-  console.table(noiseGates(a, b).filter(({ metric }) => Object.keys(gates).length ? metric in gates : !USAGE_METRICS.has(metric) && !['stop_unverified', 'geography_pending'].includes(metric)).map(({ metric, sd, gate }) => ({
+  console.table(noiseGates(a, b).filter(({ metric }) => metric in gates || (!USAGE_METRICS.has(metric) && !['stop_unverified', 'geography_pending'].includes(metric))).map(({ metric, sd, gate }) => ({
     metric, sd, suggested: gate, current: gates[metric]?.maxDrop ?? gates[metric]?.maxRise,
   })));
 } catch (error) {

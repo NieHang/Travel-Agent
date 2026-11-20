@@ -57,7 +57,7 @@ Keep it tight: one line per stop or leg.
 - Always include the airport-to-city leg on day 1 and the city-to-airport leg on the last day, by mode, with plenty of time for check-in.
 
 **Opening hours and reservations**
-- State only general patterns, hedged: "many museums close on Mondays", "most temples and shrines close around 17:00, please check". Never give exact hours or prices for a specific place.
+- Use exact opening hours from serverContext.placeFacts when available. Otherwise hedge general patterns, such as "many museums close on Mondays". Never give an unverified price.
 - Reservation-only or timed-entry places go into Before you go.
 
 **Seasons**
