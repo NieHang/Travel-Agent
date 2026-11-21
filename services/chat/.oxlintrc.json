@@ -16,12 +16,12 @@
   "overrides": [
     {
       "files": ["**/*.ts"],
-      "excludeFiles": ["src/places/**"],
+      "excludeFiles": ["src/knowledge/**"],
       "rules": {
         "no-restricted-imports": ["error", {
           "patterns": [{
-            "group": ["**/places/**", "!**/places/index.js"],
-            "message": "Import the place library through places/index.js."
+            "group": ["**/knowledge/**", "!**/knowledge/index.js"],
+            "message": "Import the wiki through knowledge/index.js."
           }]
         }]
       }
@@ -39,8 +39,8 @@
           {
             "patterns": [
               {
-                "group": ["**/places/**", "!**/places/index.js"],
-                "message": "Import the place library through places/index.js."
+                "group": ["**/knowledge/**", "!**/knowledge/index.js"],
+                "message": "Import the wiki through knowledge/index.js."
               },
               {
                 "group": ["../prisma/**", "@prisma/**", "**/generated/prisma", "**/generated/prisma/**"],
@@ -52,15 +52,15 @@
       }
     },
     {
-      "files": ["src/trip/state.ts", "src/trip/commands.ts", "src/trip/view.ts", "src/trip/copy.ts", "src/trip/itinerary.ts", "src/places/check.ts", "src/places/index.ts"],
+      "files": ["src/trip/state.ts", "src/trip/commands.ts", "src/trip/view.ts", "src/trip/copy.ts", "src/trip/itinerary.ts", "src/knowledge/dates.ts", "src/knowledge/check.ts", "src/knowledge/page.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "group": ["**/places/**", "!**/places/index.js"],
-                "message": "Import the place library through places/index.js."
+                "group": ["**/knowledge/**", "!**/knowledge/index.js"],
+                "message": "Import the wiki through knowledge/index.js."
               },
               {
                 "group": [
@@ -73,7 +73,7 @@
                   "langchain/**",
                   "@langchain/**"
                 ],
-                "message": "These trip and place modules must stay pure (no Nest, Prisma or LangChain imports). Do the I/O in src/trip/turn.ts and pass plain values in; see how turn.ts calls reduce()."
+                "message": "These trip and wiki modules must stay pure (no Nest, Prisma or LangChain imports). Do the I/O in src/trip/turn.ts and pass plain values in; see how turn.ts calls reduce()."
               }
             ]
           }

@@ -95,6 +95,8 @@
       "lookup": "{subject} · 查询于 {time}",
       "lookupCount": "{n} 条结果",
       "lookupFailed": "查询失败",
+      "reading": "已查阅{pages}",
+      "readingMore": "其余 {n} 项",
       "grounding": "{dropped, plural, =0 {{kept} 条结果均与查询数据一致} other {{kept} 条结果与查询数据一致，{dropped} 条未通过核对}}"
     }
   },
@@ -135,12 +137,7 @@
       "noResults": "暂时没有经过验证的结果",
       "empty": "开始规划后，行程会显示在这里",
       "night": "第 {n} 晚",
-      "nights": "第 {from}–{to} 晚",
-      "warning": {
-        "label": "提醒",
-        "source": "来源",
-        "checkedOn": "核实于 {date}"
-      }
+      "nights": "第 {from}–{to} 晚"
     }
   },
   "resultCard": {

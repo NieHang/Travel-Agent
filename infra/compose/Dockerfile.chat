@@ -1,14 +1,28 @@
-FROM oven/bun:1-alpine AS base
+FROM oven/bun:1-alpine AS dependencies
 WORKDIR /app
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+COPY package.json bun.lock bunfig.toml ./
+COPY services/chat/package.json services/chat/package.json
+COPY clients/chat-web/package.json clients/chat-web/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
+RUN bun install --frozen-lockfile --filter @autix/chat
 
-COPY . .
-RUN bun run build
+FROM dependencies AS build
+RUN apk add --no-cache nodejs
+COPY packages/contracts/src packages/contracts/src
+WORKDIR /app/services/chat
+COPY services/chat/tsconfig*.json services/chat/nest-cli.json services/chat/prisma.config.ts ./
+COPY services/chat/prisma ./prisma
+COPY services/chat/src ./src
+RUN bun run db:generate && bun run build
 
-FROM base AS runner
-WORKDIR /app
+FROM dependencies AS runner
+WORKDIR /app/services/chat
 ENV NODE_ENV=production
-COPY --from=base /app/dist ./dist
+COPY --from=build /app/packages/contracts/src /app/packages/contracts/src
+COPY --from=build /app/services/chat/dist ./dist
+COPY services/chat/config/ ./config/
+COPY services/chat/workspace/ ./workspace/
+COPY services/chat/knowledge/wiki/ ./knowledge/wiki/
+COPY services/chat/skills/ ./skills/
 EXPOSE 4001
 CMD ["bun", "run", "dist/main.js"]

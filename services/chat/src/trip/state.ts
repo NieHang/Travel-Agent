@@ -5,10 +5,7 @@ import {
   type Panel,
   type ResultItem,
   type TripView,
-  type StopWarning,
 } from '@autix/contracts';
-import { checkPlan, conflictFindings, type StopCheck } from '../places/index.js';
-import { findingText } from './copy.js';
 import { ToolResultSchema } from './results.js';
 import { PlanDaySchema, StopSchema, parseDraft, renderPlan, segments, type PlanDay } from './itinerary.js';
 
@@ -112,7 +109,6 @@ export function toTripView(s: TripState): TripView | null {
   if (s.stage === 'idle' && s.results.length === 0) return null;
   const fromResults = (panel: Panel): ResultItem[] =>
     s.results.filter((g) => g.panel === panel).flatMap((g) => g.items);
-  const checked = checkPlan(s);
   const stays = s.stays?.items ?? [];
   const r = s.requirements;
   return {
@@ -126,9 +122,9 @@ export function toTripView(s: TripState): TripView | null {
     budgetCurrency: r.budgetCurrency ?? null,
     overview: s.preamble,
     itineraryMarkdown: renderPlan(s, s.locale),
-    days: s.days.map((d, i) => ({
+    days: s.days.map((d) => ({
       title: d.title,
-      stops: d.stops.map((stop, j) => ({ ...stop, warning: stopWarning(checked.days[i][j], s.locale) })),
+      stops: d.stops,
       stay: stays.find((h) => h.ref === d.stayRef) ?? null,
     })),
     hotels: stays.length ? stays : fromResults('hotels'),
@@ -140,10 +136,4 @@ export function toTripView(s: TripState): TripView | null {
     routes: fromResults('routes'),
     hotspots: fromResults('hotspots'),
   };
-}
-
-function stopWarning(check: StopCheck, locale: Locale): StopWarning | null {
-  const notes = conflictFindings(check).slice(0, 6)
-    .map((f) => ({ text: findingText(f, locale), source: f.source, checkedOn: f.checkedOn }));
-  return notes.length ? { notes } : null;
 }

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import type { Serialized } from '@langchain/core/load/serializable';
 import { MAX_TOOL_ROUNDS, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
+import { loadLibrary, READ_WIKI, readWikiTool } from '../knowledge/index.js';
 import { groundResults } from './results.js';
 
 const textChunks = (...parts: string[]) => parts.map((content) => new AIMessageChunk({ content }));
@@ -85,6 +86,23 @@ describe('streamToolLoop', () => {
     expect(finished).toHaveLength(3);
     expect(events.filter((e) => e.type === 'show_results')).toHaveLength(1);
     expect(events.at(-1)).toEqual({ type: 'text', delta: 'done' });
+  });
+
+  it('reports only pages returned and gives the model raw wiki text and same-directory alternatives', async () => {
+    const model = scripted([
+      [callChunk('w1', READ_WIKI, { pages: ['kyoto', 'kyoto/missing', 'kyoto/kiyomizu-dera'] })],
+      textChunks('done'),
+    ]);
+    const events: LoopEvent[] = [];
+    const reader = readWikiTool(loadLibrary(), 'zh');
+    for await (const event of streamToolLoop(model, [reader], [], new AbortController().signal, 10, new Set([READ_WIKI]))) events.push(event);
+    expect(events.map(event => event.type)).toEqual(['tool_call', 'wiki_read', 'text']);
+    expect(events[1]).toEqual({ type: 'wiki_read', pages: [{ id: 'kyoto', title: '京都' }, { id: 'kyoto/kiyomizu-dera', title: '清水寺' }] });
+    const response = model.seen[1].at(-1)?.text;
+    expect(response).toContain('Unknown wiki page "kyoto/missing". Pages in this directory: kyoto/');
+    expect(response).toContain('https://www.kiyomizudera.or.jp/access.php');
+    await expect(reader.invoke({ pages: [] })).rejects.toThrow();
+    await expect(reader.invoke({ pages: Array<string>(7).fill('kyoto') })).rejects.toThrow();
   });
 
   it('asks the model to retry a tool call whose arguments are not valid JSON', async () => {
@@ -206,17 +224,20 @@ describe('streamToolLoop', () => {
   it('writes the reply in a text-only round once every tool round is used', async () => {
     // A live zh Tokyo→Osaka→Kyoto→Nara draft spent all rounds like this and ended without any text.
     const model = scripted([
-      [callChunk('k1', 'load_skill', { names: ['japan-tokyo', 'japan-osaka', 'japan-kyoto', 'japan-nara'] })],
+      [callChunk('k1', 'load_skill', { names: ['japan-tokyo', 'japan-osaka', 'japan-nara'] })],
       [callChunk('c1', 'searchHotels', { city: '东京' })],
       [callChunk('c2', 'searchHotels', { city: '大阪' })],
       [callChunk('c3', 'searchHotels', { city: '京都' })],
       [callChunk('c4', 'searchHotels', { city: '奈良' })],
       [callChunk('c5', 'searchHotels', { city: '东京' })],
       [callChunk('c6', 'searchHotels', { city: '京都' })],
+      [callChunk('w1', 'read_wiki', { pages: ['kyoto'] })],
+      [callChunk('w2', 'read_wiki', { pages: ['kyoto/fushimi'] })],
+      [callChunk('w3', 'read_wiki', { pages: ['kyoto/tofuku-ji'] })],
       textChunks('## 第1天'),
     ]);
     const events = await collectUnrecorded(model, 'NOTES');
-    expect(model.toolChoices).toEqual([...Array<undefined>(7).fill(undefined), 'none']);
+    expect(model.toolChoices).toEqual([...Array<undefined>(10).fill(undefined), 'none']);
     expect(model.seen[MAX_TOOL_ROUNDS].at(-1)).toBeInstanceOf(HumanMessage);
     expect(model.seen[MAX_TOOL_ROUNDS].at(-1)?.text).toContain('No more tool calls');
     expect(events.filter((e) => e.type === 'tool_call')).toHaveLength(MAX_TOOL_ROUNDS);

@@ -2,8 +2,7 @@ import { HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/m
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import type { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import { z } from 'zod';
-import { checkPlan, conflictFindings, placeFacts } from '../places/index.js';
-import { findingText } from './copy.js';
+import { loadLibrary, READ_WIKI, readWikiTool, tripDates } from '../knowledge/index.js';
 import { createChatModel } from '../llm/model.factory.js';
 import { LOAD_SKILL, loadSkillTool } from '../skills/load-skill-tool.js';
 import type { Skill } from '../skills/registry.js';
@@ -93,7 +92,7 @@ whole draft in its trip panel; the days you do not change stay exactly as they a
   accommodation (check-in and check-out from the plan's dates), show the options with show_results panel "hotels",
   then call use_stay with the one you choose. Never invent a hotel.
 - Then reply in 1-3 sentences: what changed and on which days. Do not repeat the plan.`,
-  answer: `Task: answer the user's latest message. Call tools only when live data is needed.
+  answer: `Task: answer the user's latest message. Read wiki pages for sourced place facts. Call live tools when current provider data is needed.
 Hilda covers travel in Japan only. If the user asks about visiting a place outside Japan, say briefly that Hilda only plans trips in Japan, and call no tools.`,
   itinerary: `Task: the trip requirements in serverContext are complete and validated. Write the itinerary draft.
 - serverContext.nights is the number of overnight stays. If it is above 0 and a lodging tool is available,
@@ -114,8 +113,10 @@ const hotelNameRule = (locale: Locale) =>
     ? 'Name a hotel in text as its name with its nameEn in full-width brackets: <name>（<nameEn>）, or name alone when it has no nameEn.'
     : 'Name a hotel in text by its nameEn alone; when it has no nameEn, translate its name and put the name in brackets.';
 
-const REPAIR_INSTRUCTION = 'Fix every line in serverContext.placeChecks for the target days by moving the visit to a time or day that works or replacing the stop, and change nothing else.';
-const FACTS_RULE = 'State concrete facts only from tool results or serverContext.placeFacts. Schedule around those facts. When serverContext.placeFacts says most shops are closed or part of a place is closed or under works on its scheduled day, mention that in the text for that day. When revising, fix every serverContext.placeChecks line within the edit target.';
+const wiki = loadLibrary();
+const wikiEntries = [...wiki.values()].filter(page => page.type === 'city').map(page => `- ${page.id}: ${page.title}`).join('\n');
+
+const FACTS_RULE = 'State concrete facts only from tool results. Use sourced Practical facts from read_wiki and compare their schedules with serverContext.tripDates.';
 const SKILL_FACTS_RULE = `${FACTS_RULE} Never invent prices, availability, addresses, opening hours, travel times or distances. Skills give rules and unchecked suggestions, not facts. Give each travel leg its mode only. Time spent at a place may be estimated; mark it as approximate ("约" in Chinese, "approx." in English).`;
 
 function systemPrompt(task: LlmTask, locale: Locale, always: Skill[], onDemand: Skill[], today: string): string {
@@ -131,7 +132,7 @@ ${TASKS[task]}`;
     prompt += `\n\nSkills you can load with ${LOAD_SKILL} (load every skill for a city you plan in, including day trips, before writing about it; call it in your first round together with any searches):\n${onDemand
       .map((s) => `- ${s.name}: ${s.description}`)
       .join('\n')}`;
-  return prompt;
+  return prompt + `\n\nWiki city entry pages for ${READ_WIKI}:\n${wikiEntries}\nFor each planned city listed above, read its entry page in your first tool round, including day trips. Follow its links to the area, topic and place pages needed before writing. Request all pages needed for a round in one call (up to six).`;
 }
 
 /** Nights between the trip dates; null until both are known. */
@@ -152,11 +153,7 @@ const context = (state: TripState, target?: EditTarget) =>
         nights: countNights(state.requirements),
         locale: state.locale,
         toolResults: state.toolResults,
-        placeFacts: placeFacts(state.requirements, 'en'),
-        placeChecks: checkPlan(state).days.flatMap((day, i) => day.flatMap((check, j) => {
-          const { name, time } = state.days[i].stops[j];
-          return conflictFindings(check).map((finding) => '[D' + (i + 1) + '] ' + name + (time ? ' (' + time + ')' : '') + ': ' + findingText(finding, 'en'));
-        })),
+        tripDates: tripDates(state.requirements),
         plan: renderPlan(state, state.locale, { numbered: true }),
         ...target ? { target: { days: oneBased(target.days), nights: oneBased(target.nights) } } : {},
       },
@@ -227,10 +224,11 @@ export class ModelTripLlm implements TripLlm {
 
   async *respond(task: LlmTask, input: RespondInput, signal: AbortSignal): AsyncIterable<LoopEvent> {
     const tools: StructuredToolInterface[] = [...(this.mcp?.mcpManager.getTools() ?? [])];
+    tools.push(readWikiTool(wiki, input.state.locale));
     if (this.onDemand.length) tools.push(loadSkillTool(this.onDemand));
     const bound = [...tools, showResultsTool, ...(task === 'revise' ? editTools : [])];
     const model = createChatModel({ operation: 'trip.respond', callbacks: this.options.callbacks }).bindTools(bound) as unknown as StreamingModel;
-    const last = input.text ?? { itinerary: 'Write the itinerary draft now.', revise: REPAIR_INSTRUCTION, answer: '' }[task];
+    const last = input.text ?? (task === 'itinerary' ? 'Write the itinerary draft now.' : '');
     const system = systemPrompt(task, input.state.locale, this.always, this.onDemand, this.today());
     yield* streamToolLoop(
       model,
@@ -238,7 +236,7 @@ export class ModelTripLlm implements TripLlm {
       [new SystemMessage(system), ...input.history, context(input.state, input.target), new HumanMessage(last)],
       signal,
       MAX_TOOL_ROUNDS,
-      new Set([LOAD_SKILL]),
+      new Set([LOAD_SKILL, READ_WIKI]),
       this.options.callbacks,
     );
   }

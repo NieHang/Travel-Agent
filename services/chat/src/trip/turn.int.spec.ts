@@ -183,6 +183,7 @@ describe('TurnService', () => {
         ],
         endedAt: '2026-11-15T12:00:00.000Z',
         verification: {
+          reading: [],
           lookups: [{ tool: 'searchHotels', subject: '大阪酒店 · 12/01–12/03', at: '2026-11-15T12:00:00.000Z', ok: true, count: 1 }],
           grounding: { kept: 1, dropped: 1 },
         },
@@ -527,6 +528,7 @@ describe('TurnService', () => {
     const trace = TurnTraceSchema.parse((assistant.metadata as { trace: unknown }).trace);
     expect(trace.steps.map((step) => step.phase)).toEqual(['understanding', 'searching', 'writing']);
     expect(trace.verification).toEqual({
+      reading: [],
       lookups: [{ tool: 'searchHotels', subject: null, at: expect.any(String), ok: true, count: 1 }],
       grounding: { kept: 1, dropped: 0 },
     });
@@ -546,6 +548,7 @@ describe('TurnService', () => {
     const trace = TurnTraceSchema.parse(error.message.metadata?.trace);
     expect(trace.steps.map((step) => step.phase)).toEqual(['understanding', 'searching']);
     expect(trace.verification).toEqual({
+      reading: [],
       lookups: [{ tool: 'searchHotels', subject: null, at: expect.any(String), ok: true, count: 1 }],
       grounding: { kept: 1, dropped: 0 },
     });

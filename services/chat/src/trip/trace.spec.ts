@@ -26,18 +26,18 @@ describe('TurnTraceBuilder', () => {
         { phase: 'searching', at: later },
       ],
       endedAt,
-      verification: { lookups: [lookup], grounding: { kept: 3, dropped: 3 } },
+      verification: { reading: [], lookups: [lookup], grounding: { kept: 3, dropped: 3 } },
     });
   });
 
   it('distinguishes no show_results call from one that kept no items', () => {
     const builder = new TurnTraceBuilder();
     expect(builder.started).toBe(false);
-    expect(builder.finish(endedAt)).toEqual({ steps: [], endedAt, verification: { lookups: [], grounding: null } });
+    expect(builder.finish(endedAt)).toEqual({ steps: [], endedAt, verification: { reading: [], lookups: [], grounding: null } });
     builder.record({ type: 'phase', phase: 'understanding', at });
     builder.record({ type: 'grounding', kept: 0, dropped: 2, at });
     expect(builder.started).toBe(true);
-    expect(builder.finish(endedAt).verification).toEqual({ lookups: [], grounding: { kept: 0, dropped: 2 } });
+    expect(builder.finish(endedAt).verification).toEqual({ reading: [], lookups: [], grounding: { kept: 0, dropped: 2 } });
   });
 
   it('caps both arrays at the contract maxima and keeps the first entries', () => {
@@ -54,13 +54,26 @@ describe('TurnTraceBuilder', () => {
     expect(trace.endedAt).toBe(endedAt);
   });
 
+  it('keeps the first forty distinct pages in reading order across calls', () => {
+    const builder = new TurnTraceBuilder();
+    builder.record({ type: 'wiki_read', pages: [{ id: 'kyoto', title: '京都' }] });
+    builder.record({ type: 'wiki_read', pages: [
+      { id: 'kyoto', title: 'Kyoto' },
+      ...Array.from({ length: 42 }, (_, i) => ({ id: 'kyoto/' + i, title: 'Page ' + i })),
+    ] });
+    const reading = TurnTraceSchema.parse(builder.finish(endedAt)).verification?.reading;
+    expect(reading).toHaveLength(40);
+    expect(reading?.slice(0, 2)).toEqual([{ id: 'kyoto', title: '京都' }, { id: 'kyoto/0', title: 'Page 0' }]);
+    expect(reading?.at(-1)).toEqual({ id: 'kyoto/38', title: 'Page 38' });
+  });
+
   it('returns a snapshot that later events do not change', () => {
     const builder = new TurnTraceBuilder();
     builder.record({ type: 'phase', phase: 'understanding', at });
     const trace = builder.finish(later);
     builder.record({ type: 'phase', phase: 'writing', at: later });
     builder.record({ type: 'lookup', lookup });
-    expect(trace).toEqual({ steps: [{ phase: 'understanding', at }], endedAt: later, verification: { lookups: [], grounding: null } });
+    expect(trace).toEqual({ steps: [{ phase: 'understanding', at }], endedAt: later, verification: { reading: [], lookups: [], grounding: null } });
   });
 });
 

@@ -128,27 +128,6 @@ export const ComponentSchema = z.discriminatedUnion('type', [
 ]);
 export type Component = z.infer<typeof ComponentSchema>;
 
-/**
- * A stop that still cannot happen as planned after the server tried to fix it (closed that day, past closing,
- * a rail kind that does not reach it). Every other stop carries no mark. Notes are server-written sentences in
- * the trip's locale.
- */
-const StopWarningSchema = z.object({
-  notes: z
-    .array(
-      z.object({
-        text: z.string().min(1).max(300),
-        /** Official page the fact was compiled from. */
-        source: z.string().url().startsWith('https://'),
-        /** YYYY-MM-DD the fact was last compared with that page. */
-        checkedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      }),
-    )
-    .min(1)
-    .max(6),
-});
-export type StopWarning = z.infer<typeof StopWarningSchema>;
-
 const TripViewSchema = z
   .object({
     revision: z.number().int().nonnegative(),
@@ -170,8 +149,6 @@ const TripViewSchema = z
             name: z.string(),
             note: z.string().nullable(),
             time: z.string().nullable(),
-            /** Set only when the stop still conflicts with the place fact library; null otherwise. */
-            warning: StopWarningSchema.nullable().default(null),
           }),
         ),
         stay: ResultItemSchema.nullable(),

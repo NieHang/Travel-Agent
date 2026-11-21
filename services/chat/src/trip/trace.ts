@@ -3,12 +3,14 @@ import type { TraceLookup, TracePhase, TraceVerification, TurnTrace } from '@aut
 
 type TraceEvent =
   | { type: 'phase'; phase: TracePhase; at: string }
+  | { type: 'wiki_read'; pages: TraceVerification['reading'] }
   | { type: 'lookup'; lookup: TraceLookup }
   | { type: 'grounding'; kept: number; dropped: number; at: string };
 
 export class TurnTraceBuilder {
   private readonly steps: TurnTrace['steps'] = [];
   private readonly lookups: TraceLookup[] = [];
+  private readonly reading = new Map<string, string>();
   private grounding: TraceVerification['grounding'] = null;
 
   get started(): boolean {
@@ -24,6 +26,12 @@ export class TurnTraceBuilder {
       case 'lookup':
         if (this.lookups.length < 20) this.lookups.push({ ...event.lookup });
         return;
+      case 'wiki_read':
+        for (const { id, title } of event.pages) {
+          if (this.reading.size >= 40) break;
+          if (!this.reading.has(id)) this.reading.set(id, title);
+        }
+        return;
       case 'grounding':
         this.grounding = {
           kept: (this.grounding?.kept ?? 0) + event.kept,
@@ -38,6 +46,7 @@ export class TurnTraceBuilder {
       steps: this.steps.map((step) => ({ ...step })),
       endedAt,
       verification: {
+        reading: [...this.reading].map(([id, title]) => ({ id, title })),
         lookups: this.lookups.map((lookup) => ({ ...lookup })),
         grounding: this.grounding ? { ...this.grounding } : null,
       },

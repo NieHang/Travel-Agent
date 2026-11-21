@@ -1,9 +1,9 @@
-import { checkPlan, conflictDays } from '../places/index.js';
+import type { BaseMessage } from '@langchain/core/messages';
 import type { StatusPhase } from '@autix/contracts';
 import type { Effect, EditTarget } from './commands.js';
 import { copy } from './copy.js';
 import { mergeStays, overviewLine, parseDraft, splice, type PlanDay } from './itinerary.js';
-import type { RespondInput, TripLlm } from './llm.js';
+import type { TripLlm } from './llm.js';
 import { groundResults } from './results.js';
 import type { TripState } from './state.js';
 import { MAX_STORED_RESULTS, USE_STAY, WRITE_DAY, type EditCall, type LoopEvent } from './tool-loop.js';
@@ -27,29 +27,10 @@ export type EffectObservation = LoopEvent | { type: 'grounding'; kept: number; d
 export async function* runEffect(
   llm: TripLlm,
   effect: Exclude<Effect, null>,
-  input: Omit<RespondInput, 'target'>,
+  input: { text: string | null; state: TripState; history: BaseMessage[] },
   signal: AbortSignal,
   observe?: (event: EffectObservation) => void,
 ): AsyncGenerator<EffectEvent, string | null> {
-  const { reply, writtenDays } = yield* foldPass(llm, effect, input, signal, observe);
-  if (!writtenDays.length) return reply;
-  const days = conflictDays(checkPlan(input.state)).filter((i) => writtenDays.includes(i));
-  if (days.length) {
-    yield { type: 'status', phase: 'organizing' };
-    const repair: Effect = { type: 'revise', target: { days, nights: [] } };
-    // The fold still observes and applies every repair event. Its client stream is private.
-    for await (const _ of foldPass(llm, repair, { ...input, text: null }, signal, observe));
-  }
-  return reply;
-}
-
-async function* foldPass(
-  llm: TripLlm,
-  effect: Exclude<Effect, null>,
-  input: Omit<RespondInput, 'target'>,
-  signal: AbortSignal,
-  observe?: (event: EffectObservation) => void,
-): AsyncGenerator<EffectEvent, { reply: string | null; writtenDays: number[] }> {
   const next = input.state;
   const target = effect.type === 'revise' ? effect.target : undefined;
   const edits = new Edits(next, target ?? { days: [], nights: [] });
@@ -73,6 +54,8 @@ async function* foldPass(
         text = '';
         yield { type: 'status', phase: 'searching' };
         break;
+      case 'wiki_read':
+        break;
       case 'tool_results':
         next.toolResults = event.results.slice(-MAX_STORED_RESULTS);
         break;
@@ -89,9 +72,10 @@ async function* foldPass(
         break;
     }
   }
+  const c = copy(next.locale);
   switch (effect.type) {
     case 'answer':
-      return { reply: text || null, writtenDays: [] };
+      return text || null;
     case 'itinerary': {
       if (!text.trim()) throw new Error('Empty itinerary');
       yield { type: 'status', phase: 'organizing' };
@@ -100,7 +84,7 @@ async function* foldPass(
       next.preamble = draft.preamble;
       next.days = draft.days.map((day, i) => ({ ...day, stops: stops[i] }));
       next.footer = draft.footer;
-      return { reply: copy(next.locale).draftReady(overviewLine(next.preamble)), writtenDays: next.days.map((_, i) => i) };
+      return c.draftReady(overviewLine(next.preamble));
     }
     case 'revise': {
       if (edits.days.size) yield { type: 'status', phase: 'organizing' };
@@ -110,7 +94,7 @@ async function* foldPass(
       const spliced = splice(next, { days: new Map(rewritten), preamble: edits.preamble, nights: edits.nights });
       next.preamble = spliced.preamble;
       next.days = spliced.days;
-      return { reply: text || null, writtenDays: [...edits.days.keys()] };
+      return text || null;
     }
   }
 }

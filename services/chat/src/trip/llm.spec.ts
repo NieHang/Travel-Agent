@@ -2,12 +2,6 @@ import { AIMessage, AIMessageChunk, HumanMessage, type BaseMessage } from '@lang
 import type { Classified } from './commands.js';
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 
-// The checks run against fixture records only, so the real library can change without touching these expectations.
-vi.mock('../places/records/kyoto.js', async () => ({ kyoto: (await import('../../test/fixtures/place-records.js')).records }));
-vi.mock('../places/records/nara.js', () => ({ nara: [] }));
-vi.mock('../places/records/osaka.js', () => ({ osaka: [] }));
-vi.mock('../places/records/tokyo.js', () => ({ tokyo: [] }));
-
 const model = vi.hoisted(() => ({ seen: [] as BaseMessage[][], streamOptions: [] as { runName?: string }[], bound: [] as string[], classify: vi.fn() }));
 vi.mock('../llm/model.factory.js', () => ({
   createChatModel: vi.fn(() => ({
@@ -161,11 +155,12 @@ describe('ModelTripLlm skills', () => {
     expect(model.bound).toContain('load_skill');
   });
 
-  it('keeps the prompt and tools unchanged without skills', async () => {
+  it('lists wiki entry pages and binds the reader without skills', async () => {
     const system = await respond(new ModelTripLlm(undefined, []), 'itinerary');
     expect(system).toContain('Never invent prices, availability, addresses or distances');
+    expect(system).toContain('- kyoto: Kyoto');
     for (const text of ['Skill ', 'load_skill', 'approx']) expect(system).not.toContain(text);
-    expect(model.bound).toEqual(['show_results']);
+    expect(model.bound).toEqual(['read_wiki', 'show_results']);
   });
 
   it('does not bind load_skill when every skill is always', async () => {
@@ -226,24 +221,18 @@ describe('revise', () => {
     ],
   });
 
-  it('instructs a repair revise when there is no user message', async () => {
-    for await (const _ of new ModelTripLlm().respond('revise', { text: null, state: drafted(), history: [], target: { days: [1], nights: [] } }, signal()));
-    expect(model.seen[0].at(-1)?.text).toContain('Fix every line in serverContext.placeChecks for the target days');
-  });
-
   it('binds the edit tools only for revise, and gives the model the numbered plan and 1-based target', async () => {
     const llm = new ModelTripLlm();
     for await (const _ of llm.respond('revise', { text: 'day 2 lighter', state: drafted(), history: [], target: { days: [1], nights: [] } }, signal()));
-    expect(model.bound).toEqual(['show_results', 'write_day', 'write_preamble', 'use_stay']);
+    expect(model.bound).toEqual(['read_wiki', 'show_results', 'write_day', 'write_preamble', 'use_stay']);
     const context = JSON.parse(model.seen[0].at(-2)?.text ?? '{}') as { serverContext: { plan: string; target: unknown } };
     expect(context.serverContext.plan).toContain('[D2] **Day 2 | B (light)**');
     expect(context.serverContext).toMatchObject({
-      placeFacts: ['Higashi Hongan-ji (东本愿寺): open 06:20–16:30 on your dates', 'Fushimi Inari Taisha (伏见稻荷大社): rail access: JR, private rail'],
-      placeChecks: ['[D2] 东本愿寺 (16:00): At the estimated visit duration, the visit runs past closing at 16:30.'],
+      tripDates: ['2026-11-30 Mon', '2026-12-01 Tue'],
     });
     expect(context.serverContext.target).toEqual({ days: [2], nights: [] });
     expect(systemText(model.seen[0])).toContain('Task: change only part of the itinerary draft');
     await respond(llm, 'answer');
-    expect(model.bound).toEqual(['show_results']);
+    expect(model.bound).toEqual(['read_wiki', 'show_results']);
   });
 });

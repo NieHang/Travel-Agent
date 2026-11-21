@@ -109,7 +109,7 @@ baseline" sentences below are history. The result files are local only (see
 | Suite | Baseline | A/A partner | Notes |
 |---|---|---|---|
 | `classify` | `classify@22b1f56-base-a` | `-base-b` | 2026-11-20 |
-| `itinerary` | `itinerary@22b1f56-base-a` | `-base-b` | 2026-11-20; cassette hash `b60333f2dd62`, prompt hash `1c13f598`. Stale since the repair pass (`runEffect` now fixes place conflicts once before returning, and the facts rule changed): `place_conflict_rate` now measures what is left after the repair. Rebuild before comparing. |
+| `itinerary` | `itinerary@22b1f56-base-a` | `-base-b` | 2026-11-20; cassette hash `b60333f2dd62`, prompt hash `1c13f598` |
 | `extract-days` | none | | Not rebuilt on 2026-11-20. Run an A/A pair before the next extraction change. |
 
 From `services/chat` (sync and eval use Langfuse; eval also calls the live model):
