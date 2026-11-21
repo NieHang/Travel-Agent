@@ -414,5 +414,13 @@
     "pages": [
       "kyoto/kyoto-railway-museum"
     ]
+  },
+  {
+    "url": "https://www.kyotorailwaymuseum.jp/sc/assets/pdf/yearly-calendar.pdf",
+    "fetchedOn": "2026-11-21",
+    "sha256": "03c50b05ba874a00155f9c51865b5d2b93609487a805e22cb80ff6fc44180526",
+    "pages": [
+      "kyoto/kyoto-railway-museum"
+    ]
   }
 ]
