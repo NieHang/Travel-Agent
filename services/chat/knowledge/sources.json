@@ -230,5 +230,109 @@
     "pages": [
       "osaka/tsutenkaku"
     ]
+  },
+  {
+    "url": "https://www.shokoku-ji.jp/ginkakuji/access/",
+    "fetchedOn": "2026-11-21",
+    "sha256": "44f961b4c1dcd017364c0ed2899357599a1e606a1d8c0a4f37455dbd00eb880d",
+    "pages": [
+      "kyoto/ginkaku-ji"
+    ]
+  },
+  {
+    "url": "https://kyoto-gosho.kunaicho.go.jp/katsura-rikyu/visit",
+    "fetchedOn": "2026-11-21",
+    "sha256": "15fa7db2002edb041131d7f3535cb4c8f7562366215e60a106c8dd5962500ce2",
+    "pages": [
+      "kyoto/katsura-imperial-villa"
+    ]
+  },
+  {
+    "url": "https://kyoto-gosho.kunaicho.go.jp/katsura-rikyu",
+    "fetchedOn": "2026-11-21",
+    "sha256": "dc23ade28de999773a0e4783f244656ee00b12d5456647188d84cd4a92dfc00c",
+    "pages": [
+      "kyoto/katsura-imperial-villa"
+    ]
+  },
+  {
+    "url": "https://kyoto-gosho.kunaicho.go.jp/katsura-rikyu/access",
+    "fetchedOn": "2026-11-21",
+    "sha256": "592c1b3f6e3a574518ca3bd567e8e773f506e556492367dc4df648e72cf6b2cd",
+    "pages": [
+      "kyoto/katsura-imperial-villa"
+    ]
+  },
+  {
+    "url": "https://www.shokoku-ji.jp/kinkakuji/access/",
+    "fetchedOn": "2026-11-21",
+    "sha256": "10b274c5bf6c57c8e4d6bf7ebf6bf26983ccf1b6822676ce4a1854c1c7bb7ff8",
+    "pages": [
+      "kyoto/kinkaku-ji"
+    ]
+  },
+  {
+    "url": "https://nanzenji.or.jp/about_rinzaishu/visit",
+    "fetchedOn": "2026-11-21",
+    "sha256": "e33eab80061b36d372ac390c32a1d930c1828d46e2e0b6c20cbd99775c76457b",
+    "pages": [
+      "kyoto/nanzen-ji"
+    ]
+  },
+  {
+    "url": "https://www.nanzenji.or.jp/information/202601101-1",
+    "fetchedOn": "2026-11-21",
+    "sha256": "4637cd7f78aa6b0bd437caf3b45dd0b2f0a997c3680f7385fff9645730a61d37",
+    "pages": [
+      "kyoto/nanzen-ji"
+    ]
+  },
+  {
+    "url": "https://www.nanzenji.or.jp/information/20260108",
+    "fetchedOn": "2026-11-21",
+    "sha256": "d1f287502a6d1d1cda8b7a31800b3b6824438c00cf266e52df7d64a26d8a1013",
+    "pages": [
+      "kyoto/nanzen-ji"
+    ]
+  },
+  {
+    "url": "https://nanzenji.or.jp/profile",
+    "fetchedOn": "2026-11-21",
+    "sha256": "acd34dbeb05b577aeff3d3b3c6ff63e8a0cf3f70f03c6362b3bac1000d78ead8",
+    "pages": [
+      "kyoto/nanzen-ji"
+    ]
+  },
+  {
+    "url": "https://nijo-jocastle.city.kyoto.lg.jp/guide/annai/",
+    "fetchedOn": "2026-11-21",
+    "sha256": "5f5c4f7257829d7401fe5d260d0c5e80ea2ec509d5fd53b4721ccc28f3261f03",
+    "pages": [
+      "kyoto/nijo-castle"
+    ]
+  },
+  {
+    "url": "https://nijo-jocastle.city.kyoto.lg.jp/access/",
+    "fetchedOn": "2026-11-21",
+    "sha256": "06fd64265a43da56b7a47c7fd542a9015d464dd0eabdb111b8a8b29a7330c82e",
+    "pages": [
+      "kyoto/nijo-castle"
+    ]
+  },
+  {
+    "url": "https://www.tenryuji.com/visit/",
+    "fetchedOn": "2026-11-21",
+    "sha256": "422b7756364d264f34319004270dc0ba2a35ed2ed38db9c52e9b12fb25c41189",
+    "pages": [
+      "kyoto/tenryu-ji"
+    ]
+  },
+  {
+    "url": "https://www.yasaka-jinja.or.jp/access/",
+    "fetchedOn": "2026-11-21",
+    "sha256": "9e20628f528f028566a588e01e92d97b6a3403ceee8a398757d5be79a475ccc4",
+    "pages": [
+      "kyoto/yasaka-shrine"
+    ]
   }
 ]
