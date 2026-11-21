@@ -54,6 +54,8 @@ export async function* runEffect(
         text = '';
         yield { type: 'status', phase: 'searching' };
         break;
+      case 'wiki_read':
+        break;
       case 'tool_results':
         next.toolResults = event.results.slice(-MAX_STORED_RESULTS);
         break;

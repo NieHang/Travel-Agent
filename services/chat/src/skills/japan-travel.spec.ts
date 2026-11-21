@@ -7,7 +7,6 @@ const byName = new Map(skills.map((s) => [s.name, s]));
 const core = () => byName.get('japan-travel') as Skill;
 const cities: [string, string, string][] = [
   ['japan-tokyo', 'Tokyo', '东京'],
-  ['japan-kyoto', 'Kyoto', '京都'],
   ['japan-osaka', 'Osaka', '大阪'],
   ['japan-nara', 'Nara', '奈良'],
 ];

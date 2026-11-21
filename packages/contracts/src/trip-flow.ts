@@ -128,28 +128,6 @@ export const ComponentSchema = z.discriminatedUnion('type', [
 ]);
 export type Component = z.infer<typeof ComponentSchema>;
 
-/**
- * How a stop compares with the place fact library on its visit date. `ok`: a record matched and nothing
- * conflicts. `caution`: worth knowing (most shops closed, part under construction). `conflict`: the visit
- * cannot happen as written (closed that day, past closing, a rail kind that does not reach it).
- * `unverified`: no record matched. Notes are server-written sentences in the trip's locale.
- */
-const StopCheckSchema = z.object({
-  level: z.enum(['ok', 'caution', 'conflict', 'unverified']),
-  notes: z
-    .array(
-      z.object({
-        text: z.string().min(1).max(300),
-        /** Official page the fact was compiled from. */
-        source: z.string().url().startsWith('https://'),
-        /** YYYY-MM-DD the fact was last compared with that page. */
-        checkedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      }),
-    )
-    .max(6),
-});
-export type StopCheck = z.infer<typeof StopCheckSchema>;
-
 const TripViewSchema = z
   .object({
     revision: z.number().int().nonnegative(),
@@ -171,8 +149,6 @@ const TripViewSchema = z
             name: z.string(),
             note: z.string().nullable(),
             time: z.string().nullable(),
-            /** The server's check of this stop against the place fact library; null when there is nothing to show. */
-            check: StopCheckSchema.nullable().default(null),
           }),
         ),
         stay: ResultItemSchema.nullable(),

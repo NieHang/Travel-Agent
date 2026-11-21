@@ -20,6 +20,8 @@ export type TraceLookup = z.infer<typeof LookupSchema>;
  */
 const VerificationSchema = z.object({
   lookups: z.array(LookupSchema).max(20),
+  /** Knowledge-base wiki pages the model read this turn, in reading order, titled in the trip's locale. */
+  reading: z.array(z.object({ id: z.string().min(1), title: z.string().min(1) })).max(40).default([]),
   /** show_results items checked against tool results: kept vs dropped. Null when nothing was shown. */
   grounding: z.object({ kept: z.number().int().nonnegative(), dropped: z.number().int().nonnegative() }).nullable(),
 });

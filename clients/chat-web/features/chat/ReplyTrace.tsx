@@ -167,14 +167,22 @@ function Check({ reduced }: { reduced: boolean }) {
   )
 }
 
+/** One city's usual read (its directory page, a few areas, a few sights) fits in about two lines. */
+const READING_SHOWN = 8
+
 function Verification({ data }: { data: TraceVerification }) {
   const t = useTranslations('chat.trace')
   const format = useFormatter()
-  if (!data.lookups.length && !data.grounding) return null
+  if (!data.lookups.length && !data.reading.length && !data.grounding) return null
+  const titles = data.reading.slice(0, READING_SHOWN).map((page) => page.title)
+  const hidden = data.reading.length - titles.length
   return (
     <div className="mt-3 flex flex-col gap-1 border-t border-ink/10 pt-3 text-sm">
       <span className="text-xs font-bold text-ink/60">{t('verification')}</span>
       <ul className="flex flex-col gap-1 text-ink/70">
+        {titles.length ? (
+          <li>{t('reading', { pages: format.list(hidden ? [...titles, t('readingMore', { n: hidden })] : titles) })}</li>
+        ) : null}
         {data.lookups.map((lookup, i) => (
           <li key={i} className={lookup.ok ? undefined : 'text-danger'}>
             {t('lookup', {

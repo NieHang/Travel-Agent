@@ -1,0 +1,7 @@
+---
+title: "Northwest Kyoto"
+names: {"zh": "京都西北部", "ja": "京都北西部"}
+type: "area"
+updated: "2026-11-21"
+---
+Consider Kinkaku-ji for the Golden Pavilion and Ryoan-ji for its rock garden.

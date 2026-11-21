@@ -18,6 +18,7 @@ const trace = {
   endedAt: '2026-11-15T09:28:04.300Z',
   verification: {
     lookups: [{ tool: 'mcp_rollingGo_searchHotels', subject: '大阪酒店 · 12/20–12/22', at: '2026-11-15T09:27:52.000Z', ok: true, count: 8 }],
+    reading: [],
     grounding: { kept: 3, dropped: 1 },
   },
 }
@@ -29,6 +30,45 @@ it('已完成：收成「用时」一行，展开后是各阶段与数据核验'
   expect(screen.getByText('11 秒')).toBeVisible()
   expect(screen.getByText(/大阪酒店 · 12\/20–12\/22 · 查询于 .+ · 8 条结果/)).toBeVisible()
   expect(screen.getByText('3 条结果与查询数据一致，1 条未通过核对')).toBeVisible()
+  expect(screen.queryByText(/已查阅/)).not.toBeInTheDocument()
+})
+
+const kyoto = [
+  { id: 'kyoto', title: '京都' },
+  { id: 'kyoto/higashiyama', title: '东山' },
+  { id: 'kyoto/kiyomizu-dera', title: '清水寺' },
+]
+
+it('只读了资料页（没有查询和核对）：数据核验里列出页面标题', async () => {
+  const { user } = renderWithProviders(
+    <MessageBubble role="ASSISTANT" content="京都 1 天" trace={{ ...trace, verification: { lookups: [], reading: kyoto, grounding: null } }} />,
+  )
+  await user.click(screen.getByRole('button', { name: /用时 17 秒/ }))
+  expect(screen.getByText('数据核验')).toBeVisible()
+  expect(screen.getByText('已查阅京都、东山和清水寺')).toBeVisible()
+})
+
+it('读了很多页面：只列前 8 个标题，其余计数', async () => {
+  const reading = Array.from({ length: 40 }, (_, i) => ({ id: `kyoto/place-${i + 1}`, title: `地点${i + 1}` }))
+  const { user } = renderWithProviders(
+    <MessageBubble role="ASSISTANT" content="京都 5 天" trace={{ ...trace, verification: { lookups: [], reading, grounding: null } }} />,
+  )
+  await user.click(screen.getByRole('button', { name: /用时 17 秒/ }))
+  expect(screen.getByText('已查阅地点1、地点2、地点3、地点4、地点5、地点6、地点7、地点8和其余 32 项')).toBeVisible()
+})
+
+it('英文界面：页面标题与其余计数', async () => {
+  const reading = [
+    'Kyoto', 'Higashiyama', 'Fushimi', 'Autumn leaves', 'Kiyomizu-dera', 'Tofuku-ji', 'Fushimi Inari Taisha', 'Higashi Hongan-ji', 'Kinkaku-ji', 'Arashiyama',
+  ].map((title) => ({ id: `kyoto/${title}`, title }))
+  const { user } = renderWithProviders(
+    <MessageBubble role="ASSISTANT" content="Kyoto, 5 days" trace={{ ...trace, verification: { lookups: [], reading, grounding: null } }} />,
+    { locale: 'en' },
+  )
+  await user.click(screen.getByRole('button', { name: /Took 17s/ }))
+  expect(
+    screen.getByText('Consulted Kyoto, Higashiyama, Fushimi, Autumn leaves, Kiyomizu-dera, Tofuku-ji, Fushimi Inari Taisha, Higashi Hongan-ji, and 2 more'),
+  ).toBeVisible()
 })
 
 it('已完成但没有过程记录（旧消息、按钮回合）：不显示过程行', () => {

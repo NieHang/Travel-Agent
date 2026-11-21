@@ -1,0 +1,234 @@
+[
+  {
+    "url": "https://inari.jp/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "kyoto/fushimi-inari-taisha"
+    ]
+  },
+  {
+    "url": "https://tofukuji.jp/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "kyoto/tofuku-ji"
+    ]
+  },
+  {
+    "url": "https://tofukuji.jp/guide/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "kyoto/tofuku-ji"
+    ]
+  },
+  {
+    "url": "https://www.higashihonganji.or.jp/worship/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "kyoto/higashi-hongan-ji"
+    ]
+  },
+  {
+    "url": "https://www.kaiyukan.com/info/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "osaka/kaiyukan"
+    ]
+  },
+  {
+    "url": "https://www.kaiyukan.com/info/hours/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "osaka/kaiyukan"
+    ]
+  },
+  {
+    "url": "https://www.kansai-airport.or.jp/access/to-airport/train",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "osaka/kansai-international-airport"
+    ]
+  },
+  {
+    "url": "https://www.kasugataisha.or.jp/about/basic/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "nara/kasuga-taisha"
+    ]
+  },
+  {
+    "url": "https://www.kiyomizudera.or.jp/access.php",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "kyoto/kiyomizu-dera"
+    ]
+  },
+  {
+    "url": "https://www.kohfukuji.com/info/info-access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "nara/kofuku-ji"
+    ]
+  },
+  {
+    "url": "https://www.kyohaku.go.jp/jp/visit/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "kyoto/kyoto-national-museum"
+    ]
+  },
+  {
+    "url": "https://www.kyohaku.go.jp/jp/visit/info/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "kyoto/kyoto-national-museum"
+    ]
+  },
+  {
+    "url": "https://www.kyoto-nishiki.or.jp/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "kyoto/nishiki-market"
+    ]
+  },
+  {
+    "url": "https://www.kyoto-nishiki.or.jp/contact/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "kyoto/nishiki-market"
+    ]
+  },
+  {
+    "url": "https://www.meijijingu.or.jp/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "tokyo/meiji-jingu"
+    ]
+  },
+  {
+    "url": "https://www.meijijingu.or.jp/sanpai/2.php",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "tokyo/meiji-jingu"
+    ]
+  },
+  {
+    "url": "https://www.osakacastle.net/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "osaka/osaka-castle-main-tower"
+    ]
+  },
+  {
+    "url": "https://www.osakacastle.net/guide/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "osaka/osaka-castle-main-tower"
+    ]
+  },
+  {
+    "url": "https://www.pref.nara.jp/62140.htm",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "nara/kofuku-ji"
+    ]
+  },
+  {
+    "url": "https://www.senso-ji.jp/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "tokyo/senso-ji"
+    ]
+  },
+  {
+    "url": "https://www.skybldg.co.jp/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "osaka/umeda-sky-building"
+    ]
+  },
+  {
+    "url": "https://www.skybldg.co.jp/observatory/information/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "osaka/umeda-sky-building"
+    ]
+  },
+  {
+    "url": "https://www.tnm.jp/modules/r_free_page/index.php?id=113",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "tokyo/tokyo-national-museum"
+    ]
+  },
+  {
+    "url": "https://www.todaiji.or.jp/information/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "nara/todai-ji"
+    ]
+  },
+  {
+    "url": "https://www.todaiji.or.jp/information/haikan/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "nara/todai-ji"
+    ]
+  },
+  {
+    "url": "https://www.tsukiji.or.jp/access/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "tokyo/tsukiji-outer-market"
+    ]
+  },
+  {
+    "url": "https://www.tsukiji.or.jp/calendar/",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "tokyo/tsukiji-outer-market"
+    ]
+  },
+  {
+    "url": "https://www.tsutenkaku.co.jp/access/index.html",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "osaka/tsutenkaku"
+    ]
+  },
+  {
+    "url": "https://www.tsutenkaku.co.jp/annai/index.html",
+    "fetchedOn": null,
+    "sha256": null,
+    "pages": [
+      "osaka/tsutenkaku"
+    ]
+  }
+]

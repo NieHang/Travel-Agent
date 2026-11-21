@@ -37,12 +37,6 @@ describe('toTripView', () => {
     expect(toTripView(initialState())).toBeNull();
   });
 
-  it('hides an unmatched stop check', () => {
-    const stop = { name: 'Fixture plaza', time: null, note: null };
-    const trip = state({ stage: 'review', days: [{ title: 'Day 1', body: '', stayRef: null, stops: [stop] }] });
-    expect(toTripView(trip)?.days[0].stops).toEqual([{ ...stop, check: null }]);
-  });
-
   it('maps stage to status', () => {
     expect(toTripView(state({ stage: 'trip_type' }))!.status).toBe('collecting');
     expect(toTripView(state({ stage: 'review', preamble: '# 草稿' }))!.status).toBe('draft');

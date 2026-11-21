@@ -88,6 +88,7 @@ export class TurnService {
         const input = { text: command.type === 'message' ? command.text : null, state: next, history };
         const events = runEffect(this.llm, effect, input, signal, (event) => {
           const at = new Date().toISOString();
+          if (event.type === 'wiki_read') trace.record(event);
           if (event.type === 'grounding') trace.record({ ...event, at });
           if (event.type !== 'tool_results') return;
           // Loop events contain cumulative results; each call belongs in the trace only once.

@@ -9,7 +9,7 @@ import type { TurnOutputSchema } from './schemas.js';
 
 export async function turn(
   llm: TripLlm, state: TripState, text: string,
-  options: { history?: BaseMessage[]; signal?: AbortSignal } = {},
+  options: { history?: BaseMessage[]; signal?: AbortSignal; onRead?: (ids: string[]) => void } = {},
 ): Promise<TurnOutput> {
   const signal = options.signal ?? AbortSignal.timeout(180_000);
   const history = options.history ?? [];
@@ -26,6 +26,7 @@ export async function turn(
   const toolResults: ToolResult[] = [];
   if (effect) {
     const events = runEffect(llm, effect, { text, state: next, history }, signal, (e) => {
+      if (e.type === 'wiki_read') options.onRead?.(e.pages.map(page => page.id));
       if (e.type === 'tool_call') {
         calls.push(e.name);
         toolCalls.push({ name: e.name, args: e.args });

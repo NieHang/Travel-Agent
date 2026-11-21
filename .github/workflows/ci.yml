@@ -38,6 +38,9 @@ jobs:
         run: bun run db:generate
       - name: Static checks
         run: bun run check
+      - name: Check travel wiki
+        working-directory: services/chat
+        run: bun run wiki:check
       - name: Backend unit tests
         working-directory: services/chat
         run: bun run test

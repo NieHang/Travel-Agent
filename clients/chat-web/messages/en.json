@@ -95,6 +95,8 @@
       "lookup": "{subject} · checked at {time}",
       "lookupCount": "{n} results",
       "lookupFailed": "Lookup failed",
+      "reading": "Consulted {pages}",
+      "readingMore": "{n} more",
       "grounding": "{dropped, plural, =0 {{kept} results, all matching the looked-up data} other {{kept} results matched the looked-up data, {dropped} failed the check}}"
     }
   },
@@ -135,15 +137,7 @@
       "noResults": "No verified results available yet",
       "empty": "Your itinerary will appear here when you start planning",
       "night": "Night {n}",
-      "nights": "Nights {from}–{to}",
-      "check": {
-        "ok": "Verified",
-        "caution": "Caution",
-        "conflict": "Conflict",
-        "unverified": "Unverified",
-        "source": "Source",
-        "checkedOn": "Checked on {date}"
-      }
+      "nights": "Nights {from}–{to}"
     }
   },
   "resultCard": {

@@ -2,6 +2,7 @@ import { HumanMessage, ToolMessage, type AIMessageChunk, type BaseMessage } from
 import { tool, type StructuredToolInterface } from '@langchain/core/tools';
 import { z } from 'zod';
 import type { BaseCallbackHandler } from '@langchain/core/callbacks/base';
+import { WikiRead, type WikiPageRef } from '../knowledge/index.js';
 import { compactToolContent } from '../llm/mcp/compact.js';
 import {
   SHOW_RESULTS,
@@ -12,12 +13,13 @@ import {
 } from './results.js';
 
 // Japan drafts may load city skills, search hotels per city, then show_results before writing.
-export const MAX_TOOL_ROUNDS = 7;
+export const MAX_TOOL_ROUNDS = 10;
 const MAX_RESULT_LENGTH = 12_000;
 export const MAX_STORED_RESULTS = 8;
 
 export type LoopEvent =
   | { type: 'tool_call'; name: string; args: Record<string, unknown> }
+  | { type: 'wiki_read'; pages: WikiPageRef[] }
   | { type: 'tool_results'; results: ToolResult[] }
   | { type: 'show_results'; input: ShowResultsInput; results: ToolResult[] }
   /**
@@ -181,6 +183,7 @@ export async function* streamToolLoop(
       }
       signal.throwIfAborted();
       if (unrecorded.has(call.name)) {
+        if (output instanceof WikiRead && output.pages.length) yield { type: 'wiki_read', pages: output.pages };
         const raw = output && typeof output === 'object' && 'content' in output ? output.content : output;
         conversation.push(
           new ToolMessage({ tool_call_id: callId, content: typeof raw === 'string' ? raw : JSON.stringify(raw) }),

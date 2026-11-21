@@ -33,7 +33,7 @@ Suggestions only, not checked facts. The japan-travel rules decide the plan; the
 - Sightseeing passes exist; suggest comparing them with the actual plan, never assume one pays off.
 
 ## Day trips
-- Kyoto: load the japan-kyoto skill.
+- Kyoto: read the kyoto wiki entry page.
 - Nara: load the japan-nara skill.
 - Kobe: harbour, Kitano, Kobe beef.
 - Himeji Castle.
