@@ -24,9 +24,11 @@ export async function turn(
   const calls: string[] = [];
   const toolCalls: { name: string; args: Record<string, unknown> }[] = [];
   const toolResults: ToolResult[] = [];
+  let roundsExhausted = false;
   if (effect) {
     const events = runEffect(llm, effect, { text, state: next, history }, signal, (e) => {
       if (e.type === 'wiki_read') options.onRead?.(e.pages.map(page => page.id));
+      if (e.type === 'rounds_exhausted') roundsExhausted = true;
       if (e.type === 'tool_call') {
         calls.push(e.name);
         toolCalls.push({ name: e.name, args: e.args });
@@ -44,7 +46,7 @@ export async function turn(
       if (step.value.type !== 'status') draft += step.value.delta;
     }
   }
-  return { classified, place, next, effect: effect?.type ?? null, draft, reply, loaded, calls, toolCalls, toolResults };
+  return { classified, place, next, effect: effect?.type ?? null, draft, reply, loaded, calls, toolCalls, toolResults, roundsExhausted };
 }
 
 export type TurnOutput = z.infer<typeof TurnOutputSchema>;

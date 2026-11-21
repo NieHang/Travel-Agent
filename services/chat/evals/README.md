@@ -109,7 +109,7 @@ baseline" sentences below are history. The result files are local only (see
 | Suite | Baseline | A/A partner | Notes |
 |---|---|---|---|
 | `classify` | `classify@22b1f56-base-a` | `-base-b` | 2026-11-20 |
-| `itinerary` | `itinerary@22b1f56-base-a` | `-base-b` | 2026-11-20; cassette hash `b60333f2dd62`, prompt hash `1c13f598` |
+| `itinerary` | `itinerary@71e5e2f-base-a` | `-base-b` | 2026-11-21; cassette hash `d64eac6ef287`, prompt hash `abc68fba` |
 | `extract-days` | none | | Not rebuilt on 2026-11-20. Run an A/A pair before the next extraction change. |
 
 From `services/chat` (sync and eval use Langfuse; eval also calls the live model):
@@ -1116,6 +1116,109 @@ stops, no retries, and 60 Place Details Essentials requests (`location` only).
 Not done: `extract-days` (its prompt and input did not change), and no run on
 `main` for comparison, so these numbers do not show whether the place facts
 moved the older metrics.
+
+### Place wiki baseline (2026-11-21)
+
+The place fact library became a wiki the model reads through `read_wiki`
+(`c5e2a99`): `placeFacts` and `placeChecks` left the prompt, `tripDates`
+came in, `MAX_TOOL_ROUNDS` went from 7 to 10, and the Kyoto city skill became
+wiki pages. The prompt and tools changed, so the itinerary cassettes and
+baseline were rebuilt on commit `71e5e2f`. The classify and extraction prompts
+did not change; `classify@22b1f56-base-a` stays.
+
+**Wiki metrics.** `evaluators/wiki.ts` replaces the three `place_*` metrics:
+
+| Metric | Scored on | Meaning |
+|---|---|---|
+| `wiki_read` | itineraries for a city with a wiki page | 1 when the turn read at least one existing page. The city is found in the destination or a day title, because a multi-city trip's destination is "Japan" |
+| `wiki_depth` | itineraries | distinct `place` pages read; city, area and topic pages do not count |
+| `wiki_stop_share` | itineraries with stops | stops whose name equals a `place` or `area` page's title, zh/ja name or alias (case, spaces and punctuation ignored) |
+| `wiki_miss` | every turn that ran the model | requested page ids that do not exist, one per request |
+| `rounds_exhausted` | every turn that ran the model | 1 when all 10 tool rounds were used and the reply was written with tools disabled (`tool-loop.ts` emits `rounds_exhausted`) |
+
+**Grader changes first.**
+- `legs_mode_only` failed "09:30 海游馆（乘地铁）：约 150 分钟", where 150
+  minutes is the visit length from the wiki page. A bracket that gives only a
+  mode is now dropped before looking for travel times, and the stop and its
+  description (after the colon) are read apart, so "Osaka Aquarium Kaiyukan by
+  subway: approx. 150 min" passes too. Minutes inside the bracket, or beside a
+  mode inside the description, still fail.
+- `skills_loaded` required `japan-kyoto`, which no longer exists. Kyoto
+  scenarios now expect no city skill, so the check passes trivially for them;
+  `wiki_read` covers Kyoto.
+
+**Cassettes.** Recorded on 2026-11-21 for all 20 scenarios. The same four
+Chinese scenarios as on 2026-11-20 started with a search ending in "日本" that
+returned hotels in China; their first Japan search was moved to the front. An
+unpaired warm-up set (`itinerary@71e5e2f-warm`, not scored for geography) had
+4 replay misses in 60 scenario-trials, all in the two hotel-question
+scenarios; `--refresh` recorded their two argument variants.
+
+**Itinerary pair.** `itinerary@71e5e2f-base-a` / `-b`, three trials each,
+model cost $0.32 ($0.16 more for the warm-up set). `task_error` is 0 in all six
+trials. `has_stays`, `every_night_linked`, `osaka_stays` and `tool_args_ok` are
+1.000 in both sets. `replay_miss` is 0.083 / 0.050: eight misses, five of them
+`l3-zh-hotel-question`, whose `hotel_cards` still passes in every trial, so the
+pair was kept without a second refresh.
+
+| Metric | `base-a` | `base-b` | `22b1f56` pair |
+|---|---:|---:|---:|
+| `wiki_read` | 1.000 | 1.000 | |
+| `wiki_depth` | 4.80 | 4.87 | |
+| `wiki_stop_share` | 0.536 | 0.525 | |
+| `wiki_miss` | 0.071 | 0.190 | |
+| `rounds_exhausted` | 0.000 | 0.000 | |
+| `legs_mode_only` | 0.733 | 0.933 | 0.667 / 0.667 |
+| `pacing_ok` | 0.933 | 0.900 | 1.000 / 1.000 |
+| `full_day_alternatives` | 1.000 | 0.967 | 0.900 / 0.933 |
+| `code_checks_pass` | 0.817 | 0.883 | 0.767 / 0.800 |
+| `invented_hotel` | 0.033 | 0.033 | |
+| `live_checks_pass` | 0.958 | 0.979 | |
+| `day_km_max` | 48.7 | 60.8 | 48.7 / 56.4 |
+| `hotel_far` | 23.5 | 29.6 | 23.4 / 27.1 |
+| `route_detour` | 1.058 | 1.074 | |
+| `geocode_conflict` | 0.133 | 0.200 | 0.167 / 0.167 |
+| `stop_unverified` | 0.567 | 0.667 | |
+
+The last column is a different prompt, different cassettes and, for
+`legs_mode_only` and `skills_loaded`, a different grader, so it shows scale,
+not the wiki's effect.
+
+- Every itinerary read the wiki, and no turn used all ten rounds.
+- All eleven `wiki_miss` requests in the pair are in `l3-zh-lodging-booked`
+  (Kyoto), for pages the area pages mention without a link:
+  `kyoto/gion`, `kyoto/pontocho`, `kyoto/kinkaku-ji`, `kyoto/ryoan-ji`,
+  `kyoto/nijo-castle`.
+- `wiki_stop_share` is an exact name match, so it also drops for wording such
+  as "Todai-ji Great Buddha Hall", "Umeda Sky Building observatory" or
+  "关西机场" (the page's names are 关西国际机场 and its aliases). Add aliases
+  for those before reading a low share as missing pages.
+- Remaining `legs_mode_only` failures in the warm-up set: "乘私铁或 JR" (the
+  wiki's rail-kind fact, which the grader reads as an operator), 转乘, "离京都站
+  约 7 分钟步行", and visit lengths written beside a mode without a colon
+  ("步行至东大寺，约 90 分钟"; "by subway, approx. 45 min at the temple").
+
+**Gates.** The five wiki metrics are gated at the values `eval:noise`
+suggested: `wiki_read` drop 0.02, `wiki_depth` drop 0.36 (pages),
+`wiki_stop_share` drop 0.08, `wiki_miss` rise 0.38 (requests per turn),
+`rounds_exhausted` rise 0.02. `eval:compare` of the pair passes every gate with
+no regressed items, so no existing gate was changed, although `eval:noise`
+suggests wider ones for `legs_mode_only` (0.29), `invented_hotel` (0.10),
+`code_checks_pass` (0.17), `replay_miss` (0.10) and `live_checks_pass` (0.11).
+`wiki_read` and `rounds_exhausted` did not vary in this pair, so their gates
+are the 0.02 floor: one itinerary trial in 30 that skips the wiki, or one turn
+in 42 that runs out of rounds, fails the gate. The gates come from one pair, as
+on 2026-11-20.
+
+**Google.** 38 Text Search Essentials (IDs Only) requests for 38 uncached
+stops, no retries, and 68 Place Details Essentials requests (`location` only).
+
+**Live check.** `scripts/test-trip-live.ts` passed every check once on
+`71e5e2f`, including "legs give the mode only" in both locales.
+
+Not done: `extract-days` still has no baseline, and there is no run of the
+pre-wiki code on the new cassettes, so these numbers do not show whether the
+wiki moved the older metrics.
 
 ## P4: subjective quality, judged by Claude
 
