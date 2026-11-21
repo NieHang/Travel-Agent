@@ -2,7 +2,7 @@ import { HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/m
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import type { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import { z } from 'zod';
-import { checkPlan, placeFacts } from '../places/index.js';
+import { checkPlan, conflictFindings, placeFacts } from '../places/index.js';
 import { findingText } from './copy.js';
 import { createChatModel } from '../llm/model.factory.js';
 import { LOAD_SKILL, loadSkillTool } from '../skills/load-skill-tool.js';
@@ -114,7 +114,8 @@ const hotelNameRule = (locale: Locale) =>
     ? 'Name a hotel in text as its name with its nameEn in full-width brackets: <name>（<nameEn>）, or name alone when it has no nameEn.'
     : 'Name a hotel in text by its nameEn alone; when it has no nameEn, translate its name and put the name in brackets.';
 
-const FACTS_RULE = 'State concrete facts only from tool results or serverContext.placeFacts. Schedule around those facts. When revising, fix every serverContext.placeChecks line within the edit target.';
+const REPAIR_INSTRUCTION = 'Fix every line in serverContext.placeChecks for the target days by moving the visit to a time or day that works or replacing the stop, and change nothing else.';
+const FACTS_RULE = 'State concrete facts only from tool results or serverContext.placeFacts. Schedule around those facts. When serverContext.placeFacts says most shops are closed or part of a place is closed or under works on its scheduled day, mention that in the text for that day. When revising, fix every serverContext.placeChecks line within the edit target.';
 const SKILL_FACTS_RULE = `${FACTS_RULE} Never invent prices, availability, addresses, opening hours, travel times or distances. Skills give rules and unchecked suggestions, not facts. Give each travel leg its mode only. Time spent at a place may be estimated; mark it as approximate ("约" in Chinese, "approx." in English).`;
 
 function systemPrompt(task: LlmTask, locale: Locale, always: Skill[], onDemand: Skill[], today: string): string {
@@ -153,9 +154,8 @@ const context = (state: TripState, target?: EditTarget) =>
         toolResults: state.toolResults,
         placeFacts: placeFacts(state.requirements, 'en'),
         placeChecks: checkPlan(state).days.flatMap((day, i) => day.flatMap((check, j) => {
-          if (check.status === 'unmatched') return [];
           const { name, time } = state.days[i].stops[j];
-          return check.findings.map((finding) => '[D' + (i + 1) + '] ' + name + (time ? ' (' + time + ')' : '') + ': ' + findingText(finding, 'en'));
+          return conflictFindings(check).map((finding) => '[D' + (i + 1) + '] ' + name + (time ? ' (' + time + ')' : '') + ': ' + findingText(finding, 'en'));
         })),
         plan: renderPlan(state, state.locale, { numbered: true }),
         ...target ? { target: { days: oneBased(target.days), nights: oneBased(target.nights) } } : {},
@@ -230,7 +230,7 @@ export class ModelTripLlm implements TripLlm {
     if (this.onDemand.length) tools.push(loadSkillTool(this.onDemand));
     const bound = [...tools, showResultsTool, ...(task === 'revise' ? editTools : [])];
     const model = createChatModel({ operation: 'trip.respond', callbacks: this.options.callbacks }).bindTools(bound) as unknown as StreamingModel;
-    const last = input.text ?? (task === 'itinerary' ? 'Write the itinerary draft now.' : '');
+    const last = input.text ?? { itinerary: 'Write the itinerary draft now.', revise: REPAIR_INSTRUCTION, answer: '' }[task];
     const system = systemPrompt(task, input.state.locale, this.always, this.onDemand, this.today());
     yield* streamToolLoop(
       model,

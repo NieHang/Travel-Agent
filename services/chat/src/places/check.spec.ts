@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { checkPlan, placeFacts } from './index.js';
+import { checkPlan, levelOf, placeFacts } from './index.js';
 import { source, pagoda } from '../../test/fixtures/place-records.js';
 import type { Stop } from '../trip/itinerary.js';
 
@@ -59,6 +59,10 @@ describe('audit stops', () => {
     expect(check('东本愿寺 & 关西机场')).toEqual({ status: 'unmatched', reason: 'ambiguous' });
     expect(check('Elsewhere')).toEqual({ status: 'unmatched', reason: 'no_match' });
   });
+  it('keeps the audit levels for conflict, caution, clean and unmatched stops', () => {
+    expect([check('东本愿寺', '16:00'), check('Kofuku-ji'), check('东本愿寺', '09:00'), check('Elsewhere')].map(levelOf))
+      .toEqual(['conflict', 'caution', 'ok', 'unverified']);
+  });
   it('runs only rail checks without a date', () => {
     const stops = [{ name: '东本愿寺', time: '16:00', note: null }, { name: '伏见稻荷大社', time: null, note: 'by subway' }];
     expect(checkPlan({ requirements: {}, days: [{ title: '', body: '', stops, stayRef: null }] }).days[0]).toMatchObject([
@@ -81,9 +85,10 @@ describe('audit stops', () => {
 it('derives sourced view notes again after the trip date changes', async () => {
   const { initialState, toTripView } = await import('../trip/state.js');
   const state = { ...initialState(), stage: 'review' as const, requirements: { departureDate: '2026-12-01' },
-    days: [{ title: 'Day 1', body: '', stayRef: null, stops: [{ name: '东本愿寺', time: '16:00', note: null }] }] };
-  expect(toTripView(state)?.days[0].stops[0].check).toEqual({ level: 'conflict', notes: [
+    days: [{ title: 'Day 1', body: '', stayRef: null, stops: [{ name: '东本愿寺', time: '16:00', note: null }, { name: '兴福寺', time: null, note: null }] }] };
+  expect(toTripView(state)?.days[0].stops[1].warning).toBeNull();
+  expect(toTripView(state)?.days[0].stops[0].warning).toEqual({ notes: [
     { text: '按预计停留时间推算，这一站会超过 16:30 的关门时间。', source: source.source, checkedOn: '2026-11-18' },
   ] });
-  expect(toTripView({ ...state, requirements: { departureDate: '2026-05-01' } })?.days[0].stops[0].check).toEqual({ level: 'ok', notes: [] });
+  expect(toTripView({ ...state, requirements: { departureDate: '2026-05-01' } })?.days[0].stops[0].warning).toBeNull();
 });

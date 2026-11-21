@@ -10,15 +10,23 @@ import { tokyo } from './records/tokyo.js';
 
 export type { Finding, StopCheck } from './check.js';
 
-export const PLACE_POLICY: { unmatched: 'show' | 'hide'; staleAfterDays: number } = { unmatched: 'hide', staleAfterDays: 180 };
+const STALE_AFTER_DAYS = 180;
 const records = librarySchema.parse([...kyoto, ...nara, ...osaka, ...tokyo]);
-export const lintPlaces = (today: string) => lintRecords(records, today, PLACE_POLICY.staleAfterDays);
+export const lintPlaces = (today: string) => lintRecords(records, today, STALE_AFTER_DAYS);
 export const unpinnedPlaces = () => records.flatMap(({ slug, pin }) => pin.status === 'unpinned' ? [{ slug, query: pin.query }] : []);
+
+export function conflictFindings(check: StopCheck) {
+  return check.status === 'matched' ? check.findings.filter((finding) => finding.severity === 'conflict') : [];
+}
 
 export function levelOf(check: StopCheck) {
   if (check.status === 'unmatched') return 'unverified';
-  if (check.findings.some((f) => f.severity === 'conflict')) return 'conflict';
+  if (conflictFindings(check).length) return 'conflict';
   return check.findings.length ? 'caution' : 'ok';
+}
+
+export function conflictDays(check: ReturnType<typeof checkPlan>): number[] {
+  return check.days.flatMap((day, i) => day.some((stop) => levelOf(stop) === 'conflict') ? [i] : []);
 }
 
 export function checkPlan({ days, requirements }: Pick<TripState, 'days' | 'requirements'>) {
