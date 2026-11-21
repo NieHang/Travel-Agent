@@ -1,32 +1,32 @@
 [
   {
     "url": "https://inari.jp/access/",
-    "fetchedOn": null,
-    "sha256": null,
+    "fetchedOn": "2026-11-21",
+    "sha256": "bf04192a3d92ccbc775872cbe72531c288cccb2bc9c7be45d27c3932a4c627be",
     "pages": [
       "kyoto/fushimi-inari-taisha"
     ]
   },
   {
     "url": "https://tofukuji.jp/access/",
-    "fetchedOn": null,
-    "sha256": null,
+    "fetchedOn": "2026-11-21",
+    "sha256": "de422ca457284af60ec5b05842555eefa6bbe169a74681d92030f702382c3c58",
     "pages": [
       "kyoto/tofuku-ji"
     ]
   },
   {
     "url": "https://tofukuji.jp/guide/",
-    "fetchedOn": null,
-    "sha256": null,
+    "fetchedOn": "2026-11-21",
+    "sha256": "9d158cca5e8cb434c440366c0901d77b8794e21d6e421db5fb65a91fa667a439",
     "pages": [
       "kyoto/tofuku-ji"
     ]
   },
   {
     "url": "https://www.higashihonganji.or.jp/worship/access/",
-    "fetchedOn": null,
-    "sha256": null,
+    "fetchedOn": "2026-11-21",
+    "sha256": "e47abb590cef4b9e73bb82768b8167577cee69addce143f95c3eb6f85f91cbac",
     "pages": [
       "kyoto/higashi-hongan-ji"
     ]
@@ -65,8 +65,8 @@
   },
   {
     "url": "https://www.kiyomizudera.or.jp/access.php",
-    "fetchedOn": null,
-    "sha256": null,
+    "fetchedOn": "2026-11-21",
+    "sha256": "d68ab6c20c7aabe1dedc1de8cc75ff30ad0c61e0190cfd6b219e1c8bc50daef8",
     "pages": [
       "kyoto/kiyomizu-dera"
     ]
@@ -81,32 +81,32 @@
   },
   {
     "url": "https://www.kyohaku.go.jp/jp/visit/access/",
-    "fetchedOn": null,
-    "sha256": null,
+    "fetchedOn": "2026-11-21",
+    "sha256": "cee9a7a814e37b1aef081ca221147dccf355e4b90ffb96d096d0ab8b082f0882",
     "pages": [
       "kyoto/kyoto-national-museum"
     ]
   },
   {
     "url": "https://www.kyohaku.go.jp/jp/visit/info/",
-    "fetchedOn": null,
-    "sha256": null,
+    "fetchedOn": "2026-11-21",
+    "sha256": "a1f44cbb5a5b219dbb1424219c17a39398b990d2c043b606124f678509418679",
     "pages": [
       "kyoto/kyoto-national-museum"
     ]
   },
   {
     "url": "https://www.kyoto-nishiki.or.jp/access/",
-    "fetchedOn": null,
-    "sha256": null,
+    "fetchedOn": "2026-11-21",
+    "sha256": "a88027c0fc8e04602924c824deb57a739cc91d401412f44a37e28fbc2bf5f1b9",
     "pages": [
       "kyoto/nishiki-market"
     ]
   },
   {
     "url": "https://www.kyoto-nishiki.or.jp/contact/",
-    "fetchedOn": null,
-    "sha256": null,
+    "fetchedOn": "2026-11-21",
+    "sha256": "410586aba28edc121e8394cd4f9c2f39637dcd16eeaa9eeb13cf1e5a028ba957",
     "pages": [
       "kyoto/nishiki-market"
     ]

@@ -9,6 +9,6 @@ placeId: "ChIJIW0uPRUPAWAR6eI6dRzKGns"
 Allow about 120 minutes.
 
 ## Practical
-- Rail access: JR, private rail.[^access]
+- Rail access: JR Nara Line to Inari Station (5 minutes from Kyoto Station), right by the gate; or Keihan Main Line to Fushimi-Inari Station, 5 minutes on foot.[^access]
 
-[^access]: https://inari.jp/access/ · checked 2026-11-19 · "･JR奈良線 稲荷駅下車 徒歩直ぐ (京都駅より5分) / ･京阪本線 伏見稲荷駅下車 東へ徒歩5分"
+[^access]: https://inari.jp/access/ · checked 2026-11-21 · "･JR奈良線 稲荷駅下車 徒歩直ぐ (京都駅より5分) ･京阪本線 伏見稲荷駅下車 東へ徒歩5分"
