@@ -44,9 +44,12 @@ export function legDetails(draft: string): string[] {
     if (HOTEL_LINE.test(line)) return false;
     const told = line.replace(/[(（][^)）]*[)）]/g, (group) => REMINDER.test(group) ? '' : group).split(CLAUSE).filter((clause) => !REMINDER.test(clause)).join(',');
     if (LEG_DETAILS.some((detail) => detail.test(told))) return true;
-    const rest = line.replace(TIME_PREFIX, '');
+    // A bracket that gives only the mode says how to reach the stop, so minutes elsewhere on the line are time at the stop:
+    // "海游馆（乘地铁）：约 150 分钟". Minutes inside the bracket are still a travel time: "梅田（步行约 10 分钟）".
+    const rest = line.replace(TIME_PREFIX, '').replace(/[(（][^)）]*[)）]/g, (group) => MODE.test(group) && !MINUTES.test(group) ? '' : group);
     // Minutes in the same clause as a mode are a travel time anywhere: "walk approx. 10 min", "地铁约 15 分钟".
-    if (clauses(rest).some((clause) => MODE.test(clause) && MINUTES.test(clause))) return true;
+    // The description is read apart from the stop, whose mode says how to get there: "Kaiyukan by subway: approx. 150 min".
+    if (rest.split(DESCRIPTION_COLON).flatMap(clauses).some((clause) => MODE.test(clause) && MINUTES.test(clause))) return true;
     // Before the description, minutes anywhere next to a mode are a travel time, and so are hours beside a journey.
     // Other hours are time at the place: "Osaka Castle by subway (approx. 1.5 h)", "Kiyomizu-dera, approx. 1.5 h; taxi drop-off".
     const head = clauses(rest.split(DESCRIPTION_COLON)[0]);

@@ -4,6 +4,7 @@ names: {"zh": "金阁寺", "ja": "金閣寺"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Kinkakuji", "Golden Pavilion", "Rokuon-ji", "鹿苑寺"]
+placeId: "ChIJvUbrwCCoAWARX2QiHCsn5A4"
 ---
 Allow about 60 minutes for the Golden Pavilion and its pond garden. See [[kyoto/northwest]] for what to combine it with.
 

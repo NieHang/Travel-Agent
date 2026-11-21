@@ -4,6 +4,7 @@ names: {"zh": "银阁寺", "ja": "銀閣寺"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Ginkakuji", "Silver Pavilion", "Jisho-ji", "慈照寺"]
+placeId: "ChIJ4W9CCwUJAWARyauI6BzKiiU"
 ---
 Allow about 60 minutes for the Silver Pavilion and its garden. It suits a walk that continues along the Philosopher’s Path; see [[kyoto/higashiyama]].
 

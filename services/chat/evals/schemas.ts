@@ -58,6 +58,8 @@ export const TurnOutputSchema = z.object({
   reply: z.string().nullable().optional(),
   loaded: z.array(z.string()), calls: z.array(z.string()),
   toolCalls: z.array(z.object({ name: z.string(), args: z.record(z.unknown()) })), toolResults: z.array(ToolResultSchema),
+  // Result files from before the wiki metrics have no such field.
+  roundsExhausted: z.boolean().default(false),
 });
 
 const ScoreSchema = z.object({ name: z.string(), value: z.number().finite(), comment: z.string().optional() });

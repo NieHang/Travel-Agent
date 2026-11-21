@@ -4,6 +4,7 @@ names: {"zh": "南禅寺", "ja": "南禅寺"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Nanzenji", "Nanzen-in", "南禅院"]
+placeId: "ChIJ_fuXcyEJAWARTQDnx6Q5szg"
 ---
 Allow about 60 minutes for the Sanmon gate and the Hojo garden. See [[kyoto/higashiyama]] for nearby walks.
 

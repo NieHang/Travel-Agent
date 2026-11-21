@@ -56,7 +56,8 @@ export function gradeItinerary(item: ItineraryEntry, out: TurnOutput): Score[] {
       check('at_least_one_stay_link', next.days.some((d) => d.stayRef));
       check('every_night_linked', next.days.length >= item.expected.nights && next.days.slice(0, item.expected.nights).every((d) => hotels.some((h) => h.ref === d.stayRef)));
     } else check('no_lodging_search', !out.toolCalls.some((c) => /searchHotels|getHotelDetail/.test(c.name)));
-    const skills = kind === 'multi-city' ? ['japan-tokyo', 'japan-osaka'] : kind === 'family' || kind === 'tight-budget' ? ['japan-osaka'] : kind === 'lodging-area' ? ['japan-tokyo'] : kind === 'day-trip' ? ['japan-nara'] : ['japan-kyoto'];
+    // Kyoto has no city skill: its guidance is wiki pages, which `wiki_read` covers.
+    const skills = kind === 'multi-city' ? ['japan-tokyo', 'japan-osaka'] : kind === 'family' || kind === 'tight-budget' ? ['japan-osaka'] : kind === 'lodging-area' ? ['japan-tokyo'] : kind === 'day-trip' ? ['japan-nara'] : [];
     check('skills_loaded', skills.every((s) => out.loaded.includes(s)));
     check('headings_present', (zh ? ['总览', '出发前要办'] : ['Overview', 'Before you go']).every((s) => draft.includes(s)));
     check('legs_mode_only', legDetails(draft).length === 0);

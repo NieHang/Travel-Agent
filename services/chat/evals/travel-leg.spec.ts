@@ -18,6 +18,10 @@ it.each([
   '## 第3天 | 东京 → 大阪 · 新干线移动（标准）',
   '约 09:00 明治神宫（步行）：清晨最安静，游览路线约 1.5 小时',
   '08:30 从住处出发，乘火车前往奈良（具体线路与换乘请查时刻表）',
+  '09:30 海游馆（乘地铁）：约 150 分钟',
+  '09:30 Kaiyukan (by subway): approx. 150 min',
+  '09:30 海游馆（乘地铁），约 150 分钟',
+  '09:30 Osaka Aquarium Kaiyukan by subway: approx. 150 min, calm indoor start for the family (please check hours)',
 ])('lets a mode-only leg through: %s', (line) => {
   expect(legDetails(draft(line))).toEqual([]);
 });
@@ -38,6 +42,8 @@ it.each([
   '07:30 伏见稻荷大社（从京都站乘 JR 前往）：清晨人最少，约 2 小时',
   '09:00 Taxi to Arashiyama (avoids the crowded train), approx. 30 min',
   '约 16:00 梅田（步行约 10 分钟）',
+  '09:30 海游馆：乘地铁约 15 分钟，馆内约 150 分钟',
+  '09:30 Kaiyukan: approx. 15 min by subway, then approx. 150 min inside',
   '约 11:00 难波 → 关西机场（南海 rapi:t）',
   '若从伊丹机场走，京都站 → 机场巴士约 55 分钟（请按实际航班确认）',
   'Alternatives: if tired, take the bus back from Kasuga Taisha (approx. 10 min)',

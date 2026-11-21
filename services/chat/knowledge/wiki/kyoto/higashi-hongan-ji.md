@@ -9,8 +9,10 @@ placeId: "ChIJkWH_sqUIAWARWsn28jWc7y0"
 Allow about 45 minutes.
 
 ## Practical
-- Opening hours: Mar–Oct 05:50–17:30, Nov–Feb 06:20–16:30.[^hours]
-- Rail access: JR, subway.[^access]
+- Gates open Mar–Oct 05:50–17:30, Nov–Feb 06:20–16:30.[^hours]
+- Anyone may visit freely while the gates are open.[^free]
+- Rail access: 7 minutes on foot from Kyoto Station, or 5 minutes from Gojo subway station.[^access]
 
-[^hours]: https://www.higashihonganji.or.jp/worship/access/ · checked 2026-11-19 · "3月～10月 5:50～17:30 11月～2月 6:20～16:30"
-[^access]: https://www.higashihonganji.or.jp/worship/access/ · checked 2026-11-19 · "JR京都駅より徒歩7分 / 地下鉄・五条駅より徒歩5分"
+[^hours]: https://www.higashihonganji.or.jp/worship/access/ · checked 2026-11-21 · "3月～10月 5:50～17:30 11月～2月 6:20～16:30"
+[^free]: https://www.higashihonganji.or.jp/worship/access/ · checked 2026-11-21 · "開門時間中はどなたでもご自由にご参拝いただけます"
+[^access]: https://www.higashihonganji.or.jp/worship/access/ · checked 2026-11-21 · "JR京都駅より徒歩7分 地下鉄・五条駅より徒歩5分"

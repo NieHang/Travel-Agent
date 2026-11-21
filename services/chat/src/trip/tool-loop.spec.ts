@@ -241,7 +241,7 @@ describe('streamToolLoop', () => {
     expect(model.seen[MAX_TOOL_ROUNDS].at(-1)).toBeInstanceOf(HumanMessage);
     expect(model.seen[MAX_TOOL_ROUNDS].at(-1)?.text).toContain('No more tool calls');
     expect(events.filter((e) => e.type === 'tool_call')).toHaveLength(MAX_TOOL_ROUNDS);
-    expect(events.at(-1)).toEqual({ type: 'text', delta: '## 第1天' });
+    expect(events.slice(-2)).toEqual([{ type: 'rounds_exhausted' }, { type: 'text', delta: '## 第1天' }]);
   });
 
   it('does not run tool calls from the text-only round', async () => {

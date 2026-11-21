@@ -20,4 +20,4 @@ updated: "2026-11-21"
 - [[kyoto/seasons]] — Planning around blossoms, foliage, festivals and weather.
 
 ## Day trips
-Consider [[nara]] or Uji for Byodo-in and matcha.
+Consider [[nara]], or Uji for [[kyoto/byodo-in]] and matcha.

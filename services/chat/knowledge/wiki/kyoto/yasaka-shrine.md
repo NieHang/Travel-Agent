@@ -4,6 +4,7 @@ names: {"zh": "八坂神社", "ja": "八坂神社"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Yasaka Jinja", "Gion-san", "祇園さん"]
+placeId: "ChIJqewQoHkIAWAR6RokWp3Iesc"
 ---
 Allow about 30 minutes. The grounds stay open after dark, so the shrine fits an evening walk through Gion; see [[kyoto/higashiyama]].
 
