@@ -5,9 +5,9 @@ import {
   type Panel,
   type ResultItem,
   type TripView,
-  type StopCheck,
+  type StopWarning,
 } from '@autix/contracts';
-import { checkPlan, levelOf, PLACE_POLICY, type StopCheck as PlaceStopCheck } from '../places/index.js';
+import { checkPlan, conflictFindings, type StopCheck } from '../places/index.js';
 import { findingText } from './copy.js';
 import { ToolResultSchema } from './results.js';
 import { PlanDaySchema, StopSchema, parseDraft, renderPlan, segments, type PlanDay } from './itinerary.js';
@@ -128,7 +128,7 @@ export function toTripView(s: TripState): TripView | null {
     itineraryMarkdown: renderPlan(s, s.locale),
     days: s.days.map((d, i) => ({
       title: d.title,
-      stops: d.stops.map((stop, j) => ({ ...stop, check: stopCheckView(checked.days[i][j], s.locale) })),
+      stops: d.stops.map((stop, j) => ({ ...stop, warning: stopWarning(checked.days[i][j], s.locale) })),
       stay: stays.find((h) => h.ref === d.stayRef) ?? null,
     })),
     hotels: stays.length ? stays : fromResults('hotels'),
@@ -142,9 +142,8 @@ export function toTripView(s: TripState): TripView | null {
   };
 }
 
-function stopCheckView(check: PlaceStopCheck, locale: Locale): StopCheck | null {
-  if (check.status === 'unmatched') return PLACE_POLICY.unmatched === 'hide' ? null : { level: 'unverified', notes: [] };
-  const notes = check.findings.toSorted((a, b) => Number(b.severity === 'conflict') - Number(a.severity === 'conflict'))
-    .slice(0, 6).map((f) => ({ text: findingText(f, locale), source: f.source, checkedOn: f.checkedOn }));
-  return { level: levelOf(check), notes };
+function stopWarning(check: StopCheck, locale: Locale): StopWarning | null {
+  const notes = conflictFindings(check).slice(0, 6)
+    .map((f) => ({ text: findingText(f, locale), source: f.source, checkedOn: f.checkedOn }));
+  return notes.length ? { notes } : null;
 }

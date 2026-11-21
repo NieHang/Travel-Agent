@@ -4,7 +4,7 @@ import type { Command, ResultItem, TripView } from '@autix/contracts'
 import { useFormatter, useTranslations } from 'next-intl'
 import { ResultCard } from '@/components/ai-ui/ResultCard'
 import { Markdown } from '@/components/ui/Markdown'
-import { StopCheckChip } from './StopCheckChip'
+import { StopWarningChip } from './StopWarningChip'
 import type { PanelTab } from './tabs'
 
 function ResultList({ items }: { items: ResultItem[] }) {
@@ -134,7 +134,7 @@ export function LiveTripPanels({
                   {day.stops.map((stop, j) => (
                     <li key={j} className="flex items-baseline justify-between gap-2">
                       <span className="min-w-0">{stop.time ? `${stop.time} · ` : ''}{stop.name}{stop.note ? ` — ${stop.note}` : ''}</span>
-                      {stop.check ? <StopCheckChip name={stop.name} check={stop.check} /> : null}
+                      {stop.warning ? <StopWarningChip name={stop.name} warning={stop.warning} /> : null}
                     </li>
                   ))}
                 </ul>

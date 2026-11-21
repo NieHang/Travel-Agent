@@ -226,6 +226,11 @@ describe('revise', () => {
     ],
   });
 
+  it('instructs a repair revise when there is no user message', async () => {
+    for await (const _ of new ModelTripLlm().respond('revise', { text: null, state: drafted(), history: [], target: { days: [1], nights: [] } }, signal()));
+    expect(model.seen[0].at(-1)?.text).toContain('Fix every line in serverContext.placeChecks for the target days');
+  });
+
   it('binds the edit tools only for revise, and gives the model the numbered plan and 1-based target', async () => {
     const llm = new ModelTripLlm();
     for await (const _ of llm.respond('revise', { text: 'day 2 lighter', state: drafted(), history: [], target: { days: [1], nights: [] } }, signal()));
@@ -234,8 +239,7 @@ describe('revise', () => {
     expect(context.serverContext.plan).toContain('[D2] **Day 2 | B (light)**');
     expect(context.serverContext).toMatchObject({
       placeFacts: ['Higashi Hongan-ji (东本愿寺): open 06:20–16:30 on your dates', 'Fushimi Inari Taisha (伏见稻荷大社): rail access: JR, private rail'],
-      placeChecks: ['[D2] 兴福寺: The five-storey pagoda is closed through 2031-03-31.',
-        '[D2] 东本愿寺 (16:00): At the estimated visit duration, the visit runs past closing at 16:30.'],
+      placeChecks: ['[D2] 东本愿寺 (16:00): At the estimated visit duration, the visit runs past closing at 16:30.'],
     });
     expect(context.serverContext.target).toEqual({ days: [2], nights: [] });
     expect(systemText(model.seen[0])).toContain('Task: change only part of the itinerary draft');
