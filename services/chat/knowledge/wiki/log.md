@@ -11,3 +11,4 @@ updated: "2026-11-21"
 - 21 November 2026 — Added the extra closed days from the Kyoto Railway Museum’s 2026–27 calendar to its page.
 - 21 November 2026 — Fetched and cached the official sources for Fushimi Inari Taisha, Tofuku-ji, Higashi Hongan-ji, Kiyomizu-dera, Kyoto National Museum and Nishiki Market; replaced spliced quotes with continuous ones, corrected Tofuku-ji’s hours, and added prices, exhibition periods, entry routes and market etiquette.
 - 21 November 2026 — Pinned Google place IDs from wiki:pin, checked on Google Maps, for eleven Kyoto place pages; the Sagano Scenic Railway stays unpinned because its searches disagreed.
+- 21 November 2026 — Pinned the Sagano Scenic Railway to its Google place entry beside Torokko Saga Station.

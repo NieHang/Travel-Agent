@@ -4,6 +4,7 @@ names: {"zh": "嵯峨野观光小火车", "ja": "嵯峨野トロッコ列車"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Sagano Romantic Train", "Sagano Torokko", "Sagano scenic train", "嵯峨野トロッコ", "嵯峨野小火车"]
+placeId: "ChIJWfpqXiGpAWARDOL9zPJY6PA"
 ---
 A slow open-air train through the Hozu River gorge, best in autumn and spring. Pair it with [[kyoto/arashiyama]]; seats sell out in peak seasons, see [[kyoto/reservations]].
 
