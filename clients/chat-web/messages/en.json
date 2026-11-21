@@ -136,11 +136,8 @@
       "empty": "Your itinerary will appear here when you start planning",
       "night": "Night {n}",
       "nights": "Nights {from}–{to}",
-      "check": {
-        "ok": "Verified",
-        "caution": "Caution",
-        "conflict": "Conflict",
-        "unverified": "Unverified",
+      "warning": {
+        "label": "Notice",
         "source": "Source",
         "checkedOn": "Checked on {date}"
       }

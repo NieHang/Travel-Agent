@@ -37,10 +37,10 @@ describe('toTripView', () => {
     expect(toTripView(initialState())).toBeNull();
   });
 
-  it('hides an unmatched stop check', () => {
+  it('gives an unmatched stop no warning', () => {
     const stop = { name: 'Fixture plaza', time: null, note: null };
     const trip = state({ stage: 'review', days: [{ title: 'Day 1', body: '', stayRef: null, stops: [stop] }] });
-    expect(toTripView(trip)?.days[0].stops).toEqual([{ ...stop, check: null }]);
+    expect(toTripView(trip)?.days[0].stops).toEqual([{ ...stop, warning: null }]);
   });
 
   it('maps stage to status', () => {
