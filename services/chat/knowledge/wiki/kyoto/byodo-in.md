@@ -4,6 +4,7 @@ names: {"zh": "平等院", "ja": "平等院"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Byodoin", "Phoenix Hall", "Hoo-do", "鳳凰堂", "凤凰堂"]
+placeId: "ChIJqyva4AwRAWARpAf6j5MUhGA"
 ---
 The Phoenix Hall stands in Uji, south of Kyoto, a short walk from Uji's train stations. Allow about 40 minutes for the exterior and the Hoshokan museum, or up to two hours with the interior tour and tea on the grounds. In busy seasons, buy the interior-tour ticket first. Pair it with matcha shops along the Uji River.
 

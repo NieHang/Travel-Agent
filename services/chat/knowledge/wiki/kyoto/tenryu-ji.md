@@ -4,6 +4,7 @@ names: {"zh": "天龙寺", "ja": "天龍寺"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Tenryuji", "Sogenchi Garden", "曹源池"]
+placeId: "ChIJk54PuAGqAWARwEgz_9o-nM0"
 ---
 Allow about 60 minutes for the pond garden; the halls and the dragon ceiling painting are separate add-ons. The north gate leads toward the bamboo grove; see [[kyoto/arashiyama]].
 

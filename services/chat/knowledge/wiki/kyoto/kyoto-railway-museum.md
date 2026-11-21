@@ -4,6 +4,7 @@ names: {"zh": "京都铁道博物馆", "ja": "京都鉄道博物館"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Kyoto Tetsudo Hakubutsukan", "京鉄博"]
+placeId: "ChIJQ8KtRhcGAWAR7XnOmoj6n4k"
 ---
 Allow about 2 hours for the train halls and the roundhouse. Mostly indoors, so it suits families and [[kyoto/rain]]; see [[kyoto/kyoto-station]].
 

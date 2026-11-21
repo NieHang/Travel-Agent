@@ -4,6 +4,7 @@ names: {"zh": "龙安寺", "ja": "龍安寺"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Ryoanji", "龍安寺石庭", "龙安寺石庭"]
+placeId: "ChIJp7ocMCqoAWARQoXXRj4Xq-E"
 ---
 Allow about 45 minutes for the rock garden of fifteen stones in raked gravel, the pond and the grounds. Come early, before the viewing veranda fills. It is close to [[kyoto/kinkaku-ji]]; see [[kyoto/northwest]].
 

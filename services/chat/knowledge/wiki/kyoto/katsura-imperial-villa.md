@@ -4,6 +4,7 @@ names: {"zh": "桂离宫", "ja": "桂離宮"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Katsura Rikyu", "Katsura Villa"]
+placeId: "ChIJ83xvU_cGAWAReHBFa6lh5Uk"
 ---
 Allow about 60 minutes for the guided garden route. Visits need an application, so check [[kyoto/reservations]] before fixing the day.
 

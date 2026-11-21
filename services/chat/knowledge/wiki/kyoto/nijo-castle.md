@@ -4,6 +4,7 @@ names: {"zh": "二条城", "ja": "二条城"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Nijo-jo", "Nijojo", "元离宫二条城", "元離宮二条城"]
+placeId: "ChIJC5srCtQHAWARLy9qkFmHaxA"
 ---
 Allow about 90 minutes for the Ninomaru Palace and gardens. See [[kyoto/central]] for what to combine it with.
 

@@ -4,6 +4,7 @@ names: {"zh": "西芳寺", "ja": "西芳寺"}
 type: "place"
 updated: "2026-11-21"
 aliases: ["Saihoji", "Kokedera", "Koke-dera", "Moss Temple", "苔寺"]
+placeId: "ChIJM3V7rDEHAWAR1bBbYdXO7K4"
 ---
 The moss garden is open only to visitors who applied in advance, and the visit starts with sutra copying in the main hall. Allow about 60 minutes. Fix the date early; see [[kyoto/reservations]]. It sits in the far west of the city, so pair it with [[kyoto/katsura-imperial-villa]] or [[kyoto/arashiyama]].
 

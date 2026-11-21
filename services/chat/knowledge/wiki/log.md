@@ -10,3 +10,4 @@ updated: "2026-11-21"
 - 21 November 2026 — Added place pages for Ryoan-ji and Kyoto Railway Museum, sourced from Kyoto City’s official tourism site (both official sites were unreachable) and a JR West press release; linked them from the Northwest and Kyoto Station areas and the rainy-days topic.
 - 21 November 2026 — Added the extra closed days from the Kyoto Railway Museum’s 2026–27 calendar to its page.
 - 21 November 2026 — Fetched and cached the official sources for Fushimi Inari Taisha, Tofuku-ji, Higashi Hongan-ji, Kiyomizu-dera, Kyoto National Museum and Nishiki Market; replaced spliced quotes with continuous ones, corrected Tofuku-ji’s hours, and added prices, exhibition periods, entry routes and market etiquette.
+- 21 November 2026 — Pinned Google place IDs from wiki:pin, checked on Google Maps, for eleven Kyoto place pages; the Sagano Scenic Railway stays unpinned because its searches disagreed.
