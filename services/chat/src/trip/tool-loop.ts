@@ -20,6 +20,8 @@ export const MAX_STORED_RESULTS = 8;
 export type LoopEvent =
   | { type: 'tool_call'; name: string; args: Record<string, unknown> }
   | { type: 'wiki_read'; pages: WikiPageRef[] }
+  /** Every tool round is used up; the round that follows runs with tools disabled. */
+  | { type: 'rounds_exhausted' }
   | { type: 'tool_results'; results: ToolResult[] }
   | { type: 'show_results'; input: ShowResultsInput; results: ToolResult[] }
   /**
@@ -123,7 +125,10 @@ export async function* streamToolLoop(
   for (let round = 0; round <= maxRounds; round++) {
     signal.throwIfAborted();
     const final = round === maxRounds;
-    if (final) conversation.push(new HumanMessage(FINAL_ROUND_NOTE));
+    if (final) {
+      yield { type: 'rounds_exhausted' };
+      conversation.push(new HumanMessage(FINAL_ROUND_NOTE));
+    }
     let reply: AIMessageChunk | undefined;
     let wrote = false;
     for await (const chunk of await model.stream(conversation, { signal, runName: 'trip.respond', ...final ? { tool_choice: 'none' as const } : {} })) {
