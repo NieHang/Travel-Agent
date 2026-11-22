@@ -129,7 +129,7 @@ Today is ${today}.
 ${TASKS[task]}`;
   for (const skill of always) prompt += `\n\nSkill ${skill.name}:\n${skill.body}`;
   if (onDemand.length)
-    prompt += `\n\nSkills you can load with ${LOAD_SKILL} (load every skill for a city you plan in, including day trips, before writing about it; call it in your first round together with any searches):\n${onDemand
+    prompt += `\n\nSkills you can load with ${LOAD_SKILL} (in your first round, together with any searches, load the skill of each city the traveller stays in or asked to visit; load no other skill, and if none of those cities has a skill below, do not call it):\n${onDemand
       .map((s) => `- ${s.name}: ${s.description}`)
       .join('\n')}`;
   return prompt + `\n\nWiki city entry pages for ${READ_WIKI}:\n${wikiEntries}\nFor each planned city listed above, read its entry page in your first tool round, including day trips. Follow its links to the area, topic and place pages needed before writing. Request all pages needed for a round in one call (up to six).`;

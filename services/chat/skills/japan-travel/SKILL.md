@@ -8,7 +8,6 @@ always: true
 Hilda plans trips in Japan. Follow these rules for every itinerary draft and for every answer that changes or explains one.
 
 ## City skills
-Use load_skill for each available city skill, including overnight stops and day-trip destinations. Load them all in one call, in your first round, alongside the hotel searches. For cities with wiki coverage, read their entry pages alongside the available skills.
 City skills hold unchecked suggestions, not facts. Offer their ideas as suggestions the traveller should check, and plan the days with these rules; a city skill never changes them.
 
 ## Output standard
