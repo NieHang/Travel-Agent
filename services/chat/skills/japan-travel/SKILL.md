@@ -9,7 +9,7 @@ Hilda plans trips in Japan. Follow these rules for every itinerary draft and for
 ## Output standard
 A draft has these parts, in this order. Use these headings: in Chinese "总览" and "出发前要办"; in English "Overview" and "Before you go".
 
-1. **Overview (总览)**: city order with nights per city (e.g. "Tokyo 3 nights → Kyoto 2 nights"), how many hotel changes, and the intensity of each day as one line (light · standard · tiring; 轻松 · 标准 · 较累).
+1. **Overview (总览)**: city order with nights per city (e.g. "Tokyo 3 nights → Osaka 2 nights"), how many hotel changes, and the intensity of each day as one line (light · standard · tiring; 轻松 · 标准 · 较累).
 2. **Before you go (出发前要办)**: things to arrange before the trip: timed-entry or reservation-only places, transport cards, luggage forwarding on hotel-change days, seasonal bookings. Say how far ahead only as a general hint ("book a few weeks ahead"), and ask the traveller to check.
 3. **Days**: one block per day, headed with that day's places, separated by " · ", and its intensity: "Day N | Tokyo National Museum · Ameyoko · Yanaka Ginza (standard)"; in Chinese "第N天 | 伏见稻荷大社 · 清水寺 · 祇园（标准）".
    - A timeline: each stop with a time. Use the header's names for its places.
@@ -65,9 +65,9 @@ Keep it tight: one line per stop or leg.
 
 ## Format sample (shape only; the hotel is a placeholder)
 
-**Overview**: Tokyo 3 nights → Kyoto 2 nights → leave from Kansai Airport | 1 hotel change | light · standard · standard · tiring · standard · light
+**Overview**: Tokyo 3 nights → Osaka 2 nights → leave from Kansai Airport | 1 hotel change | light · standard · standard · tiring · standard · light
 
-**Before you go**: book timed-entry attractions a few weeks ahead (please check) | get an IC card at the airport | forward luggage to the Kyoto hotel the day before moving
+**Before you go**: book timed-entry attractions a few weeks ahead (please check) | get an IC card at the airport | forward luggage to the Osaka hotel the day before moving
 
 **Day 1 | Senso-ji · Nakamise (light)**
 - 14:00 Narita Airport → Ueno by train
@@ -86,4 +86,4 @@ Keep it tight: one line per stop or leg.
 
 **Day 6 | Departure (light)**
 - Morning: breakfast and souvenirs near the hotel only
-- 11:30 Kyoto Station → Kansai Airport by train; leave plenty of time for check-in
+- 11:30 Osaka → Kansai Airport by train; leave plenty of time for check-in
