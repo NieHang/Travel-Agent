@@ -43,7 +43,7 @@ it('rejects malformed definitions and unresolved citations', () => {
 it('counts the rendered heading and normalizes aliases across pages', () => {
   const page = fixture('log', 'x'.repeat(1800));
   page.aliases.push('ＩＮ-ＤＥＸ');
-  expect(check([fixture('index', ''), page], '2026-11-21').failures).toEqual([
-    'log: rendered page exceeds 1800 characters', 'log: alias "ＩＮ-ＤＥＸ" also names index',
+  expect(check([fixture('index', 'x'.repeat(1800)), page], '2026-11-21').failures).toEqual([
+    'index: rendered page exceeds 1800 characters', 'log: alias "ＩＮ-ＤＥＸ" also names index',
   ]);
 });

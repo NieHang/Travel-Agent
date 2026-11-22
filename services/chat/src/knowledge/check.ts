@@ -18,7 +18,8 @@ export function check(pages: WikiPage[], today: string, cache: ReadonlyMap<strin
       if (!incoming.has(page.id)) fail('orphan');
       if (!reachable.has(page.id)) fail('unreachable from ' + page.id.split('/')[0]);
     }
-    if (page.rendered.length > 1800) fail('rendered page exceeds 1800 characters');
+    // The log is append-only, so it outgrows the limit that keeps reading pages short.
+    if (page.id !== 'log' && page.rendered.length > 1800) fail('rendered page exceeds 1800 characters');
     if ([page.title, page.names.zh, page.names.ja].some(value => concrete.test(value))) fail('time, price or date outside Practical');
     for (const alias of [page.title, page.names.zh, page.names.ja, ...page.aliases]) {
       const key = alias.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');

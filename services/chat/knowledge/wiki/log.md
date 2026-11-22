@@ -2,7 +2,7 @@
 title: "Import log"
 names: {"zh": "维护日志", "ja": "更新履歴"}
 type: "topic"
-updated: "2026-11-21"
+updated: "2026-11-22"
 ---
 - 21 November 2026 — Imported the place records for Kyoto, Osaka, Tokyo and Nara and incorporated the Kyoto planning guide.
 - 21 November 2026 — Ingested official sources for seven Kyoto sights and added place pages for Kinkaku-ji, Ginkaku-ji, Nanzen-ji, Nijo Castle, Tenryu-ji, Yasaka Shrine and Katsura Imperial Villa; linked them from the Northwest, Higashiyama, Central and Arashiyama areas and the crowds and reservations topics.
@@ -13,3 +13,4 @@ updated: "2026-11-21"
 - 21 November 2026 — Pinned Google place IDs from wiki:pin, checked on Google Maps, for eleven Kyoto place pages; the Sagano Scenic Railway stays unpinned because its searches disagreed.
 - 21 November 2026 — Pinned the Sagano Scenic Railway to its Google place entry beside Torokko Saga Station.
 - 21 November 2026 — Linked Kyoto and Nara as Osaka day trips.
+- 22 November 2026 — Added sixteen Kyoto place pages for popular sights and the Northern Kyoto area page from cached official sources; linked them from the Higashiyama, Arashiyama, Central, Kyoto Station and Reservations pages and the city directory. Pinned Google place IDs from wiki:pin, each checked against Google’s place name and address, for thirteen of them; the Arashiyama Bamboo Grove and Togetsukyo Bridge stay unpinned because Google lists both a street entry and a separate sight entry for each, and Sannenzaka and Ninenzaka because Google has no single entry covering both slopes.
