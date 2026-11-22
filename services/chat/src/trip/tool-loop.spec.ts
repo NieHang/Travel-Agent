@@ -47,11 +47,11 @@ async function collect(model: StreamingModel, signal = new AbortController().sig
 
 /** A local tool whose output the loop must pass through untouched and not record. */
 const rawTool = (output: string) =>
-  tool(async () => output, { name: 'load_skill', description: 'load', schema: z.object({ names: z.array(z.string()) }) });
+  tool(async () => output, { name: 'read_notes', description: 'Read notes', schema: z.object({ names: z.array(z.string()) }) });
 
 async function collectUnrecorded(model: StreamingModel, output: string) {
   const events: LoopEvent[] = [];
-  const loop = streamToolLoop(model, [searchHotels, rawTool(output)], [new HumanMessage('hi')], new AbortController().signal, MAX_TOOL_ROUNDS, new Set(['load_skill']));
+  const loop = streamToolLoop(model, [searchHotels, rawTool(output)], [new HumanMessage('hi')], new AbortController().signal, MAX_TOOL_ROUNDS, new Set(['read_notes']));
   for await (const e of loop) events.push(e);
   return events;
 }
@@ -62,7 +62,7 @@ const validItem = {
 };
 
 describe('streamToolLoop', () => {
-  it('traces skill loading, MCP search and show_results once each through the supplied callbacks', async () => {
+  it('traces an unrecorded tool, MCP search and show_results once each through the supplied callbacks', async () => {
     const started: string[] = [];
     const finished: unknown[] = [];
     class TraceHandler extends BaseCallbackHandler {
@@ -73,7 +73,7 @@ describe('streamToolLoop', () => {
       handleToolEnd(output: unknown) { finished.push(output); }
     }
     const model = scripted([
-      [callChunk('k1', 'load_skill', { names: ['japan-tokyo'] })],
+      [callChunk('k1', 'read_notes', { names: ['first'] })],
       [callChunk('c1', 'searchHotels', { city: 'Tokyo' })],
       [callChunk('s1', 'show_results', { panel: 'hotels', items: [validItem] })],
       textChunks('done'),
@@ -81,8 +81,8 @@ describe('streamToolLoop', () => {
     const events: LoopEvent[] = [];
     const handler = new TraceHandler();
     const tracedSearch = tool(async () => '{"hotels":[]}', { name: 'searchHotels', description: 'search', schema: z.object({ city: z.string() }), callbacks: [handler] });
-    for await (const e of streamToolLoop(model, [tracedSearch, rawTool('TOKYO-NOTES')], [new HumanMessage('hi')], new AbortController().signal, MAX_TOOL_ROUNDS, new Set(['load_skill']), [handler])) events.push(e);
-    expect(started).toEqual(['load_skill', 'searchHotels', 'show_results']);
+    for await (const e of streamToolLoop(model, [tracedSearch, rawTool('Example notes')], [new HumanMessage('hi')], new AbortController().signal, MAX_TOOL_ROUNDS, new Set(['read_notes']), [handler])) events.push(e);
+    expect(started).toEqual(['read_notes', 'searchHotels', 'show_results']);
     expect(finished).toHaveLength(3);
     expect(events.filter((e) => e.type === 'show_results')).toHaveLength(1);
     expect(events.at(-1)).toEqual({ type: 'text', delta: 'done' });
@@ -164,12 +164,12 @@ describe('streamToolLoop', () => {
   });
 
   it.each([
-    ['a skill body', 'TOKYO-NOTES'],
+    ['plain text', 'Example notes'],
     ['a long body with JSON-looking text', 'x'.repeat(13_000) + '{"a":1}'],
   ])('runs an unrecorded tool without recording its result (%s)', async (_, output) => {
-    const model = scripted([[callChunk('c1', 'load_skill', { names: ['japan-tokyo'] })], textChunks('done')]);
+    const model = scripted([[callChunk('c1', 'read_notes', { names: ['first'] })], textChunks('done')]);
     const events = await collectUnrecorded(model, output);
-    expect(events[0]).toEqual({ type: 'tool_call', name: 'load_skill', args: { names: ['japan-tokyo'] } });
+    expect(events[0]).toEqual({ type: 'tool_call', name: 'read_notes', args: { names: ['first'] } });
     expect(events.some((e) => e.type === 'tool_results')).toBe(false);
     const message = model.seen[1].at(-1);
     expect(message).toBeInstanceOf(ToolMessage);
@@ -242,7 +242,7 @@ describe('streamToolLoop', () => {
   it('writes the reply in a text-only round once every tool round is used', async () => {
     // A live zh Tokyo→Osaka→Kyoto→Nara draft spent all rounds like this and ended without any text.
     const model = scripted([
-      [callChunk('k1', 'load_skill', { names: ['japan-tokyo', 'japan-osaka', 'japan-nara'] })],
+      [callChunk('k1', 'read_notes', { names: ['first', 'second', 'third'] })],
       [callChunk('c1', 'searchHotels', { city: '东京' })],
       [callChunk('c2', 'searchHotels', { city: '大阪' })],
       [callChunk('c3', 'searchHotels', { city: '京都' })],

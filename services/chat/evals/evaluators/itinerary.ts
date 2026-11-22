@@ -21,7 +21,7 @@ const LIVE_CHECKS: Record<string, string[]> = {
   refused: ['outside_refused', 'refusal_names_city', 'no_tools'], mixed: ['outside_refused', 'refusal_names_city', 'offers_japan_part'],
   'outside-hotel': ['hotel_intent_chat', 'no_tools'], family: ['reaches_review', 'destination_checked', 'has_stays', 'osaka_stays', 'stays_have_media', 'at_least_one_stay_link'],
   'day-trip': ['has_stays'], 'hotel-question': ['hotel_intent_chat', 'hotel_cards'], vague: ['destination_clarified'],
-  'multi-city': ['reaches_review', 'skills_loaded', 'has_stays', 'osaka_stays', 'headings_present', 'legs_mode_only', 'every_day_covered', 'leg_as_stop', 'full_day_alternatives', 'city_min_nights'],
+  'multi-city': ['reaches_review', 'has_stays', 'osaka_stays', 'headings_present', 'legs_mode_only', 'every_day_covered', 'leg_as_stop', 'full_day_alternatives', 'city_min_nights'],
 };
 
 export function gradeItinerary(item: ItineraryEntry, out: TurnOutput): Score[] {
@@ -56,9 +56,6 @@ export function gradeItinerary(item: ItineraryEntry, out: TurnOutput): Score[] {
       check('at_least_one_stay_link', next.days.some((d) => d.stayRef));
       check('every_night_linked', next.days.length >= item.expected.nights && next.days.slice(0, item.expected.nights).every((d) => hotels.some((h) => h.ref === d.stayRef)));
     } else check('no_lodging_search', !out.toolCalls.some((c) => /searchHotels|getHotelDetail/.test(c.name)));
-    // Kyoto has no city skill: its guidance is wiki pages, which `wiki_read` covers.
-    const skills = kind === 'multi-city' ? ['japan-tokyo', 'japan-osaka'] : kind === 'family' || kind === 'tight-budget' ? ['japan-osaka'] : kind === 'lodging-area' ? ['japan-tokyo'] : kind === 'day-trip' ? ['japan-nara'] : [];
-    check('skills_loaded', skills.every((s) => out.loaded.includes(s)));
     check('headings_present', (zh ? ['总览', '出发前要办'] : ['Overview', 'Before you go']).every((s) => draft.includes(s)));
     check('legs_mode_only', legDetails(draft).length === 0);
     check('every_day_covered', next.days.length >= item.expected.nights + 1);
@@ -111,7 +108,7 @@ export function failedItineraryScores(item: ItineraryEntry): Score[] {
   const live = LIVE_CHECKS[item.id.replace(/^l3-(zh|en)-/, '')] ?? [];
   const names = new Set(['effect_match', 'code_checks_pass', ...live.filter((name) => name !== 'leg_as_stop')]);
   if (item.expected.effect === 'itinerary') {
-    for (const name of ['reaches_review', 'destination_checked', 'has_stays', 'skills_loaded', 'headings_present', 'legs_mode_only', 'every_day_covered', 'full_day_alternatives', 'pacing_ok', 'tool_args_ok', 'geocode_coverage']) names.add(name);
+    for (const name of ['reaches_review', 'destination_checked', 'has_stays', 'headings_present', 'legs_mode_only', 'every_day_covered', 'full_day_alternatives', 'pacing_ok', 'tool_args_ok', 'geocode_coverage']) names.add(name);
     if (item.expected.nights > 0 && !item.id.endsWith('lodging-booked'))
       for (const name of ['stays_have_media', 'at_least_one_stay_link', 'every_night_linked', ...(OSAKA_STAYS.includes(item.id.replace(/^l3-(zh|en)-/, '')) ? ['osaka_stays'] : [])]) names.add(name);
     else names.add('no_lodging_search');

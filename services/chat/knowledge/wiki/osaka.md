@@ -9,3 +9,6 @@ updated: "2026-11-21"
 - [[osaka/kaiyukan]] — Osaka Aquarium Kaiyukan
 - [[osaka/umeda-sky-building]] — Umeda Sky Building
 - [[osaka/tsutenkaku]] — Tsutenkaku
+
+## Day trips
+Consider [[kyoto]] or [[nara]].

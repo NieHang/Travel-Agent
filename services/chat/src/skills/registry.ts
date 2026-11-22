@@ -11,15 +11,12 @@ export const SKILLS_ROOT = new URL('../../skills/', import.meta.url);
 export interface Skill {
   name: string;
   description: string;
-  /** Always in the prompt; other skills are loaded by the model with load_skill. */
-  always: boolean;
   body: string;
 }
 
 const FrontmatterSchema = z.object({
   name: z.string().trim().min(1),
   description: z.string().trim().min(1),
-  always: z.boolean().default(false),
 });
 
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;

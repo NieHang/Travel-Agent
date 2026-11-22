@@ -78,13 +78,13 @@ it('counts a win or loss only when both orders pick the same run, and a tie as h
   expect(() => pairwiseOutcomes(key, file(1, { x: 'A', y: 'A' }), file(2, { x: 'A', y: 'A', z: 'A' }))).toThrow('Order 1 verdicts must cover exactly');
 });
 
-it('puts the request, the non-skill tool calls, the grounded hotel facts, the draft and the criteria on the sheet', () => {
+it('puts the request, the tool calls, the grounded hotel facts, the draft and the criteria on the sheet', () => {
   const text = (original: string) => ({ original, translation: null });
   const hotel = { ref: 'h1', id: null, title: text('Hotel A'), address: null, price: { amount: 900, currency: 'CNY' }, rating: 4, url: null, image: null, details: [{ label: 'Distance (m)', value: text('87') }], amenities: [text('Elevator')], summary: 'Best pick' };
   const out = {
     next: { ...initialState(0, 'en'), requirements: { destination: 'Osaka', travelers: 4 }, stays: { panel: null, items: [hotel] }, days: [{ title: 'Day 1', stayRef: 'h1', stops: [{ name: 'Osaka Castle', note: null, time: null }] }] },
-    loaded: ['japan-osaka'], draft: 'Day 1: Osaka Castle',
-    toolCalls: [{ name: 'load_skill', args: { name: 'japan-osaka' } }, { name: 'mcp_rollingGo_searchHotels', args: { place: 'Osaka' } }],
+    draft: 'Day 1: Osaka Castle',
+    toolCalls: [{ name: 'mcp_rollingGo_searchHotels', args: { place: 'Osaka' } }],
     toolResults: [{ content: JSON.stringify({ message: 'ok', hotels: [{ name: 'Hotel A', distanceInMeters: 2312, tags: ['Twin rooms'] }] }) }],
   } as unknown as TurnOutput;
   const sheet = renderItem(entry, out);
@@ -101,13 +101,13 @@ it('finds the searched hotel of an English card by its nameEn', () => {
   const text = (original: string) => ({ original, translation: null });
   const hotel = { ref: 'h1', id: null, title: text('Hotel Hankyu RESPIRE OSAKA'), address: null, price: null, rating: null, url: null, image: null, details: [], amenities: [], summary: null };
   const out = {
-    next: { ...initialState(0, 'en'), stays: { panel: null, items: [hotel] }, days: [] }, loaded: [], draft: '', toolCalls: [],
+    next: { ...initialState(0, 'en'), stays: { panel: null, items: [hotel] }, days: [] }, draft: '', toolCalls: [],
     toolResults: [{ content: JSON.stringify({ hotels: [{ name: '阪急大阪龙仕柏酒店', nameEn: 'Hotel Hankyu RESPIRE OSAKA', distanceInMeters: 359, tags: ['提供四人间'] }] }) }],
   } as unknown as TurnOutput;
   expect(renderItem(entry, out)).toContain('- h1: Hotel Hankyu RESPIRE OSAKA | no price | no address | ; searched distance 359 m; tags: 提供四人间');
 });
 
-const draft = (text: string) => ({ next: { ...initialState(0, 'en'), days: [] }, loaded: [], draft: text, toolCalls: [], toolResults: [] }) as unknown as TurnOutput;
+const draft = (text: string) => ({ next: { ...initialState(0, 'en'), days: [] }, draft: text, toolCalls: [], toolResults: [] }) as unknown as TurnOutput;
 const scored = (pairs: Record<string, number>) => Object.entries(pairs).map(([name, value]) => ({ name, value, comment: `${name} why` }));
 // Always takes the first item left in the pool, so the random picks are the first unflagged items in order.
 const first = () => 0;

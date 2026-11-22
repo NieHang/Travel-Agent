@@ -4,7 +4,6 @@ import type { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import { z } from 'zod';
 import { loadLibrary, READ_WIKI, readWikiTool, tripDates } from '../knowledge/index.js';
 import { createChatModel } from '../llm/model.factory.js';
-import { LOAD_SKILL, loadSkillTool } from '../skills/load-skill-tool.js';
 import type { Skill } from '../skills/registry.js';
 import { ClassifiedSchema, PlaceSchema, type Classified, type EditTarget, type Place } from './commands.js';
 import { StopSchema, dayText, renderPlan, type PlanDay, type Stop } from './itinerary.js';
@@ -117,21 +116,17 @@ const wiki = loadLibrary();
 const wikiEntries = [...wiki.values()].filter(page => page.type === 'city').map(page => `- ${page.id}: ${page.title}`).join('\n');
 
 const FACTS_RULE = 'State concrete facts only from tool results. Use sourced Practical facts from read_wiki and compare their schedules with serverContext.tripDates.';
-const SKILL_FACTS_RULE = `${FACTS_RULE} Never invent prices, availability, addresses, opening hours, travel times or distances. Skills give rules and unchecked suggestions, not facts. Give each travel leg its mode only. Time spent at a place may be estimated; mark it as approximate ("约" in Chinese, "approx." in English).`;
+const SKILL_FACTS_RULE = `${FACTS_RULE} Never invent prices, availability, addresses, opening hours, travel times or distances. Skills give rules, not facts. Give each travel leg its mode only. Time spent at a place may be estimated; mark it as approximate ("约" in Chinese, "approx." in English).`;
 
-function systemPrompt(task: LlmTask, locale: Locale, always: Skill[], onDemand: Skill[], today: string): string {
+function systemPrompt(task: LlmTask, locale: Locale, skills: Skill[], today: string): string {
   let prompt = `You are Hilda, a travel assistant. Reply in ${language(locale)}. ${DATA_RULE}
-${always.length ? SKILL_FACTS_RULE : 'Never invent prices, availability, addresses or distances. ' + FACTS_RULE}
+${skills.length ? SKILL_FACTS_RULE : 'Never invent prices, availability, addresses or distances. ' + FACTS_RULE}
 Use show_results to show items from tool results as cards. ${hotelNameRule(locale)}
 ${TOOL_RULES}
 Today is ${today}.
 
 ${TASKS[task]}`;
-  for (const skill of always) prompt += `\n\nSkill ${skill.name}:\n${skill.body}`;
-  if (onDemand.length)
-    prompt += `\n\nSkills you can load with ${LOAD_SKILL} (in your first round, together with any searches, load the skill of each city the traveller stays in or asked to visit; load no other skill, and if none of those cities has a skill below, do not call it):\n${onDemand
-      .map((s) => `- ${s.name}: ${s.description}`)
-      .join('\n')}`;
+  for (const skill of skills) prompt += `\n\nSkill ${skill.name}:\n${skill.body}`;
   return prompt + `\n\nWiki city entry pages for ${READ_WIKI}:\n${wikiEntries}\nFor each planned city listed above, read its entry page in your first tool round, including day trips. Follow its links to the area, topic and place pages needed before writing. Request all pages needed for a round in one call (up to six).`;
 }
 
@@ -191,17 +186,11 @@ A stop name is just the place, never a route or an arrow.`;
 }
 
 export class ModelTripLlm implements TripLlm {
-  private readonly always: Skill[];
-  private readonly onDemand: Skill[];
-
   constructor(
     private readonly mcp?: McpToolSource,
-    skills: Skill[] = [],
+    private readonly skills: Skill[] = [],
     private readonly options: { callbacks?: BaseCallbackHandler[]; today?: string } = {},
-  ) {
-    this.always = skills.filter((s) => s.always);
-    this.onDemand = skills.filter((s) => !s.always);
-  }
+  ) {}
 
   private today(): string {
     return this.options.today ?? new Date().toISOString().slice(0, 10);
@@ -225,18 +214,17 @@ export class ModelTripLlm implements TripLlm {
   async *respond(task: LlmTask, input: RespondInput, signal: AbortSignal): AsyncIterable<LoopEvent> {
     const tools: StructuredToolInterface[] = [...(this.mcp?.mcpManager.getTools() ?? [])];
     tools.push(readWikiTool(wiki, input.state.locale));
-    if (this.onDemand.length) tools.push(loadSkillTool(this.onDemand));
     const bound = [...tools, showResultsTool, ...(task === 'revise' ? editTools : [])];
     const model = createChatModel({ operation: 'trip.respond', callbacks: this.options.callbacks }).bindTools(bound) as unknown as StreamingModel;
     const last = input.text ?? (task === 'itinerary' ? 'Write the itinerary draft now.' : '');
-    const system = systemPrompt(task, input.state.locale, this.always, this.onDemand, this.today());
+    const system = systemPrompt(task, input.state.locale, this.skills, this.today());
     yield* streamToolLoop(
       model,
       tools,
       [new SystemMessage(system), ...input.history, context(input.state, input.target), new HumanMessage(last)],
       signal,
       MAX_TOOL_ROUNDS,
-      new Set([LOAD_SKILL, READ_WIKI]),
+      new Set([READ_WIKI]),
       this.options.callbacks,
     );
   }

@@ -1,5 +1,5 @@
 import type { BaseMessage } from '@langchain/core/messages';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { reduce, uncheckedDestination } from '../src/trip/commands.js';
 import type { TripLlm } from '../src/trip/llm.js';
 import { runEffect } from '../src/trip/effect.js';
@@ -20,7 +20,6 @@ export async function turn(
   const { state: next, effect } = reduce(state, command, classified, place);
   let draft = '';
   let reply: string | null = null;
-  const loaded: string[] = [];
   const calls: string[] = [];
   const toolCalls: { name: string; args: Record<string, unknown> }[] = [];
   const toolResults: ToolResult[] = [];
@@ -32,7 +31,6 @@ export async function turn(
       if (e.type === 'tool_call') {
         calls.push(e.name);
         toolCalls.push({ name: e.name, args: e.args });
-        if (e.name === 'load_skill') loaded.push(...z.array(z.string()).parse(e.args.names));
       }
       if (e.type === 'tool_results') toolResults.splice(0, toolResults.length, ...e.results);
     });
@@ -46,7 +44,7 @@ export async function turn(
       if (step.value.type !== 'status') draft += step.value.delta;
     }
   }
-  return { classified, place, next, effect: effect?.type ?? null, draft, reply, loaded, calls, toolCalls, toolResults, roundsExhausted };
+  return { classified, place, next, effect: effect?.type ?? null, draft, reply, calls, toolCalls, toolResults, roundsExhausted };
 }
 
 export type TurnOutput = z.infer<typeof TurnOutputSchema>;

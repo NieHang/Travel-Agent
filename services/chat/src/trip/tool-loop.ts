@@ -12,7 +12,7 @@ import {
   type ToolResult,
 } from './results.js';
 
-// Japan drafts may load city skills, search hotels per city, then show_results before writing.
+// Japan drafts may read wiki pages, search hotels per city, then show_results before writing.
 export const MAX_TOOL_ROUNDS = 10;
 const MAX_RESULT_LENGTH = 12_000;
 export const MAX_STORED_RESULTS = 8;
@@ -105,8 +105,8 @@ function toResult(callId: string, name: string, args: Record<string, unknown>, o
  * One tool-calling conversation: each round is streamed; a round with tool calls runs them and
  * continues, a round with only text is the answer. Text is yielded as it arrives.
  * When `maxRounds` tool rounds are used up, one more round runs with tools disabled, so the turn
- * still ends with a reply (a multi-city draft can spend every round on skills and searches).
- * Tools named in `unrecorded` (e.g. load_skill) reach the model as raw text and are not reported as results.
+ * still ends with a reply (a multi-city draft can spend every round on wiki reads and searches).
+ * Tools named in `unrecorded` (e.g. read_wiki) reach the model as raw text and are not reported as results.
  */
 export async function* streamToolLoop(
   model: StreamingModel,

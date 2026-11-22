@@ -277,15 +277,15 @@ retries. The curated cassettes retain every recorded argument/result pair but
 put a nonempty Japan response first for P1's fallback. Exact matches still
 return their original result, including empty or wrong-region responses.
 
-Every assertion in the current live check has an L3 counterpart: refusals and
+The L3 itinerary checks cover refusals and
 outside-city names, Japan-only suggestions, chat intent and hotel cards,
 destination clarification, review, destination checking, stays and Osaka
-stays, media, at least one stay link, city skills, headings, mode-only legs,
+stays, media, at least one stay link, headings, mode-only legs,
 day coverage, travel legs, full-day alternatives and minimum city nights.
 `osaka_stays` uses the live check's own `hasOsakaStay` and also runs on
 `l3-zh-tight-budget`, though only the family and multi-city scenarios count it
 as a live check. `live_assertion_accuracy` is the assertion-weighted run
-score over those 56 checks; failed tasks remain
+score over those 54 checks; failed tasks remain
 in its denominator. `live_checks_pass` is per original scenario, while
 `code_checks_pass` additionally includes the other applicable code checks.
 
@@ -1423,7 +1423,7 @@ only on request errors.
 - For scripts that send traces to Langfuse, load env, then import `./instrumentation.js`, before importing LangChain or
   application modules. Call `shutdown()` in `finally`, or traces are lost.
 - Pass the Langfuse `CallbackHandler` to `ModelTripLlm` through `{ callbacks }`.
-  The loop forwards callbacks and explicit tool run names to skill loads, MCP
+  The loop forwards callbacks and explicit tool run names to wiki reads, MCP
   tools and the real `show_results` tool. A callback already registered on an
   MCP tool is not forwarded twice. `show_results` validates through the tool
   schema once, emits the grounding event, and still replies `shown`.

@@ -32,7 +32,6 @@ export function renderRequest(entry: ItineraryEntry): string[] {
 /** What one run did for an item: requirements, tools, shown results, days and the draft. */
 export function renderOutput(out: TurnOutput): string[] {
   const shown = [...new Map([...out.next.results.flatMap((g) => g.items), ...out.next.stays?.items ?? []].map((h) => [h.ref, h])).values()];
-  const calls = out.toolCalls.filter((c) => c.name !== 'load_skill');
   // Room types are only in the hotel search's tags, and a card may leave out or misquote the distance, so both come from the raw result.
   const raw = new Map(out.toolResults.flatMap((r) => searchedHotels(r.content)));
   const describe = (h: ResultItem) => {
@@ -42,8 +41,7 @@ export function renderOutput(out: TurnOutput): string[] {
   };
   return [
     `Requirements: ${JSON.stringify(out.next.requirements)}`,
-    `Skills loaded: ${out.loaded.join(', ') || 'none'}`,
-    `Tool calls: ${calls.map((c) => `${c.name} ${JSON.stringify(c.args)}`).join('; ') || 'none'}`,
+    `Tool calls: ${out.toolCalls.map((c) => `${c.name} ${JSON.stringify(c.args)}`).join('; ') || 'none'}`,
     'Shown results:', ...shown.length ? shown.map(describe) : ['(none)'],
     'Days:', ...out.next.days.length ? out.next.days.map((d) => `- ${d.title}${d.stayRef ? ` (stay ${d.stayRef})` : ''}: ${d.stops.map((s) => s.name).join(', ')}`) : ['(none)'],
     'Draft:', '````', out.draft, '````',
