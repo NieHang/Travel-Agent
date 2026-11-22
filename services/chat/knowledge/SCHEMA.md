@@ -15,7 +15,7 @@ Use short editorial sections such as “Worth seeing” and “When to go” as 
 [^hours]: https://example.org/visit · checked 2026-11-21 · "Exact source text"
 ```
 
-Keep clock times, prices and ISO dates out of editorial sections. Use a written date for log entries. For static transport coverage describe modes, omitting journey times, line names and transfers. The rendered title, names and body together must fit in 1,800 characters. Split longer pages and link the parts.
+Keep clock times, prices and ISO dates out of editorial sections. Use a written date for log entries. For static transport coverage describe modes, omitting journey times, line names and transfers. The rendered title, names and body together must fit in 1,800 characters. Split longer pages and link the parts. The maintenance log is exempt.
 
 ## Ingest
 

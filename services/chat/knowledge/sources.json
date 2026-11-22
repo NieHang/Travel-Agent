@@ -422,5 +422,189 @@
     "pages": [
       "kyoto/kyoto-railway-museum"
     ]
+  },
+  {
+    "url": "https://ja.kyoto.travel/tourism/single01.php?category_id=8&tourism_id=2683",
+    "fetchedOn": "2026-11-22",
+    "sha256": "05305dc0c3c971d42df9821400680c8c627301291ad0d8585d5c6b1f32ee1d7f",
+    "pages": [
+      "kyoto/arashiyama-bamboo-grove"
+    ]
+  },
+  {
+    "url": "https://ja.kyoto.travel/news/format.php?id=428",
+    "fetchedOn": "2026-11-22",
+    "sha256": "2aa4130a1796241e73c066fc96c5ed046e365407e376af9d3ace1430b30cbd08",
+    "pages": [
+      "kyoto/hanamikoji"
+    ]
+  },
+  {
+    "url": "https://www.heianjingu.or.jp/visit/worship/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "bf5cb6417357d3ecc6e2690396598d0c29885ae964865e0990dc2b1af7d8025b",
+    "pages": [
+      "kyoto/heian-jingu"
+    ]
+  },
+  {
+    "url": "https://www.heianjingu.or.jp/access/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "def12664a5838bfaa0e9185e03adb09ddcb259c3247d49e9a186aeec63cca646",
+    "pages": [
+      "kyoto/heian-jingu"
+    ]
+  },
+  {
+    "url": "https://www.kenninji.jp/access/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "83422e011f282a23dc53109e87417775fe11d8eb92c704eb8a8a40378df35b83",
+    "pages": [
+      "kyoto/kennin-ji"
+    ]
+  },
+  {
+    "url": "https://kifunejinja.jp/info/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "54733dc45ad0b998c55f62e59c9f79b06910ff323b8019dcdde01f84a4064bbb",
+    "pages": [
+      "kyoto/kifune-shrine"
+    ]
+  },
+  {
+    "url": "https://kifunejinja.jp/access/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "30fba935f7faad9f19b6deb37916cd72054841765dc7c8df32b09c69f3f9f889",
+    "pages": [
+      "kyoto/kifune-shrine"
+    ]
+  },
+  {
+    "url": "https://www.kodaiji.com/haikan.html",
+    "fetchedOn": "2026-11-22",
+    "sha256": "79a3c33454b0f498a60de0d781a24bd3c0afc21a188c81dc5fbbf622cb716d5b",
+    "pages": [
+      "kyoto/kodai-ji"
+    ]
+  },
+  {
+    "url": "https://www.kuramadera.or.jp/nyuzan.html",
+    "fetchedOn": "2026-11-22",
+    "sha256": "c7ced488ef1ce829b4ab1038c15f6f3bdfa5d203c88860540a5d64b0ab82c366",
+    "pages": [
+      "kyoto/kurama-dera"
+    ]
+  },
+  {
+    "url": "https://www.kuramadera.or.jp/access.html",
+    "fetchedOn": "2026-11-22",
+    "sha256": "3456062bff5dae4cb6cad09a4d4fb1af533c26add912f953234e39298c5514c1",
+    "pages": [
+      "kyoto/kurama-dera"
+    ]
+  },
+  {
+    "url": "https://www.kyoto-tower.jp/fee/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "81d420a5efa29298b3017ce230b8a47774232b1088281dadd6b4d16a426fc378",
+    "pages": [
+      "kyoto/kyoto-tower"
+    ]
+  },
+  {
+    "url": "https://www.kyoto-tower.jp/access/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "74a87a75bd73deb274ff7964f36299b9fa468482a09f7fd989f00119e26516da",
+    "pages": [
+      "kyoto/kyoto-tower"
+    ]
+  },
+  {
+    "url": "https://ja.kyoto.travel/flower/momiji/single.php?flower_id=1184",
+    "fetchedOn": "2026-11-22",
+    "sha256": "a86286127eea2bdf26df135b27e31b6660234ca1a527ab4a6a9028658726070e",
+    "pages": [
+      "kyoto/philosophers-path"
+    ]
+  },
+  {
+    "url": "https://ja.kyoto.travel/flower/momiji/single.php?flower_id=1172",
+    "fetchedOn": "2026-11-22",
+    "sha256": "0f5f382bff0383b045ea249f86031627e950c445a9ac4594327e095bc0f09714",
+    "pages": [
+      "kyoto/rurikoin"
+    ]
+  },
+  {
+    "url": "https://www.sanjusangendo.jp/visit/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "dfe80edc41abb189d8987f17dfea6d3507f7ba98c1776d69c15605fcc8560944",
+    "pages": [
+      "kyoto/sanjusangen-do"
+    ]
+  },
+  {
+    "url": "https://ja.kyoto.travel/tourism/single01.php?category_id=8&tourism_id=160",
+    "fetchedOn": "2026-11-22",
+    "sha256": "91c6345bbbb16e681b2460369273d6a00cff163380a338430eff9513652c0476",
+    "pages": [
+      "kyoto/sannenzaka-ninenzaka"
+    ]
+  },
+  {
+    "url": "https://ja.kyoto.travel/tourism/single01.php?category_id=8&tourism_id=691",
+    "fetchedOn": "2026-11-22",
+    "sha256": "a7310d9b81895ffe04a6015e2cc99565bea13d123d88cb30b6b6f63b938927cc",
+    "pages": [
+      "kyoto/sannenzaka-ninenzaka"
+    ]
+  },
+  {
+    "url": "https://www.sanzenin.or.jp/guide/info/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "b23ea9f0a1b9a7488644784c43f31985370adbc5879aa9ccac9d2832c7e8fa82",
+    "pages": [
+      "kyoto/sanzen-in"
+    ]
+  },
+  {
+    "url": "https://www.sanzenin.or.jp/access/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "6766af4e597a0306f8c5019934dfd490940725d6ecd8928062f3b85cc3afd59e",
+    "pages": [
+      "kyoto/sanzen-in"
+    ]
+  },
+  {
+    "url": "https://www.shimogamo-jinja.or.jp/access",
+    "fetchedOn": "2026-11-22",
+    "sha256": "7b25e2b98bd57fc4c58c984fe9429b876240023331783210e73251eae7be2a1a",
+    "pages": [
+      "kyoto/shimogamo-shrine"
+    ]
+  },
+  {
+    "url": "https://toji.or.jp/admission/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "1827371933f2b13769e3c1dc9e3402904f3baf21a62ced87d3317e67228c0696",
+    "pages": [
+      "kyoto/to-ji"
+    ]
+  },
+  {
+    "url": "https://toji.or.jp/access/",
+    "fetchedOn": "2026-11-22",
+    "sha256": "320f6b5e461b43f9dd1edaf3b4f40539fd45f4193b635ae2f70a43ff6e762205",
+    "pages": [
+      "kyoto/to-ji"
+    ]
+  },
+  {
+    "url": "https://ja.kyoto.travel/tourism/single01.php?category_id=8&tourism_id=2682",
+    "fetchedOn": "2026-11-22",
+    "sha256": "5af20d4ca571c31c7bea0d71da7cbd622de8173ef207d778bb6c713ad0096438",
+    "pages": [
+      "kyoto/togetsukyo-bridge"
+    ]
   }
 ]
