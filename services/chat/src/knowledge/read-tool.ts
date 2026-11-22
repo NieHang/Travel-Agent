@@ -14,12 +14,16 @@ export class WikiRead {
 
 const logger = new Logger('Wiki');
 
+/** Build one per tool conversation: a page already returned in it gets a note instead of its text again. */
 export function readWikiTool(library: ReadonlyMap<string, WikiPage>, locale: 'zh' | 'en'): StructuredToolInterface {
+  const returned = new Set<string>();
   return tool(async ({ pages }: { pages: string[] }) => {
     const reading: WikiPageRef[] = [];
     const sections = pages.map(id => {
+      if (returned.has(id)) return `Wiki page "${id}" was already returned above.`;
       const page = library.get(id);
       if (page) {
+        returned.add(id);
         reading.push({ id, title: locale === 'zh' ? page.names.zh : page.title });
         return page.rendered;
       }
