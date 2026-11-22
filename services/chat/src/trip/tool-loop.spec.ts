@@ -105,6 +105,24 @@ describe('streamToolLoop', () => {
     await expect(reader.invoke({ pages: Array<string>(7).fill('kyoto') })).rejects.toThrow();
   });
 
+  it('sends a wiki page in full only once per conversation', async () => {
+    const model = scripted([
+      [callChunk('w1', READ_WIKI, { pages: ['kyoto/arashiyama'] })],
+      [callChunk('w2', READ_WIKI, { pages: ['kyoto/arashiyama', 'kyoto/tenryu-ji'] })],
+      textChunks('done'),
+    ]);
+    const events: LoopEvent[] = [];
+    for await (const event of streamToolLoop(model, [readWikiTool(loadLibrary(), 'en')], [], new AbortController().signal, 10, new Set([READ_WIKI]))) events.push(event);
+    const conversation = model.seen[2].map(message => message.text).join('\n');
+    expect(conversation.split('Choose the bamboo grove').length - 1).toBe(1);
+    expect(model.seen[2].at(-1)?.text).toContain('Wiki page "kyoto/arashiyama" was already returned above.');
+    expect(model.seen[2].at(-1)?.text).toContain('# Tenryu-ji');
+    expect(events.filter(event => event.type === 'wiki_read')).toEqual([
+      { type: 'wiki_read', pages: [{ id: 'kyoto/arashiyama', title: 'Arashiyama' }] },
+      { type: 'wiki_read', pages: [{ id: 'kyoto/tenryu-ji', title: 'Tenryu-ji' }] },
+    ]);
+  });
+
   it('asks the model to retry a tool call whose arguments are not valid JSON', async () => {
     const model = scripted([
       [callChunk('c1', 'show_results', null, '{"panel": "hotels", "items": [{"source": "c1"}}, "x"]}')],
