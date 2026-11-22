@@ -165,7 +165,6 @@ describe('TurnService', () => {
       const result = { ...hotelResult, args };
       llm.classifications.push(planned({ destination: '大阪', tripType: 'solo', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 1 }));
       llm.responses.push([
-        { type: 'tool_call', name: 'load_skill', args: { names: ['japan-osaka'] } },
         { type: 'tool_call', name: 'searchHotels', args },
         { type: 'tool_results', results: [result] },
         { type: 'tool_results', results: [result] },

@@ -37,7 +37,7 @@ it('counts requested ids that do not exist, once per request', () => {
 });
 
 it('scores no read when the model called other tools only, or asked only for missing pages', () => {
-  expect(gradeWiki(output({ toolCalls: [{ name: 'load_skill', args: { names: ['japan-travel'] } }] }))).toContainEqual({ name: 'wiki_read', value: 0 });
+  expect(gradeWiki(output({ toolCalls: [{ name: 'searchHotels', args: { place: 'Tokyo' } }] }))).toContainEqual({ name: 'wiki_read', value: 0 });
   expect(gradeWiki(output({ toolCalls: [read('kyoto/gion')] }))).toContainEqual({ name: 'wiki_read', value: 0 });
 });
 

@@ -93,7 +93,7 @@ export class TurnService {
           if (event.type !== 'tool_results') return;
           // Loop events contain cumulative results; each call belongs in the trace only once.
           for (const result of event.results) {
-            if (result.tool === 'load_skill' || lookups.has(result.callId)) continue;
+            if (lookups.has(result.callId)) continue;
             lookups.add(result.callId);
             trace.record({ type: 'lookup', lookup: {
               tool: result.tool,

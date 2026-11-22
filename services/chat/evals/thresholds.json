@@ -53,7 +53,6 @@
     "has_stays": { "maxDrop": 0.02 },
     "osaka_stays": { "maxDrop": 0.02 },
     "no_lodging_search": { "maxDrop": 0.02 },
-    "skills_loaded": { "maxDrop": 0.02 },
     "headings_present": { "maxDrop": 0.02 },
     "legs_mode_only": { "maxDrop": 0.25 },
     "every_day_covered": { "maxDrop": 0.02 },

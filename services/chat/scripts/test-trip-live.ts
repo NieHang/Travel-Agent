@@ -113,14 +113,16 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   const vague = await turn(start, zh ? '12 月想去个暖和的地方，两个人' : 'Somewhere warm in December for two');
   check(`${locale}: vague destination asks to clarify`, vague.next.clarify?.field === 'destination');
 
-  const japan = await turn(
-    start,
+  const reading: string[] = [];
+  const japan = await runTurn(
+    llm, start,
     zh
       ? '帮我规划日本情侣游，东京进大阪出，2026-12-01 到 2026-12-06，2 个人'
       : "Plan a couple's trip to Japan, fly into Tokyo and out of Osaka, 2026-12-01 to 2026-12-06, 2 people",
+    { onRead: ids => reading.push(...ids) },
   );
   check(`${locale}: japan trip reaches review`, japan.next.stage === 'review' && japan.effect === 'itinerary');
-  check(`${locale}: japan trip loads the city skills`, ['japan-tokyo', 'japan-osaka'].every((n) => japan.loaded.includes(n)));
+  check(`${locale}: japan trip read the Tokyo and Osaka wiki entries`, ['tokyo', 'osaka'].every(id => reading.includes(id)));
   check(`${locale}: japan trip still finds stays`, (japan.next.stays?.items.length ?? 0) > 0);
   check(`${locale}: japan trip finds Osaka stays`, hasOsakaStay(japan.next));
   checkHotelNames(`${locale}: japan draft`, locale, japan);
@@ -146,7 +148,7 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   check(`${locale}: no city gets a single night`, nights.length >= 2 && nights.every((n) => n >= 2));
   if (!(nights.length >= 2 && nights.every((n) => n >= 2))) console.log(`  overview nights: ${JSON.stringify(nights)}`);
   if (process.env.PRINT_DRAFT) console.log(japan.draft);
-  console.log(`${locale}: loaded ${JSON.stringify(japan.loaded)}, days ${japan.next.days.length}, draft ${japan.draft.length} chars, tool calls ${JSON.stringify(japan.calls)}`);
+  console.log(`${locale}: days ${japan.next.days.length}, draft ${japan.draft.length} chars, tool calls ${JSON.stringify(japan.calls)}`);
 }
 
 // Multi-turn: edits change only the part they name.
@@ -161,8 +163,6 @@ for (const locale of ['en', 'zh'] as Locale[]) {
   const reading: string[] = [];
   const draft = await say(initialState(0, locale), zh ? '帮我规划京都情侣游，2026-11-22 到 2026-11-25，2 个人' : "Plan a couple's trip to Kyoto, 2026-11-22 to 2026-11-25, 2 people", ids => reading.push(...ids));
   check(`${locale}: kyoto draft read a linked Kyoto page`, reading.some(id => id.startsWith('kyoto/')));
-  check(`${locale}: kyoto draft loads no Tokyo or Osaka skill`, !draft.loaded.some(n => n === 'japan-tokyo' || n === 'japan-osaka'));
-  if (draft.loaded.length) console.log(`  kyoto draft loaded ${JSON.stringify(draft.loaded)}`);
   check(`${locale}: kyoto draft reaches review`, draft.effect === 'itinerary' && draft.next.days.length >= 4);
   check(`${locale}: kyoto draft links every night to a stay`, draft.next.days.slice(0, 3).every((d) => d.stayRef));
   check(`${locale}: draft reply is a summary, not the plan`, (draft.reply ?? '').length < 600 && !/Day 2 \||第\s*2\s*天/.test(draft.reply ?? ''));

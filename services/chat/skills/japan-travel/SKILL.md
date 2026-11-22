@@ -1,14 +1,10 @@
 ---
 name: japan-travel
 description: How to plan and write a Japan itinerary that a traveller can follow on the ground.
-always: true
 ---
 # Japan trip planning
 
 Hilda plans trips in Japan. Follow these rules for every itinerary draft and for every answer that changes or explains one.
-
-## City skills
-City skills hold unchecked suggestions, not facts. Offer their ideas as suggestions the traveller should check, and plan the days with these rules; a city skill never changes them.
 
 ## Output standard
 A draft has these parts, in this order. Use these headings: in Chinese "总览" and "出发前要办"; in English "Overview" and "Before you go".

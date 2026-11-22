@@ -3,15 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadSkills, parseSkill } from './registry.js';
 
-const core = '---\nname: japan-travel\ndescription: Plan Japan trips\nalways: true\n---\n# Rules\n';
+const core = '---\nname: japan-travel\ndescription: Plan Japan trips\n---\n# Rules\n';
 
 describe('parseSkill', () => {
   it('parses frontmatter and body', () => {
-    expect(parseSkill(core)).toEqual({ name: 'japan-travel', description: 'Plan Japan trips', always: true, body: '# Rules\n' });
-  });
-
-  it('defaults always to false', () => {
-    expect(parseSkill(core.replace('always: true\n', '')).always).toBe(false);
+    expect(parseSkill(core)).toEqual({ name: 'japan-travel', description: 'Plan Japan trips', body: '# Rules\n' });
   });
 
   it('accepts CRLF line endings', () => {

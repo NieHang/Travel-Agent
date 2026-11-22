@@ -26,8 +26,8 @@ import { initialState } from './state.js';
 import type { Skill } from '../skills/registry.js';
 import { createChatModel } from '../llm/model.factory.js';
 
-const core: Skill = { name: 'japan-travel', description: 'Japan rules', always: true, body: 'JAPAN-RULES' };
-const tokyo: Skill = { name: 'japan-tokyo', description: 'Tokyo (东京)', always: false, body: 'TOKYO-NOTES' };
+const core: Skill = { name: 'japan-travel', description: 'Japan rules', body: 'JAPAN-RULES' };
+const packing: Skill = { name: 'packing', description: 'Packing rules', body: 'PACKING-RULES' };
 const signal = () => new AbortController().signal;
 const systemText = (messages: BaseMessage[]) => messages[0].text;
 
@@ -142,38 +142,26 @@ describe('ModelTripLlm skills', () => {
     model.classify.mockReset().mockResolvedValue(chatted);
   });
 
-  it.each(['answer', 'itinerary'] as const)('puts always skills into the %s prompt', async (task) => {
-    const system = await respond(new ModelTripLlm(undefined, [core, tokyo]), task);
+  it.each(['answer', 'itinerary'] as const)('puts every skill into the %s prompt', async (task) => {
+    const system = await respond(new ModelTripLlm(undefined, [core, packing]), task);
     expect(system).toContain('JAPAN-RULES');
     expect(system).toContain('approx');
-    expect(system).not.toContain('TOKYO-NOTES');
-  });
-
-  it('lists on-demand skills and binds load_skill', async () => {
-    const system = await respond(new ModelTripLlm(undefined, [core, tokyo]), 'itinerary');
-    expect(system).toContain('japan-tokyo: Tokyo (东京)');
-    expect(model.bound).toContain('load_skill');
+    expect(system).toContain('PACKING-RULES');
   });
 
   it('lists wiki entry pages and binds the reader without skills', async () => {
     const system = await respond(new ModelTripLlm(undefined, []), 'itinerary');
     expect(system).toContain('Never invent prices, availability, addresses or distances');
     expect(system).toContain('- kyoto: Kyoto');
-    for (const text of ['Skill ', 'load_skill', 'approx']) expect(system).not.toContain(text);
+    for (const text of ['Skill ', 'approx']) expect(system).not.toContain(text);
     expect(model.bound).toEqual(['read_wiki', 'show_results']);
   });
 
-  it('does not bind load_skill when every skill is always', async () => {
-    const system = await respond(new ModelTripLlm(undefined, [core]), 'answer');
-    expect(system).toContain('JAPAN-RULES');
-    expect(model.bound).not.toContain('load_skill');
-  });
-
   it('never gives skills to classify', async () => {
-    await new ModelTripLlm(undefined, [core, tokyo]).classify({ text: 'next', state: initialState(), history: [] }, signal());
+    await new ModelTripLlm(undefined, [core, packing]).classify({ text: 'next', state: initialState(), history: [] }, signal());
     const [sent] = model.classify.mock.calls[0] as [BaseMessage[]];
     expect(systemText(sent)).not.toContain('JAPAN-RULES');
-    expect(systemText(sent)).not.toContain('japan-tokyo');
+    expect(systemText(sent)).not.toContain('PACKING-RULES');
   });
 });
 
