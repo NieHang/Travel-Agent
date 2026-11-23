@@ -119,6 +119,18 @@ describe('runEffect: revise', () => {
     ].join('\n\n'));
   });
 
+  it('leaves no old hotel name after the draft when use_stay changes the hotel', async () => {
+    const state = { ...initialState(4, 'en'), stays };
+    const draft = `${kyoto}\n\n---\n\n**About the stay**: all three nights at hotel MONday Kyoto Marutamachi, a short walk from the subway.`;
+    await run(scripted([{ type: 'text', delta: draft }]).llm, { type: 'itinerary' }, state);
+    const { llm } = scripted([{ type: 'edit', call: { name: 'use_stay', args: { hotelId: '13249', days: [1, 2, 3] } }, results: [] }]);
+    await run(llm, { type: 'revise', target: { days: [], nights: [0, 1, 2] } }, state);
+    const plan = renderPlan(state, 'en') ?? '';
+    expect(plan).not.toContain('MONday');
+    expect(plan.match(/- Tonight: Miyako Hotel Kyoto Hachijo/g)).toHaveLength(3);
+    expect(plan.endsWith('leave plenty of time for check-in\n\nHotel prices are per night and may change — please confirm availability before booking.')).toBe(true);
+  });
+
   it('asks for exactly one day when write_day gets several', async () => {
     const state = drafted();
     const { llm, replies } = scripted([

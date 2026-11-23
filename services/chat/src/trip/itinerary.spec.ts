@@ -36,6 +36,24 @@ describe('parseDraft', () => {
     ]);
   });
 
+  it('drops footer paragraphs that name a stay, and a rule with nothing left after it', () => {
+    const zh = '**第1天 | 二条城（轻松）**\n- 10:00 二条城\n- 今晚：hotel MONday Kyoto Marutamachi\n\n**第2天 | 返程（轻松）**\n- 11:00 返程\n\n---\n\n**关于住宿**：全程都住 hotel MONday Kyoto Marutamachi，离地铁站近。';
+    expect(parseDraft(zh, stays).footer).toBe('');
+  });
+
+  it('reads a hotel list after the last day as footer, not as part of that day', () => {
+    const zh = [
+      '**第1天 | 二条城（轻松）**\n- 10:00 二条城\n- 今晚：hotel MONday Kyoto Marutamachi',
+      '**第2天 | 返程（轻松）**\n- 11:00 返程',
+      '---',
+      '住宿备选（均为每晚价格）：\n- hotel MONday Kyoto Marutamachi：每晚 1093 CNY 起\n- Miyako Hotel Kyoto Hachijo：每晚 1395 CNY 起',
+      '以上为草稿，出发前请再核对。',
+    ].join('\n\n');
+    const draft = parseDraft(zh, stays);
+    expect(draft.days[1]).toEqual({ title: '第2天 | 返程（轻松）', body: '- 11:00 返程', stayRef: null });
+    expect(draft.footer).toBe('---\n\n以上为草稿，出发前请再核对。');
+  });
+
   it('keeps a hotel line that names no grounded stay as text', () => {
     const draft = parseDraft('**Day 1 | A (light)**\n- 10:00 A\n- Tonight: Invented Inn', stays);
     expect(draft.days[0]).toEqual({ title: 'Day 1 | A (light)', body: '- 10:00 A\n- Tonight: Invented Inn', stayRef: null });

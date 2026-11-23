@@ -35,11 +35,12 @@ const DAY_HEADER = /^[#*\s]*(?:Day\s*\d+|第\s*\d+\s*天)(?=\s*(?:[|｜:：*]|$)
 /** The hotel line the itinerary task asks for under each overnight day. */
 const STAY_LINE = /^[-*\s]*(?:Tonight|今晚|住宿)[^:：\n]{0,6}[:：]/i;
 const LIST_LINE = /^\s*(?:[-*+]|\d+[.)])\s/;
+const THEMATIC_BREAK = /^([-*_])(?:\s*\1){2,}$/;
 
 /**
  * Splits model markdown into preamble, days and footer, and takes each day's hotel line out of its body.
  * The hotel is found by name, so a day can only point at a grounded stay; a hotel line that names none
- * stays in the body as text.
+ * stays in the body as text. Footer paragraphs that name a stay are dropped (see footerOf).
  */
 export function parseDraft(markdown: string, stays: ResultGroup | null): Draft {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n');
@@ -52,7 +53,7 @@ export function parseDraft(markdown: string, stays: ResultGroup | null): Draft {
   return {
     preamble: lines.slice(0, starts[0]).join('\n').trim(),
     days: sections.map(([header, ...body]) => toDay(header, body, stays?.items ?? [])),
-    footer: tail.join('\n').trim(),
+    footer: footerOf(tail, stays?.items ?? []),
   };
 }
 
@@ -74,12 +75,22 @@ function namedStay(line: string, stays: ResultItem[]): ResultItem | undefined {
     .sort((a, b) => b.title.original.length - a.title.original.length)[0];
 }
 
-/** Paragraphs after the last day's list that are not part of it ("prices may change…"). */
+/**
+ * The closing prose without paragraphs that name a stay ("About the stay: all three nights at …"). Hotel lines
+ * are rendered from stayRef and no edit reaches the footer, so a hotel named here would outlive a change of hotel.
+ */
+function footerOf(tail: string[], stays: ResultItem[]): string {
+  const kept = tail.join('\n').split(/\n\s*\n/).map((p) => p.trim()).filter((p) => p && !namedStay(p, stays));
+  return kept.slice(0, kept.findLastIndex((p) => !THEMATIC_BREAK.test(p)) + 1).join('\n\n');
+}
+
+/**
+ * What follows the last day ("prices may change…"), from the first line after a blank line that is not a list item.
+ * A list under such a line ("Hotel options:" and one hotel per item) belongs to it, not to the last day.
+ */
 function trailingProse(section: string[]): string[] {
-  const end = section.findLastIndex((line) => line.trim() !== '');
-  const lastList = section.findLastIndex((line) => LIST_LINE.test(line) || DAY_HEADER.test(line));
-  const gap = section.findIndex((line, i) => i > lastList && line.trim() === '');
-  return gap < 0 || gap > end ? [] : section.slice(gap);
+  const start = section.findIndex((line, i) => i > 0 && section[i - 1].trim() === '' && line.trim() !== '' && !LIST_LINE.test(line));
+  return start < 0 ? [] : section.slice(start);
 }
 
 /** The text extractStops reads for one day. */
