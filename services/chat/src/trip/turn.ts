@@ -48,7 +48,6 @@ export class TurnService {
     }
     let text = '';
     const trace = new TurnTraceBuilder();
-    const lookups = new Set<string>();
     // A turn gets a trace from its first LLM call on; pure button turns never make one.
     const understand = () => {
       if (!trace.started) trace.record({ type: 'phase', phase: 'understanding', at: new Date().toISOString() });
@@ -86,6 +85,8 @@ export class TurnService {
       if (effect) {
         understand();
         const input = { text: command.type === 'message' ? command.text : null, state: next, history };
+        // Loop events start with the stored results from earlier turns; trace only the lookups this turn makes.
+        const lookups = new Set(next.toolResults.map((r) => r.callId));
         const events = runEffect(this.llm, effect, input, signal, (event) => {
           const at = new Date().toISOString();
           if (event.type === 'wiki_read') trace.record(event);

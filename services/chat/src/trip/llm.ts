@@ -222,6 +222,7 @@ export class ModelTripLlm implements TripLlm {
       model,
       tools,
       [new SystemMessage(system), ...input.history, context(input.state, input.target), new HumanMessage(last)],
+      input.state.toolResults,
       signal,
       MAX_TOOL_ROUNDS,
       new Set([READ_WIKI]),

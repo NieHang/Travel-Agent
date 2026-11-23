@@ -72,16 +72,25 @@ function amountPattern(amount: string): RegExp {
   return new RegExp(`(?<![\\d.,])${grouped}${fraction ? `\\.${fraction}` : ''}(?![\\d]|[.,]\\d)`);
 }
 
+const departureDate = new Date();
+departureDate.setDate(departureDate.getDate() + 5);
+function tripDate(nights: number): string {
+  const date = new Date(departureDate);
+  date.setDate(date.getDate() + nights);
+  return date.toLocaleDateString('en-CA');
+}
+const departure = tripDate(0);
+
 for (const locale of ['zh', 'en'] as Locale[]) {
   const start = initialState(0, locale);
   const zh = locale === 'zh';
 
-  const refused = await turn(start, zh ? '成都三天美食之旅，2026-11-27 到 2026-11-29，2 个人，朋友' : 'Plan a family trip to Lisbon, 2027-01-04 to 2027-01-09, 3 people');
+  const refused = await turn(start, zh ? `成都三天美食之旅，${departure} 到 ${tripDate(2)}，2 个人，朋友` : `Plan a family trip to Lisbon, ${departure} to ${tripDate(5)}, 3 people`);
   check(`${locale}: non-Japan trip is refused`, refused.effect === null && refused.next.requirements.destination === undefined);
   check(`${locale}: refusal names the city`, (refused.next.outsideJapan?.places ?? []).some((name) => name.toLowerCase().includes(zh ? '成都' : 'lisbon')));
   check(`${locale}: refused trip calls no tools`, refused.calls.length === 0);
 
-  const mixed = await turn(start, zh ? '先去首尔再去福冈，2026-12-01 到 2026-12-06，情侣 2 个人' : 'Seoul then Fukuoka, 2026-12-01 to 2026-12-06, 2 people, couple');
+  const mixed = await turn(start, zh ? `先去首尔再去福冈，${departure} 到 ${tripDate(5)}，情侣 2 个人` : `Seoul then Fukuoka, ${departure} to ${tripDate(5)}, 2 people, couple`);
   check(`${locale}: mixed trip is refused`, mixed.effect === null && mixed.next.requirements.destination === undefined);
   check(`${locale}: mixed refusal names the outside city`, (mixed.next.outsideJapan?.places ?? []).some((name) => name.toLowerCase().includes(zh ? '首尔' : 'seoul')));
   check(`${locale}: mixed trip offers the Japan part`, (mixed.next.outsideJapan?.japan ?? '').toLowerCase().includes(zh ? '福冈' : 'fukuoka'));
@@ -90,7 +99,7 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   check(`${locale}: outside-Japan hotel question is chat`, outsideHotel.classified.intent === 'chat');
   check(`${locale}: outside-Japan hotel question calls no tools`, outsideHotel.calls.length === 0);
 
-  const overnight = await turn(start, zh ? '帮我规划大阪亲子游，2026-12-01 到 2026-12-03，4 个人' : 'Plan a family trip to Osaka, 2026-12-01 to 2026-12-03, 4 people');
+  const overnight = await turn(start, zh ? `帮我规划大阪亲子游，${departure} 到 ${tripDate(2)}，4 个人` : `Plan a family trip to Osaka, ${departure} to ${tripDate(2)}, 4 people`);
   check(`${locale}: one-shot planning reaches review`, overnight.next.stage === 'review' && overnight.effect === 'itinerary');
   check(`${locale}: Japan destination was checked`, overnight.next.checkedDestination !== null);
   check(`${locale}: overnight trip found stays`, (overnight.next.stays?.items.length ?? 0) > 0);
@@ -102,7 +111,7 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   checkNoNarration(`${locale}: overnight draft`, overnight.draft);
   checkNightlyPrices(`${locale}: overnight draft`, locale, overnight);
 
-  const dayTrip = await turn(start, zh ? '奈良一日游，2026-12-01 当天往返，1 个人，个人游' : 'Solo day trip to Nara on 2026-12-01, back the same day, 1 person');
+  const dayTrip = await turn(start, zh ? `奈良一日游，${departure} 当天往返，1 个人，个人游` : `Solo day trip to Nara on ${departure}, back the same day, 1 person`);
   check(`${locale}: same-day trip has no stays`, !dayTrip.next.stays);
 
   const search = await turn(start, zh ? '京都站附近 1000 元以内的酒店' : 'Hotels near Kyoto Station under 1000 CNY');
@@ -117,8 +126,8 @@ for (const locale of ['zh', 'en'] as Locale[]) {
   const japan = await runTurn(
     llm, start,
     zh
-      ? '帮我规划日本情侣游，东京进大阪出，2026-12-01 到 2026-12-06，2 个人'
-      : "Plan a couple's trip to Japan, fly into Tokyo and out of Osaka, 2026-12-01 to 2026-12-06, 2 people",
+      ? `帮我规划日本情侣游，东京进大阪出，${departure} 到 ${tripDate(5)}，2 个人`
+      : `Plan a couple's trip to Japan, fly into Tokyo and out of Osaka, ${departure} to ${tripDate(5)}, 2 people`,
     { onRead: ids => reading.push(...ids) },
   );
   check(`${locale}: japan trip reaches review`, japan.next.stage === 'review' && japan.effect === 'itinerary');
@@ -161,7 +170,7 @@ for (const locale of ['en', 'zh'] as Locale[]) {
     return out;
   };
   const reading: string[] = [];
-  const draft = await say(initialState(0, locale), zh ? '帮我规划京都情侣游，2026-11-22 到 2026-11-25，2 个人' : "Plan a couple's trip to Kyoto, 2026-11-22 to 2026-11-25, 2 people", ids => reading.push(...ids));
+  const draft = await say(initialState(0, locale), zh ? `帮我规划京都情侣游，${departure} 到 ${tripDate(3)}，2 个人` : `Plan a couple's trip to Kyoto, ${departure} to ${tripDate(3)}, 2 people`, ids => reading.push(...ids));
   check(`${locale}: kyoto draft read a linked Kyoto page`, reading.some(id => id.startsWith('kyoto/')));
   check(`${locale}: kyoto draft reaches review`, draft.effect === 'itinerary' && draft.next.days.length >= 4);
   check(`${locale}: kyoto draft links every night to a stay`, draft.next.days.slice(0, 3).every((d) => d.stayRef));

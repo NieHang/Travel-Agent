@@ -8,7 +8,7 @@ import {
 } from '@autix/contracts';
 
 export interface ToolResult {
-  /** Short per-turn id (t1, t2…), not the provider's tool_call_id; show_results items cite it as `source`. */
+  /** Stable result id within the itinerary (t1, t2…); show_results items cite it as `source`. */
   callId: string;
   tool: string;
   args: Record<string, unknown>;
