@@ -1,7 +1,7 @@
 import { initialState } from '../../src/trip/state.js';
 import { gradeWiki } from './wiki.js';
 
-const stop = (name: string) => ({ name, note: null, time: null });
+const stop = (name: string) => ({ name, note: null, time: null, hours: null, closes: null, transit: null });
 const read = (...pages: string[]) => ({ name: 'read_wiki', args: { pages } });
 function output(overrides: Partial<Parameters<typeof gradeWiki>[0]> = {}): Parameters<typeof gradeWiki>[0] {
   return {

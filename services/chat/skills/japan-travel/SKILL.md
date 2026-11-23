@@ -9,7 +9,7 @@ Hilda plans trips in Japan. Follow these rules for every itinerary draft and for
 ## Output standard
 A draft has these parts, in this order. Use these headings: in Chinese "总览" and "出发前要办"; in English "Overview" and "Before you go".
 
-1. **Overview (总览)**: city order with nights per city (e.g. "Tokyo 3 nights → Osaka 2 nights"), how many hotel changes, and the intensity of each day as one line (light · standard · tiring; 轻松 · 标准 · 较累).
+1. **Overview (总览)**: city order with nights per city (e.g. "Tokyo 3 nights → Osaka 2 nights"), how many hotel changes, and the intensity of each day as one line (light · standard · tiring; 轻松 · 标准 · 较累). Add one short line of season or crowd advice for the trip dates if the wiki pages you read support it. Otherwise omit it.
 2. **Before you go (出发前要办)**: things to arrange before the trip: timed-entry or reservation-only places, transport cards, luggage forwarding on hotel-change days, seasonal bookings. Say how far ahead only as a general hint ("book a few weeks ahead"), and ask the traveller to check.
 3. **Days**: one block per day, headed with that day's places, separated by " · ", and its intensity: "Day N | Tokyo National Museum · Ameyoko · Yanaka Ginza (standard)"; in Chinese "第N天 | 伏见稻荷大社 · 清水寺 · 祇园（标准）".
    - A timeline: each stop with a time. Use the header's names for its places.

@@ -2,12 +2,13 @@ import { z } from 'zod';
 import {
   RequirementsSchema,
   ResultGroupSchema,
+  TodoSchema,
   type Panel,
   type ResultItem,
   type TripView,
 } from '@autix/contracts';
 import { ToolResultSchema } from './results.js';
-import { PlanDaySchema, StopSchema, parseDraft, renderPlan, segments, type PlanDay } from './itinerary.js';
+import { PlanDaySchema, dayHeading, parseDraft, renderPlan, segments, type PlanDay } from './itinerary.js';
 
 export type Locale = 'zh' | 'en';
 export const STAGES = ['idle', 'trip_type', 'requirements', 'review', 'confirmed'] as const;
@@ -15,6 +16,7 @@ export type Stage = (typeof STAGES)[number];
 
 export const REQUIRED = ['destination', 'tripType', 'departureDate', 'returnDate', 'travelers'] as const;
 
+export const MAX_TODOS = 8;
 export const MAX_CLARIFY_OPTIONS = 5;
 export const ClarifySchema = z.object({
   field: z.enum(['destination', 'tripType', 'dates', 'other']),
@@ -44,6 +46,8 @@ const TripStateV3Schema = z.object({
   ...TripStateFields,
   /** Title, overview and before-you-go of the draft; null until there is one. */
   preamble: z.string().max(8000).nullable(),
+  tip: z.string().nullable().default(null),
+  todos: z.array(TodoSchema).max(MAX_TODOS).default([]),
   days: z.array(PlanDaySchema).max(60),
   footer: z.string().max(2000),
 });
@@ -55,7 +59,7 @@ const TripStateV2Schema = z.object({
   ...TripStateFields,
   itinerary: z.string().nullable(),
   days: z
-    .array(z.object({ title: z.string().min(1).max(200), stops: z.array(StopSchema).max(20), stayRef: z.string().nullable() }))
+    .array(z.object({ title: z.string().min(1).max(200), stops: PlanDaySchema.shape.stops, stayRef: z.string().nullable() }))
     .max(60),
 });
 type TripStateV2 = z.infer<typeof TripStateV2Schema>;
@@ -66,7 +70,7 @@ type TripStateV2 = z.infer<typeof TripStateV2Schema>;
  */
 function upgradeV2({ version, itinerary, days: v2Days, ...rest }: TripStateV2): TripState {
   void version;
-  if (itinerary === null) return { ...rest, version: 3, preamble: null, days: [], footer: '' };
+  if (itinerary === null) return { ...rest, version: 3, tip: null, todos: [], preamble: null, days: [], footer: '' };
   const draft = parseDraft(itinerary, rest.stays);
   const days: PlanDay[] = draft.days.length === v2Days.length
     ? draft.days.map((day, i) => ({ ...day, ...v2Days[i], stayRef: day.stayRef ?? v2Days[i].stayRef }))
@@ -74,7 +78,7 @@ function upgradeV2({ version, itinerary, days: v2Days, ...rest }: TripStateV2): 
       ...day,
       body: day.stops.map((s) => `- ${s.time ? `${s.time} ` : ''}${s.name}${s.note ? `: ${s.note}` : ''}`).join('\n'),
     }));
-  return { ...rest, version: 3, preamble: draft.preamble, days, footer: draft.footer };
+  return { ...rest, version: 3, tip: null, todos: [], preamble: draft.preamble, days, footer: draft.footer };
 }
 
 /** Any stored state, read as v3. */
@@ -90,6 +94,8 @@ export function initialState(revision = 0, locale: Locale = 'zh'): TripState {
     checkedDestination: null,
     outsideJapan: null,
     preamble: null,
+    tip: null,
+    todos: [],
     days: [],
     footer: '',
     stays: null,
@@ -121,10 +127,16 @@ export function toTripView(s: TripState): TripView | null {
     budget: r.budget ?? null,
     budgetCurrency: r.budgetCurrency ?? null,
     overview: s.preamble,
+    tip: s.tip,
+    todos: s.todos,
     itineraryMarkdown: renderPlan(s, s.locale),
     days: s.days.map((d) => ({
       title: d.title,
-      stops: d.stops,
+      ...dayHeading(d.title),
+      stops: d.stops.map(({ name, note, time, transit, hours, closes }) => ({
+        name, note, time, transit,
+        hours: hours === null ? null : { text: hours, late: isLate(time, closes) },
+      })),
       stay: stays.find((h) => h.ref === d.stayRef) ?? null,
     })),
     hotels: stays.length ? stays : fromResults('hotels'),
@@ -136,4 +148,11 @@ export function toTripView(s: TripState): TripView | null {
     routes: fromResults('routes'),
     hotspots: fromResults('hotspots'),
   };
+}
+
+const CLOCK = /^(?:[01]?\d|2[0-3]):[0-5]\d$/;
+
+function isLate(time: string | null, closes: string | null): boolean {
+  if (time === null || closes === null || !CLOCK.test(time) || !CLOCK.test(closes)) return false;
+  return time.padStart(5, '0') >= closes.padStart(5, '0');
 }

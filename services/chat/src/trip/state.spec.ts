@@ -81,3 +81,41 @@ describe('toTripView', () => {
     expect(view.hotspots.map((r) => r.ref)).toEqual(['r2']);
   });
 });
+
+it('reads a pre-panel v3 draft with deterministic empty brief and stop fields', () => {
+  const saved = {
+    ...initialState(), stage: 'review', tip: undefined, todos: undefined, preamble: 'Draft',
+    days: [{ title: 'Day 1', body: '- Park', stayRef: null, stops: [{ name: 'Park', note: null, time: null }] }],
+  };
+  const restored = readState(saved, 5);
+  expect(restored).toMatchObject({
+    stage: 'review', tip: null, todos: [],
+    days: [{ stops: [{ name: 'Park', hours: null, closes: null, transit: null }] }],
+  });
+  expect(readState(saved, 5)).toEqual(restored);
+});
+
+it.each([
+  ['Day 1 | A · B (light)', 'A · B', 'light'],
+  ['Day 2 | A (standard)', 'A', 'standard'],
+  ['Day 3 | B (tiring)', 'B', 'tiring'],
+  ['第1天 | 甲（轻松）', '甲', 'light'],
+  ['第 2 天｜甲 · 乙（标准）', '甲 · 乙', 'standard'],
+  ['第3天：乙（较累）', '乙', 'tiring'],
+  ['Day 2: Gardens (east)', 'Gardens (east)', null],
+  ['Day 3', '', null],
+  ['Free afternoon (light)', 'Free afternoon (light)', null],
+])('derives the heading and pace of %s', (title, heading, pace) => {
+  const view = toTripView(state({ stage: 'review', days: [{ title, body: '', stops: [], stayRef: null }] }));
+  expect(view?.days[0]).toMatchObject({ title, heading, pace });
+});
+
+it.each([
+  ['16:30', true], ['16:31', true], ['10:30', false], ['9:30', false], ['afternoon', false], [null, false],
+] as const)('checks planned time %s against last entry', (time, late) => {
+  const stop = { name: 'Castle', note: null, time, hours: 'Last entry 16:30', closes: '16:30', transit: 'Bus to station' };
+  const todo = { kind: 'tickets', title: 'Buy exhibition tickets', note: null } as const;
+  const view = toTripView(state({ stage: 'review', tip: 'Visit early.', todos: [todo], days: [{ title: 'Day 1', body: '', stops: [stop], stayRef: null }] }));
+  expect(view?.days[0].stops).toEqual([{ name: 'Castle', note: null, time, hours: { text: 'Last entry 16:30', late }, transit: 'Bus to station' }]);
+  expect(view).toMatchObject({ tip: 'Visit early.', todos: [todo] });
+});

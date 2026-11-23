@@ -149,6 +149,8 @@ export function assertAllowed(state: TripState, command: Command): void {
 
 function clearDraft(s: TripState) {
   s.preamble = null;
+  s.tip = null;
+  s.todos = [];
   s.days = [];
   s.footer = '';
   s.stays = null;

@@ -64,6 +64,9 @@ class ScriptedLlm implements TripLlm {
       await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true }));
     signal.throwIfAborted();
   }
+  async extractBrief() {
+    return { tip: null, todos: [] };
+  }
   async extractStops() {
     return [];
   }

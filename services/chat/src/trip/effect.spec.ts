@@ -15,7 +15,7 @@ const signal = () => new AbortController().signal;
 /** Plays back fixed loop events and records what the loop answered each edit with. */
 function scripted(events: LoopEvent[]) {
   const replies: (string | undefined)[] = [];
-  const llm: TripLlm = {
+  const llm = {
     locate: async () => ({ japan: null, outside: [] }),
     classify: async () => { throw new Error('unused'); },
     async *respond(_task: LlmTask, _input: RespondInput) {
@@ -24,8 +24,9 @@ function scripted(events: LoopEvent[]) {
         if (event.type === 'edit') replies.push(event.reply);
       }
     },
-    extractStops: async (day) => [{ name: day.title.split('|')[1].trim(), note: null, time: null }],
-  };
+    extractBrief: vi.fn(async () => ({ tip: 'Visit early.', todos: [{ kind: 'reserve' as const, title: 'Reserve entry', note: null }] })),
+    extractStops: async (day) => [{ name: day.title.split('|')[1].trim(), note: null, time: null, hours: null, closes: null, transit: null }],
+  } satisfies TripLlm;
   return { llm, replies };
 }
 
@@ -59,6 +60,8 @@ describe('runEffect: itinerary', () => {
       ['h1', 'Nijo Castle · Nishiki Market (light)'],
       [null, 'Departure (light)'],
     ]);
+    expect(llm.extractBrief).toHaveBeenCalledWith(state.preamble, 'en', expect.any(AbortSignal));
+    expect(state).toMatchObject({ tip: 'Visit early.', todos: [{ kind: 'reserve', title: 'Reserve entry', note: null }] });
     expect(reply).toMatch(/^Kyoto 3 nights, one base[\s\S]*The full itinerary is in the trip panel\.$/);
   });
 
@@ -86,10 +89,20 @@ describe('runEffect: revise', () => {
       'ok',
       'The nights after day 3 are not part of this edit. Only change the nights after day (none).',
     ]);
-    expect(state.days[2]).toEqual({ title: 'Day 3 | Nijo Castle (light)', body: '- 09:30 Nijo Castle', stops: [{ name: 'Nijo Castle (light)', note: null, time: null }], stayRef: 'h1' });
+    expect(state.days[2]).toEqual({ title: 'Day 3 | Nijo Castle (light)', body: '- 09:30 Nijo Castle', stops: [{ name: 'Nijo Castle (light)', note: null, time: null, hours: null, closes: null, transit: null }], stayRef: 'h1' });
     expect([state.days[0], state.days[1], state.days[3]]).toEqual([before.days[0], before.days[1], before.days[3]]);
     expect(state.preamble).toBe(before.preamble);
+    expect(llm.extractBrief).not.toHaveBeenCalled();
     expect(reply).toBe('Day 3 is lighter now.');
+  });
+
+  it('replaces the brief when the preamble is rewritten', async () => {
+    const state = drafted();
+    const markdown = 'Overview: Visit early.\n\nBefore you go\n- Reserve entry';
+    const { llm } = scripted([{ type: 'edit', call: { name: 'write_preamble', args: { markdown } }, results: [] }]);
+    await run(llm, { type: 'revise', target: { days: [], nights: [] } }, state);
+    expect(llm.extractBrief).toHaveBeenCalledWith(markdown, 'en', expect.any(AbortSignal));
+    expect(state).toMatchObject({ preamble: markdown, tip: 'Visit early.', todos: [{ kind: 'reserve', title: 'Reserve entry', note: null }] });
   });
 
   it('moves a target night to a grounded hotel and refuses one it never showed', async () => {

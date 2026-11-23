@@ -118,7 +118,7 @@ it('reports missing hotel geography as zero coverage, without fabricated zero-di
   vi.stubGlobal('fetch', fetch);
   const out = await turn(new FakeTripLlm(), initialState(0, 'en'), 'Hello');
   out.effect = 'itinerary';
-  out.next.days = [{ title: 'Day 1', body: '', stayRef: null, stops: [{ name: 'Osaka Castle', note: null, time: null }] }];
+  out.next.days = [{ title: 'Day 1', body: '', stayRef: null, stops: [{ name: 'Osaka Castle', note: null, time: null, hours: null, closes: null, transit: null }] }];
   const scores = await gradeGeography(out, { tools: [], calls: [] }, { attribution: '© OpenStreetMap contributors', entries: {} }, new GoogleCoordinates(0), 'l3-en-family');
   expect(scores).toContainEqual({ name: 'geocode_coverage', value: 0 });
   expect(scores.some((s) => s.name === 'day_km_max')).toBe(false);

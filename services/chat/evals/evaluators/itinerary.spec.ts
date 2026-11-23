@@ -9,7 +9,7 @@ function output(): TurnOutput {
   return {
     place: undefined,
     classified: { intent: 'plan', locale: 'en', clarify: null, revise: null, patch: { destination: null, tripType: null, departureDate: null, returnDate: null, travelers: null, preferences: null, budget: null, budgetCurrency: null } },
-    next: { ...initialState(0, 'en'), stage: 'review', checkedDestination: 'Osaka', requirements: { destination: 'Osaka', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4, tripType: 'family' }, days: [0, 1, 2].map((i) => ({ title: `Day ${i + 1}`, body: '', stayRef: null, stops: [{ name: 'Osaka Castle', note: null, time: null }] })) },
+    next: { ...initialState(0, 'en'), stage: 'review', checkedDestination: 'Osaka', requirements: { destination: 'Osaka', departureDate: '2026-12-01', returnDate: '2026-12-03', travelers: 4, tripType: 'family' }, days: [0, 1, 2].map((i) => ({ title: `Day ${i + 1}`, body: '', stayRef: null, stops: [{ name: 'Osaka Castle', note: null, time: null, hours: null, closes: null, transit: null }] })) },
     effect: 'itinerary', draft: 'Overview\nDay 1\nDay 2\nAlternative: rest\nDay 3\nBefore you go\napprox.',
     calls: [], toolCalls: [], toolResults: [], roundsExhausted: false,
   };
@@ -45,7 +45,7 @@ it('fails drafts whose travel legs give more than the mode', () => {
 });
 it('enforces family stop limits and treats travel legs as errors', () => {
   const result = output();
-  result.next.days[1].stops = ['A', 'B', 'C', 'D', 'E', 'Shinkansen to Kyoto'].map((name) => ({ name, time: null, note: null }));
+  result.next.days[1].stops = ['A', 'B', 'C', 'D', 'E', 'Shinkansen to Kyoto'].map((name) => ({ name, time: null, note: null, hours: null, closes: null, transit: null }));
   expect(gradeItinerary(entry, result)).toContainEqual({ name: 'pacing_ok', value: 0 });
   expect(gradeItinerary(entry, result)).toContainEqual({ name: 'leg_as_stop', value: 1 });
 });
@@ -65,7 +65,7 @@ it.each([
 ] as const)('allows four places a day ($tripType: three), counting restaurants and shops but not stations, nearby meals, meals at a listed place or repeats: $stops', ({ tripType, stops, expected }) => {
   const result = output();
   result.next.requirements.tripType = tripType;
-  result.next.days[1].stops = stops.map((name) => ({ name, time: null, note: null }));
+  result.next.days[1].stops = stops.map((name) => ({ name, time: null, note: null, hours: null, closes: null, transit: null }));
   expect(gradeItinerary(entry, result)).toContainEqual({ name: 'pacing_ok', value: expected });
 });
 
@@ -138,7 +138,7 @@ it.each([
 
 it('does not use hotel-like extracted stops as evidence of an invented lodging recommendation', () => {
   const result = output();
-  result.next.days[0].stops = [{ name: 'Hotel check-in', note: null, time: null }];
+  result.next.days[0].stops = [{ name: 'Hotel check-in', note: null, time: null, hours: null, closes: null, transit: null }];
   expect(gradeItinerary(entry, result)).toContainEqual({ name: 'invented_hotel', value: 0 });
 });
 
