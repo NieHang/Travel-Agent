@@ -47,7 +47,7 @@ export const USE_STAY = 'use_stay';
 const EDIT_SCHEMAS = {
   [WRITE_DAY]: z.object({
     day: z.number().int().describe('The day number, as in the [D#] tag of serverContext.plan.'),
-    markdown: z.string().describe('The whole day in the draft format: its "Day N | …" header line, timeline, alternatives line and hotel line.'),
+    markdown: z.string().describe('The whole day in the draft format: its "Day N | …" header line, timeline and alternatives line. The app adds the hotel line.'),
   }),
   [WRITE_PREAMBLE]: z.object({
     markdown: z.string().describe('The draft text before the first day: title, overview and before-you-go, in the draft format.'),
