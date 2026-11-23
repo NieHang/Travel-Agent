@@ -1,4 +1,6 @@
 import { AIMessage, AIMessageChunk, HumanMessage, type BaseMessage } from '@langchain/core/messages';
+import { convertToOpenAITool } from '@langchain/core/utils/function_calling';
+import { z } from 'zod';
 import type { Classified } from './commands.js';
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 
@@ -23,6 +25,7 @@ vi.mock('../llm/model.factory.js', () => ({
 
 import { CLASSIFY_PROMPT, LOCATE_PROMPT, countNights, ModelTripLlm } from './llm.js';
 import { initialState } from './state.js';
+import { editTools } from './tool-loop.js';
 import type { Skill } from '../skills/registry.js';
 import { createChatModel } from '../llm/model.factory.js';
 
@@ -36,6 +39,11 @@ async function respond(llm: ModelTripLlm, task: 'answer' | 'itinerary') {
   for await (const _ of llm.respond(task, { text: 'next', state: initialState(), history: [] }, signal()));
   return systemText(model.seen[0]);
 }
+
+/** The part of a bound tool's JSON schema these tests read. */
+const BoundToolSchema = z.object({
+  function: z.object({ parameters: z.object({ properties: z.record(z.object({ description: z.string().optional() })) }) }),
+});
 
 const history = Array.from({ length: 30 }, (_, i) => (i % 2 ? new AIMessage(`m${i}`) : new HumanMessage(`m${i}`)));
 const chatted: Classified = {
@@ -222,5 +230,21 @@ describe('revise', () => {
     expect(systemText(model.seen[0])).toContain('Task: change only part of the itinerary draft');
     await respond(llm, 'answer');
     expect(model.bound).toEqual(['read_wiki', 'show_results']);
+  });
+
+  // Live zh runs, 2026-11-23: told to keep a day's hotel line "unless its night is in target.nights", the model
+  // followed a cheaper-hotel use_stay with write_day on days outside the target just to change their 今晚 line.
+  // Every write was rejected, some turns spent all tool rounds, and replies said the lines still named the old hotel.
+  it('tells the model the app writes hotel lines, so a hotel change rewrites no day', async () => {
+    model.seen = [];
+    for await (const _ of new ModelTripLlm().respond('revise', { text: 'cheaper hotel', state: drafted(), history: [], target: { days: [], nights: [0] } }, signal()));
+    const system = systemText(model.seen[0]).replace(/\s+/g, ' ');
+    expect(system).not.toContain("Keep that day's hotel line");
+    expect(system).toContain('The app writes each day\'s hotel line ("- Tonight: …" / "- 今晚：…") from the hotel of that night. Never write or fix a hotel line yourself.');
+    expect(system).toContain('the whole day in the draft\'s format without its hotel line');
+    expect(system).toContain('call use_stay with the one you choose: it also updates those days\' hotel lines, so a hotel change needs no write_day.');
+    const writeDay = editTools.find((t) => t.name === 'write_day');
+    const markdown = writeDay && BoundToolSchema.parse(convertToOpenAITool(writeDay)).function.parameters.properties.markdown;
+    expect(markdown?.description).toBe('The whole day in the draft format: its "Day N | …" header line, timeline and alternatives line. The app adds the hotel line.');
   });
 });

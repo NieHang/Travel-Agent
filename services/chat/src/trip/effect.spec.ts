@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { ResultGroupSchema } from '@autix/contracts';
 import type { Effect } from './commands.js';
 import { runEffect } from './effect.js';
-import { parseDraft } from './itinerary.js';
+import { parseDraft, renderPlan } from './itinerary.js';
 import type { LlmTask, RespondInput, TripLlm } from './llm.js';
 import { initialState, type TripState } from './state.js';
 import type { LoopEvent } from './tool-loop.js';
@@ -102,6 +102,21 @@ describe('runEffect: revise', () => {
     expect(replies).toEqual(['Hotel nope is not among the hotels you showed. Show it with show_results first.', 'ok']);
     expect(state.days.map((d) => d.stayRef)).toEqual(['h3', 'h3', 'h3', null]);
     expect(reply).toBeNull();
+  });
+
+  it('writes the hotel lines from stays: a day written without one keeps its hotel, use_stay moves a night', async () => {
+    const state = drafted();
+    const { llm, replies } = scripted([
+      { type: 'edit', call: { name: 'write_day', args: { day: 2, markdown: '**Day 2 | Gion (light)**\n- 17:00 Gion' } }, results: [] },
+      { type: 'edit', call: { name: 'use_stay', args: { hotelId: '13249', days: [3] } }, results: [] },
+      { type: 'edit', call: { name: 'write_day', args: { day: 3, markdown: '**Day 3 | Nijo Castle (light)**\n- 09:30 Nijo Castle' } }, results: [] },
+    ]);
+    await run(llm, { type: 'revise', target: { days: [1, 2], nights: [2] } }, state);
+    expect(replies).toEqual(['ok', 'ok', 'ok']);
+    expect(renderPlan(state, 'en')).toContain([
+      '**Day 2 | Gion (light)**\n- 17:00 Gion\n- Tonight: hotel MONday Kyoto Marutamachi (from 1093.33 CNY per night)',
+      '**Day 3 | Nijo Castle (light)**\n- 09:30 Nijo Castle\n- Tonight: Miyako Hotel Kyoto Hachijo (from 1395.67 CNY per night)',
+    ].join('\n\n'));
   });
 
   it('asks for exactly one day when write_day gets several', async () => {
