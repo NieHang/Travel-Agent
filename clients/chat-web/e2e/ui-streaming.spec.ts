@@ -17,7 +17,13 @@ test('trip planning commands, panels and refresh recovery', async ({
   await page.getByRole('button', { name: '生成路线草案', exact: true }).click()
   const panel = page.getByTestId('live-trip-panel')
   await expect(
-    page.getByRole('heading', { name: '杭州行程草稿' }),
+    panel.getByRole('heading', { name: '杭州', exact: true }),
+  ).toBeVisible()
+  await expect(
+    panel.getByRole('heading', { name: '市区漫步', exact: true }),
+  ).toBeVisible()
+  await expect(
+    panel.getByRole('button', { name: /抵达后领取 IC 卡/ }),
   ).toBeVisible()
   await expect(panel.getByText('行程草稿', { exact: true })).toBeVisible()
   await expect(
@@ -31,7 +37,13 @@ test('trip planning commands, panels and refresh recovery', async ({
   })
   await page.reload()
   await expect(
-    page.getByRole('heading', { name: '杭州行程草稿' }),
+    panel.getByRole('heading', { name: '杭州', exact: true }),
+  ).toBeVisible()
+  await expect(
+    panel.getByRole('heading', { name: '市区漫步', exact: true }),
+  ).toBeVisible()
+  await expect(
+    panel.getByRole('button', { name: /抵达后领取 IC 卡/ }),
   ).toBeVisible()
   await expect(panel.getByText('行程草稿', { exact: true })).toBeVisible()
   const confirm = page
