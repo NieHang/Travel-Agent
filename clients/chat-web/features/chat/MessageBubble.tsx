@@ -41,7 +41,7 @@ export const MessageBubble = memo(function MessageBubble({
           <div
             data-bubble
             style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}
-            className="max-w-[85%] rounded-card bg-ink px-4 py-3 text-base text-white"
+            className="max-w-[80%] rounded-trip-sm rounded-br-trip-tail bg-trip-fill px-4 py-[11px] text-[15px]"
           >
             {content}
           </div>
@@ -60,8 +60,8 @@ export const MessageBubble = memo(function MessageBubble({
         // a reply whose only components have been answered and step aside.
         <div
           data-bubble
-          className={`flex flex-col gap-3 rounded-card bg-paper px-4 py-3 text-base text-ink empty:hidden ${
-            components.length ? 'max-w-[95%]' : 'max-w-[85%]'
+          className={`flex flex-col gap-3 rounded-trip-sm rounded-bl-trip-tail bg-white px-4 py-[11px] text-[15px] empty:hidden ${
+            components.length ? 'max-w-[88%]' : 'max-w-[80%]'
           }`}
         >
           {showTrace ? (

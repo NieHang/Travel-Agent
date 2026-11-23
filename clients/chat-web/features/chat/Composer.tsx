@@ -57,14 +57,12 @@ export function Composer({
   return (
     <div className="flex flex-col gap-2">
       {rateLimitSeconds > 0 ? (
-        <p role="status" className="px-4 text-sm font-bold text-ink">
+        <p role="status" className="px-4 text-[13px] font-semibold">
           {t('rateLimited', { n: rateLimitSeconds })}
         </p>
       ) : null}
-      <div
-        data-on-ink
-        className="relative flex items-end gap-2 rounded-panel bg-ink p-2 pl-5 shadow-float has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-offset-2 has-[textarea:focus-visible]:outline-lime"
-      >
+      {/* 30px = the 48px send button's radius plus the 6px around it, so the corners stay concentric. */}
+      <div className="relative flex items-end gap-2.5 rounded-[30px] bg-white py-1.5 pr-1.5 pl-[22px] has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-offset-2 has-[textarea:focus-visible]:outline-trip-ink">
         <textarea
           ref={inner}
           rows={1}
@@ -75,25 +73,25 @@ export function Composer({
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
           style={{ maxHeight: MAX_HEIGHT_PX }}
-          className="min-h-12 flex-1 resize-none self-center overflow-y-auto bg-transparent py-3 text-base leading-6 text-white outline-none placeholder:text-white/60"
+          className="min-h-12 flex-1 resize-none self-center overflow-y-auto bg-transparent py-3 text-[15px] leading-6 text-trip-ink outline-none placeholder:text-trip-muted"
         />
         {generating ? (
-          <PillButton variant="lime" iconOnly aria-label={t('stop')} onClick={onStop}>
-            <Square size={18} fill="currentColor" aria-hidden />
+          <PillButton variant="trip-soft" iconOnly aria-label={t('stop')} onClick={onStop}>
+            <Square size={16} fill="currentColor" aria-hidden />
           </PillButton>
         ) : (
           <PillButton
-            variant="lime"
+            variant="trip-soft"
             iconOnly
             aria-label={t('send')}
             disabled={!canSend}
             onClick={onSend}
           >
-            <ArrowUp size={20} aria-hidden />
+            <ArrowUp size={20} strokeWidth={2.2} aria-hidden />
           </PillButton>
         )}
         {value.length >= COUNTER_FROM ? (
-          <span className="pointer-events-none absolute right-16 bottom-0.5 text-xs font-bold text-white/70">
+          <span className="pointer-events-none absolute right-16 bottom-0.5 text-xs font-semibold text-trip-muted">
             {value.length} / {INPUT_MAX_LENGTH}
           </span>
         ) : null}

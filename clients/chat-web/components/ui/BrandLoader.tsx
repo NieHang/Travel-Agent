@@ -21,7 +21,7 @@ export function BrandLoader() {
         animate={reduced ? { opacity: [1, 0.5, 1] } : { scale: [1, 1.5, 1] }}
         transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <LogoDot className="bg-lime" />
+        <LogoDot className="size-6 bg-lime" />
       </motion.span>
     </div>
   )

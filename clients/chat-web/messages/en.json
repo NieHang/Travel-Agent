@@ -57,9 +57,7 @@
     "history": "History",
     "accountMenu": "Account menu",
     "signOut": "Sign out",
-    "assistantName": "Hilda",
-    "online": "your travel agent · online",
-    "typing": "typing…",
+    "conversation": "Conversation with Hilda",
     "jumpToLatest": "Jump to latest",
     "chips": {
       "0": "Hotels under 1,000 CNY a night",
@@ -119,7 +117,8 @@
       "plan": "Plan",
       "hotels": "Hotels",
       "routes": "Routes",
-      "hotspots": "Hot spots"
+      "hotspots": "Hot spots",
+      "checklist": "Checklist"
     },
     "saveTrip": "Save trip",
     "saveTripSoon": "Saving trips is coming soon",
@@ -131,13 +130,45 @@
       "collecting": "Collecting requirements",
       "draft": "Itinerary draft",
       "confirmed": "Confirmed",
-      "travelers": "{count} travelers",
-      "budget": "Budget {amount} {currency}",
+      "travelers": "{count, plural, one {# traveler} other {# travelers}}",
       "waiting": "Complete your requirements to generate a draft",
       "noResults": "No verified results available yet",
       "empty": "Your itinerary will appear here when you start planning",
       "night": "Night {n}",
-      "nights": "Nights {from}–{to}"
+      "nights": "Nights {from}–{to}",
+      "noTodos": "Nothing to do before you go"
+    },
+    "cover": {
+      "nights": "{count, plural, one {# night} other {# nights}}{oneStay, select, true { in one hotel} other {}}"
+    },
+    "plan": {
+      "pickDay": "Choose a day",
+      "day": "Day {n}",
+      "kicker": "Day {n}{pace, select, light { · Light} standard { · Standard} tiring { · Busy} other {}}",
+      "period": {
+        "lateNight": "Late",
+        "early": "Early",
+        "morning": "AM",
+        "noon": "Noon",
+        "afternoon": "PM",
+        "evening": "Dusk",
+        "night": "Night"
+      },
+      "late": "Closed by arrival time",
+      "checklist": "Before you go",
+      "progress": "{done} of {total} done",
+      "left": "{left} left",
+      "allDone": "All done",
+      "todoKind": {
+        "reserve": "Reserve",
+        "tickets": "Tickets",
+        "on_arrival": "On arrival",
+        "reminder": "Reminder",
+        "optional": "Optional"
+      },
+      "stay": "Stay",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out"
     }
   },
   "resultCard": {
@@ -146,8 +177,7 @@
     "fromPerNight": "/ night from",
     "book": "Book",
     "aiTranslated": "AI translation",
-    "aiNote": "AI note",
-    "tonight": "Tonight"
+    "aiNote": "AI note"
   },
   "tripForm": {
     "next": "Next: {field}",

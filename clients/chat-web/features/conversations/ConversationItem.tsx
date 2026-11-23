@@ -46,7 +46,7 @@ export function ConversationItem({ conversation, active, onOpen, onDelete, rowRe
   }
   return (
     <motion.li layout={!reduced} exit={{ opacity: 0, height: 0 }} transition={springs.smooth}
-      className="group flex min-w-0 items-center gap-1 overflow-hidden rounded-card">
+      className="group flex min-w-0 items-center gap-1 overflow-hidden rounded-trip-sm">
       {editing ? (
         <input ref={input} aria-label={t('rename')} maxLength={60} value={draft}
           onChange={(event) => setDraft(event.target.value)} onBlur={save}
@@ -57,16 +57,16 @@ export function ConversationItem({ conversation, active, onOpen, onDelete, rowRe
               cancelled.current = true
               setEditing(false)
             } else if (event.key === 'Enter') { event.preventDefault(); save() }
-          }} className="min-h-11 min-w-0 flex-1 rounded-full border-2 border-ink px-3" />
+          }} className="min-h-11 min-w-0 flex-1 rounded-full border border-trip-line bg-white px-3" />
       ) : (
         <button ref={rowRef} type="button" aria-current={active ? 'page' : undefined}
           onClick={onOpen} onKeyDown={(event) => {
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
               event.preventDefault(); onMove(event.key === 'ArrowDown' ? 1 : -1)
             }
-          }} className={`flex min-h-14 min-w-0 flex-1 cursor-pointer flex-col items-start px-3 py-2 text-left ${active ? 'bg-lime' : 'hover:bg-ink/5'}`}>
+          }} className={`flex min-h-14 min-w-0 flex-1 cursor-pointer flex-col items-start px-3 py-2 text-left ${active ? 'bg-trip-fill' : 'hover:bg-trip-fill/60'}`}>
           <span className="w-full truncate font-bold">{conversation.title || t('newChat')}</span>
-          <span className="text-sm">{formatter.relativeTime(new Date(conversation.updatedAt), now)}</span>
+          <span className="text-[13px] text-trip-muted">{formatter.relativeTime(new Date(conversation.updatedAt), now)}</span>
         </button>
       )}
       <Dropdown>
@@ -74,7 +74,7 @@ export function ConversationItem({ conversation, active, onOpen, onDelete, rowRe
           className="inline-flex size-11 shrink-0 items-center justify-center rounded-full opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
           <MoreHorizontal size={20} aria-hidden />
         </Dropdown.Trigger>
-        <Dropdown.Popover className="rounded-card bg-paper text-ink">
+        <Dropdown.Popover className="rounded-trip-xs bg-white font-trip text-trip-ink">
           <Dropdown.Menu aria-label={t('more')} onAction={(key) => {
             if (key === 'rename') { cancelled.current = false; setDraft(conversation.title); setEditing(true) }
             else if (key === 'delete') onDelete()

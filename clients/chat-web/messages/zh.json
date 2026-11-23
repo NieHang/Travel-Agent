@@ -57,9 +57,7 @@
     "history": "历史对话",
     "accountMenu": "账号菜单",
     "signOut": "退出登录",
-    "assistantName": "Hilda",
-    "online": "你的旅行助手 · 在线",
-    "typing": "正在输入…",
+    "conversation": "与 Hilda 的对话",
     "jumpToLatest": "回到最新",
     "chips": {
       "0": "每晚 1000 元以内的酒店",
@@ -119,7 +117,8 @@
       "plan": "行程",
       "hotels": "酒店",
       "routes": "路线",
-      "hotspots": "热点"
+      "hotspots": "热点",
+      "checklist": "清单"
     },
     "saveTrip": "保存行程",
     "saveTripSoon": "保存行程即将上线",
@@ -132,12 +131,44 @@
       "draft": "行程草稿",
       "confirmed": "已确认",
       "travelers": "{count} 人",
-      "budget": "预算 {amount} {currency}",
       "waiting": "完善需求后生成行程草稿",
       "noResults": "暂时没有经过验证的结果",
       "empty": "开始规划后，行程会显示在这里",
       "night": "第 {n} 晚",
-      "nights": "第 {from}–{to} 晚"
+      "nights": "第 {from}–{to} 晚",
+      "noTodos": "没有出发前要办的事项"
+    },
+    "cover": {
+      "nights": "{count} 晚{oneStay, select, true {不换酒店} other {}}"
+    },
+    "plan": {
+      "pickDay": "选择哪一天",
+      "day": "第 {n} 天",
+      "kicker": "第 {n} 天{pace, select, light { · 轻松} standard { · 标准} tiring { · 较累} other {}}",
+      "period": {
+        "lateNight": "凌晨",
+        "early": "清晨",
+        "morning": "上午",
+        "noon": "中午",
+        "afternoon": "下午",
+        "evening": "傍晚",
+        "night": "晚上"
+      },
+      "late": "到达时已到关门时间",
+      "checklist": "出发前要办",
+      "progress": "已完成 {done} / {total}",
+      "left": "还有 {left} 项未完成",
+      "allDone": "全部完成",
+      "todoKind": {
+        "reserve": "需预约",
+        "tickets": "查票",
+        "on_arrival": "到达后",
+        "reminder": "提醒",
+        "optional": "可选"
+      },
+      "stay": "住宿",
+      "checkIn": "入住",
+      "checkOut": "退房"
     }
   },
   "resultCard": {
@@ -146,8 +177,7 @@
     "fromPerNight": "/ 晚起",
     "book": "预订",
     "aiTranslated": "AI 翻译",
-    "aiNote": "AI 点评",
-    "tonight": "今晚入住"
+    "aiNote": "AI 点评"
   },
   "tripForm": {
     "next": "下一步：{field}",

@@ -7,7 +7,6 @@ export const springs = {
 
 const STAGGER_MS = 40
 const STAGGER_MAX = 8
-export const BG_TRANSITION = 'background-color 450ms ease-out'
 
 /** 错开延迟，单位秒：min(index, STAGGER_MAX) * 0.04 */
 export function staggerDelay(index: number): number {

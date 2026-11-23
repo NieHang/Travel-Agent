@@ -2,10 +2,34 @@ import type {
   Conversation,
   TripStreamEvent,
   Message,
+  TripView,
   User,
 } from '@autix/contracts'
 
 const NOW = '2026-10-03T08:00:00.000Z'
+
+export function makeTripView(over: Partial<TripView> = {}): TripView {
+  return {
+    revision: 1,
+    status: 'draft',
+    destination: '里斯本',
+    departureDate: '2026-12-01',
+    returnDate: '2026-12-03',
+    travelers: 2,
+    budget: null,
+    budgetCurrency: null,
+    overview: null,
+    itineraryMarkdown: null,
+    tip: null,
+    todos: [],
+    days: [],
+    hotels: [],
+    stayPlan: [],
+    routes: [],
+    hotspots: [],
+    ...over,
+  }
+}
 
 export function makeUser(over: Partial<User> = {}): User {
   return {

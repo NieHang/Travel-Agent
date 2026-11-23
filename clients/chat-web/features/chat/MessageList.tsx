@@ -39,7 +39,7 @@ export function SkeletonBubbles({ count }: { count: number }) {
       {Array.from({ length: count }, (_, i) => (
         <Skeleton
           key={i}
-          className={`h-14 rounded-card! ${i % 2 === 0 ? 'w-3/5 self-start' : 'w-2/5 self-end'}`}
+          className={`h-14 rounded-trip-sm! ${i % 2 === 0 ? 'w-3/5 self-start' : 'w-2/5 self-end'}`}
         />
       ))}
     </div>
@@ -202,17 +202,17 @@ export function MessageList({
       ref={scrollRef}
       data-testid="message-scroll"
       style={{ overflowAnchor: 'none' }}
-      className="min-h-0 flex-1 overflow-y-auto px-4"
+      className="@container min-h-0 flex-1 overflow-y-auto px-1"
     >
       <div className="flex min-h-full flex-col gap-3 py-4">
         <div ref={sentinel} aria-hidden className="h-px shrink-0" />
         {loadingMore ? <SkeletonBubbles count={1} /> : null}
         {loadMoreFailed && !loadingMore ? (
           <div className="flex items-center justify-center gap-3">
-            <span className="text-sm font-bold text-ink">
+            <span className="text-[13px] font-semibold">
               {tc('loadFailed')}
             </span>
-            <PillButton variant="ink" size="sm" onClick={retryLoadMore}>
+            <PillButton variant="trip-ink" size="sm" onClick={retryLoadMore}>
               {tc('retry')}
             </PillButton>
           </div>

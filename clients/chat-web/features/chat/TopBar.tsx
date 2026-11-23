@@ -17,24 +17,28 @@ export function TopBar({
 }: {
   drawerOpen: boolean
   onToggleDrawer: () => void
-  /** 顶部中间（P1） */
+  /** The panel tabs (desktop). */
   center?: ReactNode
-  /** T3 之后（P2） */
+  /** After the avatar: the save button (desktop). */
   right?: ReactNode
   drawerButtonRef?: Ref<HTMLButtonElement>
 }) {
   const t = useTranslations('chat')
   return (
-    <header className="flex items-center gap-3 px-4 py-3 sm:px-6">
-      <PillButton ref={drawerButtonRef} variant="ink" iconOnly aria-label={t('history')} onClick={onToggleDrawer}>
-        {drawerOpen ? <X size={20} aria-hidden /> : <Menu size={20} aria-hidden />}
-      </PillButton>
-      <Link href="/" className="inline-flex min-h-11 items-center">
-        <Logo />
-      </Link>
-      <div className="flex flex-1 justify-center">{center}</div>
-      <UserMenu />
-      {right}
+    <header className="flex min-h-16 items-center justify-between gap-4 px-4 py-3 lg:min-h-20 lg:px-8 lg:py-4">
+      <div className="flex items-center gap-1">
+        <PillButton ref={drawerButtonRef} variant="trip-quiet" size="sm" iconOnly aria-label={t('history')} onClick={onToggleDrawer}>
+          {drawerOpen ? <X size={20} aria-hidden /> : <Menu size={20} aria-hidden />}
+        </PillButton>
+        <Link href="/" className="inline-flex min-h-11 items-center">
+          <Logo variant="trip" />
+        </Link>
+      </div>
+      {center}
+      <div className="flex items-center gap-3">
+        <UserMenu />
+        {right}
+      </div>
     </header>
   )
 }
