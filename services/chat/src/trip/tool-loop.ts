@@ -7,6 +7,7 @@ import { compactToolContent } from '../llm/mcp/compact.js';
 import {
   SHOW_RESULTS,
   SHOW_RESULTS_RULES,
+  groundResults,
   ShowResultsInputSchema,
   type ShowResultsInput,
   type ToolResult,
@@ -79,10 +80,17 @@ const FINAL_ROUND_NOTE =
 /** The model sees the same schema as the traced tool that emits the grounding event. */
 export const showResultsTool = createShowResultsTool();
 
-function createShowResultsTool(onShow?: (input: ShowResultsInput) => void) {
+function createShowResultsTool(results: ToolResult[] = [], onShow?: (input: ShowResultsInput) => void) {
   return tool(async (input) => {
     onShow?.(input);
-    return 'shown';
+    const dropped = input.items.flatMap((item, index) => {
+      if (groundResults({ panel: input.panel, items: [item] }, results).items.length) return [];
+      const reason = results.some((result) => result.callId === item.source)
+        ? `id/title not found in ${item.source}`
+        : `unknown source ${item.source}`;
+      return [`Item ${index + 1}: ${reason}.`];
+    });
+    return [`Shown ${input.items.length - dropped.length}/${input.items.length}.`, ...dropped].join(' ');
   }, { name: SHOW_RESULTS, description: SHOW_RESULTS_RULES, schema: ShowResultsInputSchema });
 }
 
@@ -112,6 +120,7 @@ export async function* streamToolLoop(
   model: StreamingModel,
   tools: StructuredToolInterface[],
   messages: BaseMessage[],
+  storedResults: readonly ToolResult[],
   signal: AbortSignal,
   maxRounds = MAX_TOOL_ROUNDS,
   unrecorded: ReadonlySet<string> = new Set(),
@@ -119,9 +128,10 @@ export async function* streamToolLoop(
 ): AsyncGenerator<LoopEvent> {
   const byName = new Map(tools.map((t) => [t.name, t]));
   const conversation = [...messages];
-  const results: ToolResult[] = [];
+  const results = [...storedResults];
+  let lastResultId = Math.max(0, ...storedResults.map(({ callId }) => Number(/^t(\d+)$/.exec(callId)?.[1] ?? 0)));
   const shown: LoopEvent[] = [];
-  const showTool = createShowResultsTool((input) => shown.push({ type: 'show_results', input, results: [...results] }));
+  const showTool = createShowResultsTool(results, (input) => shown.push({ type: 'show_results', input, results: [...results] }));
   for (let round = 0; round <= maxRounds; round++) {
     signal.throwIfAborted();
     const final = round === maxRounds;
@@ -197,7 +207,7 @@ export async function* streamToolLoop(
       }
       // show_results items cite a short id, not the provider's: models mis-copy long random ids
       // (call_01_t8cufVY… came back with a lowercase v and grounding dropped every hotel).
-      const result = toResult(`t${results.length + 1}`, call.name, call.args, output);
+      const result = toResult(`t${++lastResultId}`, call.name, call.args, output);
       results.push(result);
       yield { type: 'tool_results', results: [...results] };
       conversation.push(

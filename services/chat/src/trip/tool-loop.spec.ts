@@ -5,7 +5,7 @@ import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
 import type { Serialized } from '@langchain/core/load/serializable';
 import { MAX_TOOL_ROUNDS, streamToolLoop, type LoopEvent, type StreamingModel } from './tool-loop.js';
 import { loadLibrary, READ_WIKI, readWikiTool } from '../knowledge/index.js';
-import { groundResults } from './results.js';
+import { groundResults, type ToolResult } from './results.js';
 
 const textChunks = (...parts: string[]) => parts.map((content) => new AIMessageChunk({ content }));
 const callChunk = (id: string, name: string, args: unknown, raw = JSON.stringify(args)) =>
@@ -39,9 +39,9 @@ const broken = tool(async () => {
   throw new Error('provider down');
 }, { name: 'broken', description: 'fails', schema: z.object({}) });
 
-async function collect(model: StreamingModel, signal = new AbortController().signal) {
+async function collect(model: StreamingModel, signal = new AbortController().signal, storedResults: ToolResult[] = []) {
   const events: LoopEvent[] = [];
-  for await (const e of streamToolLoop(model, [searchHotels, broken], [new HumanMessage('hi')], signal)) events.push(e);
+  for await (const e of streamToolLoop(model, [searchHotels, broken], [new HumanMessage('hi')], storedResults, signal)) events.push(e);
   return events;
 }
 
@@ -51,7 +51,7 @@ const rawTool = (output: string) =>
 
 async function collectUnrecorded(model: StreamingModel, output: string) {
   const events: LoopEvent[] = [];
-  const loop = streamToolLoop(model, [searchHotels, rawTool(output)], [new HumanMessage('hi')], new AbortController().signal, MAX_TOOL_ROUNDS, new Set(['read_notes']));
+  const loop = streamToolLoop(model, [searchHotels, rawTool(output)], [new HumanMessage('hi')], [], new AbortController().signal, MAX_TOOL_ROUNDS, new Set(['read_notes']));
   for await (const e of loop) events.push(e);
   return events;
 }
@@ -81,7 +81,7 @@ describe('streamToolLoop', () => {
     const events: LoopEvent[] = [];
     const handler = new TraceHandler();
     const tracedSearch = tool(async () => '{"hotels":[]}', { name: 'searchHotels', description: 'search', schema: z.object({ city: z.string() }), callbacks: [handler] });
-    for await (const e of streamToolLoop(model, [tracedSearch, rawTool('Example notes')], [new HumanMessage('hi')], new AbortController().signal, MAX_TOOL_ROUNDS, new Set(['read_notes']), [handler])) events.push(e);
+    for await (const e of streamToolLoop(model, [tracedSearch, rawTool('Example notes')], [new HumanMessage('hi')], [], new AbortController().signal, MAX_TOOL_ROUNDS, new Set(['read_notes']), [handler])) events.push(e);
     expect(started).toEqual(['read_notes', 'searchHotels', 'show_results']);
     expect(finished).toHaveLength(3);
     expect(events.filter((e) => e.type === 'show_results')).toHaveLength(1);
@@ -95,7 +95,7 @@ describe('streamToolLoop', () => {
     ]);
     const events: LoopEvent[] = [];
     const reader = readWikiTool(loadLibrary(), 'zh');
-    for await (const event of streamToolLoop(model, [reader], [], new AbortController().signal, 10, new Set([READ_WIKI]))) events.push(event);
+    for await (const event of streamToolLoop(model, [reader], [], [], new AbortController().signal, 10, new Set([READ_WIKI]))) events.push(event);
     expect(events.map(event => event.type)).toEqual(['tool_call', 'wiki_read', 'text']);
     expect(events[1]).toEqual({ type: 'wiki_read', pages: [{ id: 'kyoto', title: '京都' }, { id: 'kyoto/kiyomizu-dera', title: '清水寺' }] });
     const response = model.seen[1].at(-1)?.text;
@@ -112,7 +112,7 @@ describe('streamToolLoop', () => {
       textChunks('done'),
     ]);
     const events: LoopEvent[] = [];
-    for await (const event of streamToolLoop(model, [readWikiTool(loadLibrary(), 'en')], [], new AbortController().signal, 10, new Set([READ_WIKI]))) events.push(event);
+    for await (const event of streamToolLoop(model, [readWikiTool(loadLibrary(), 'en')], [], [], new AbortController().signal, 10, new Set([READ_WIKI]))) events.push(event);
     const conversation = model.seen[2].map(message => message.text).join('\n');
     expect(conversation.split('Choose the bamboo grove').length - 1).toBe(1);
     expect(model.seen[2].at(-1)?.text).toContain('Wiki page "kyoto/arashiyama" was already returned above.');
@@ -218,7 +218,7 @@ describe('streamToolLoop', () => {
     expect(events[1]).toMatchObject({ type: 'tool_results', results: [{ callId: 't1', isError: true }] });
   });
 
-  it('emits show_results with the results so far and answers "shown"', async () => {
+  it('emits show_results with the results so far and reports the shown count', async () => {
     const model = scripted([
       [callChunk('c1', 'searchHotels', { city: 'Lisboa' })],
       [callChunk('s1', 'show_results', { panel: 'hotels', items: [validItem] })],
@@ -228,7 +228,36 @@ describe('streamToolLoop', () => {
     const shown = events.find((e) => e.type === 'show_results');
     expect(shown).toMatchObject({ type: 'show_results', input: { panel: 'hotels' }, results: [{ callId: 't1' }] });
     const reply = model.seen[2].at(-1) as ToolMessage;
-    expect(reply.content).toBe('shown');
+    expect(reply.content).toBe('Shown 1/1.');
+  });
+
+  it('shows a stored result and numbers the next search after the retained tail', async () => {
+    const stored = ['t3', 't4', 't5', 't6', 't7', 't8', 't9', 't10'].map((callId) => ({
+      callId, tool: 'searchHotels', args: {}, content: 'Casa Lisboa', isError: false,
+    }));
+    const model = scripted([
+      [callChunk('s1', 'show_results', { panel: 'hotels', items: [{ ...validItem, source: 't3' }] })],
+      [callChunk('c1', 'searchHotels', { city: 'Porto' })],
+      textChunks('ok'),
+    ]);
+    const events = await collect(model, undefined, stored);
+    expect(model.seen[1].at(-1)?.content).toBe('Shown 1/1.');
+    expect(events.find((e) => e.type === 'tool_results')?.results.map((r) => r.callId))
+      .toEqual(['t3', 't4', 't5', 't6', 't7', 't8', 't9', 't10', 't11']);
+  });
+
+  it('identifies each dropped item and distinguishes an unknown source from an unmatched title', async () => {
+    const model = scripted([
+      [callChunk('c1', 'searchHotels', { city: 'Lisboa' })],
+      [callChunk('s1', 'show_results', { panel: 'hotels', items: [
+        validItem,
+        { ...validItem, source: 't9' },
+        { ...validItem, title: { original: 'Casa Porto', translation: null } },
+      ] })],
+      textChunks('ok'),
+    ]);
+    await collect(model);
+    expect(model.seen[2].at(-1)?.content).toBe('Shown 1/3. Item 2: unknown source t9. Item 3: id/title not found in t1.');
   });
 
   it('feeds invalid show_results arguments back and keeps going', async () => {

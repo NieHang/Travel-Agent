@@ -288,6 +288,20 @@ describe('TurnService', () => {
     expect(llm.inputs[1].state.toolResults).toEqual([hotelResult]);
   });
 
+  it('traces only the lookups a turn made, not the stored results it was given', async () => {
+    const kyoto = { callId: 't2', tool: 'searchHotels', args: { query: 'Kyoto' }, content: '{"hotels":[]}', isError: false };
+    llm.classifications.push(chatted, chatted);
+    llm.responses.push(
+      [...searchAndShow('hotels'), { type: 'text', delta: '找到了' }],
+      [{ type: 'tool_call', name: 'searchHotels', args: kyoto.args }, { type: 'tool_results', results: [hotelResult, kyoto] }, { type: 'text', delta: '京都的' }],
+    );
+    await send({ revision: 0, command: { type: 'message', text: '里斯本阿尔法玛附近的酒店' } });
+    const end = done(await send({ revision: 1, command: { type: 'message', text: '京都呢' } }));
+    expect(end.message.metadata?.trace?.verification?.lookups).toEqual([
+      { tool: 'searchHotels', subject: 'Kyoto', at: expect.any(String), ok: true, count: 0 },
+    ]);
+  });
+
   it('uses a tool from any server with no code changes', async () => {
     llm.classifications.push(chatted);
     const other = { callId: 'p1', tool: 'otherServer__places', args: {}, content: '{"places":[{"name":"Lingyin Temple"}]}', isError: false };
