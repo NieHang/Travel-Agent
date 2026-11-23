@@ -83,13 +83,15 @@ const TOOL_RULES = `- Fill tool arguments from the request and the conversation;
 const TASKS: Record<LlmTask, string> = {
   revise: `Task: change only part of the itinerary draft in serverContext.plan, as the user asked. The app shows the
 whole draft in its trip panel; the days you do not change stay exactly as they are.
+- The app writes each day's hotel line ("- Tonight: …" / "- 今晚：…") from the hotel of that night. Never write or fix
+  a hotel line yourself.
 - serverContext.target.days are the [D#] days to rewrite (1-based). Rewrite each with write_day: the whole day in the
-  draft's format, its header updated to the day's places and intensity. Keep that day's hotel line as it is unless
-  its night is in target.nights. Do not write any other day.
+  draft's format without its hotel line, its header updated to the day's places and intensity. Do not write any other day.
 - If the change makes the overview's intensity line or before-you-go wrong, rewrite that part with write_preamble.
 - serverContext.target.nights are the nights (by the day they follow) whose hotel may change. For those, search
   accommodation (check-in and check-out from the plan's dates), show the options with show_results panel "hotels",
-  then call use_stay with the one you choose. Never invent a hotel.
+  then call use_stay with the one you choose: it also updates those days' hotel lines, so a hotel change needs no
+  write_day. Never invent a hotel.
 - Then reply in 1-3 sentences: what changed and on which days. Do not repeat the plan.`,
   answer: `Task: answer the user's latest message. Read wiki pages for sourced place facts. Call live tools when current provider data is needed.
 Hilda covers travel in Japan only. If the user asks about visiting a place outside Japan, say briefly that Hilda only plans trips in Japan, and call no tools.`,
