@@ -81,17 +81,22 @@ export async function* runEffect(
       if (!text.trim()) throw new Error('Empty itinerary');
       yield { type: 'status', phase: 'organizing' };
       const draft = parseDraft(text, next.stays);
-      const stops = await Promise.all(draft.days.map((day) => llm.extractStops(day, next.locale, signal)));
+      const [brief, stops] = await Promise.all([
+        llm.extractBrief(draft.preamble, next.locale, signal),
+        Promise.all(draft.days.map((day) => llm.extractStops(day, next.locale, signal))),
+      ]);
+      Object.assign(next, brief);
       next.preamble = draft.preamble;
       next.days = draft.days.map((day, i) => ({ ...day, stops: stops[i] }));
       next.footer = draft.footer;
       return c.draftReady(overviewLine(next.preamble));
     }
     case 'revise': {
-      if (edits.days.size) yield { type: 'status', phase: 'organizing' };
+      if (edits.days.size || edits.preamble !== undefined) yield { type: 'status', phase: 'organizing' };
       const rewritten = await Promise.all(
         [...edits.days].map(async ([i, day]) => [i, { ...day, stops: await llm.extractStops(day, next.locale, signal) }] as const),
       );
+      if (edits.preamble !== undefined) Object.assign(next, await llm.extractBrief(edits.preamble, next.locale, signal));
       const spliced = splice(next, { days: new Map(rewritten), preamble: edits.preamble, nights: edits.nights });
       next.preamble = spliced.preamble;
       next.days = spliced.days;

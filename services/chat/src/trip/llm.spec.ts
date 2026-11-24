@@ -87,7 +87,7 @@ describe('ModelTripLlm', () => {
       .toContain('Today is 2026-01-15.');
   });
 
-  it('passes callbacks to classify, respond and extractStops', async () => {
+  it('passes callbacks to classify, respond and both extractors', async () => {
     class ExtraHandler extends BaseCallbackHandler { name = 'extra'; }
     const callbacks = [new ExtraHandler()];
     const llm = new ModelTripLlm(undefined, [], { callbacks });
@@ -97,10 +97,13 @@ describe('ModelTripLlm', () => {
     await respond(llm, 'answer');
     model.classify.mockResolvedValue({ stops: [] });
     await llm.extractStops({ title: 'Day 1', body: '' }, 'zh', signal());
+    model.classify.mockResolvedValue({ tip: null, todos: [] });
+    await llm.extractBrief('Overview', 'zh', signal());
     expect(vi.mocked(createChatModel).mock.calls).toEqual([
       [{ operation: 'trip.classify', callbacks }],
       [{ operation: 'trip.respond', callbacks }],
       [{ operation: 'trip.extract_stops', callbacks }],
+      [{ operation: 'trip.extract_brief', callbacks }],
     ]);
   });
 
@@ -181,11 +184,30 @@ describe('countNights', () => {
   });
 });
 
+it('extracts the brief from the preamble and caps the checklist at eight items', async () => {
+  const todo = { kind: 'reserve', title: 'Book entry', note: null };
+  model.classify.mockReset().mockResolvedValue({ tip: 'Visit early.', todos: Array(9).fill(todo) });
+  const preamble = 'Overview: Visit early.\nBefore you go\n- Book entry';
+  const abort = signal();
+  const brief = await new ModelTripLlm().extractBrief(preamble, 'en', abort);
+  expect(brief.tip).toBe('Visit early.');
+  expect(brief.todos).toHaveLength(8);
+  expect(brief.todos[0]).toEqual(todo);
+  const [messages, config] = model.classify.mock.calls[0] as [BaseMessage[], unknown];
+  expect(messages[1].text).toBe(preamble);
+  expect(config).toMatchObject({ signal: abort, runName: 'trip.extract_brief' });
+});
+
 describe('extractStops', () => {
+  it('requires explicit nullable panel fields from the model', async () => {
+    model.classify.mockReset().mockResolvedValue({ stops: [{ name: 'Castle', note: null, time: null }] });
+    await expect(new ModelTripLlm().extractStops({ title: 'Day 1', body: 'Castle' }, 'en', signal())).rejects.toThrow();
+  });
+
   it('reads one day, header and body, and returns its stops', async () => {
-    model.classify.mockReset().mockResolvedValue({ stops: [{ name: 'Nijo Castle', note: null, time: '09:30' }] });
+    model.classify.mockReset().mockResolvedValue({ stops: [{ name: 'Nijo Castle', note: null, time: '09:30', hours: null, closes: null, transit: null }] });
     const stops = await new ModelTripLlm().extractStops({ title: 'Day 3 | Nijo Castle (light)', body: '- 09:30 Nijo Castle' }, 'en', signal());
-    expect(stops).toEqual([{ name: 'Nijo Castle', note: null, time: '09:30' }]);
+    expect(stops).toEqual([{ name: 'Nijo Castle', note: null, time: '09:30', hours: null, closes: null, transit: null }]);
     const [sent] = model.classify.mock.calls[0] as [BaseMessage[]];
     expect(sent[1].text).toBe('Day 3 | Nijo Castle (light)\n- 09:30 Nijo Castle');
   });
@@ -194,7 +216,8 @@ describe('extractStops', () => {
     model.classify.mockReset().mockResolvedValue({ stops: [] });
     await new ModelTripLlm().extractStops({ title: 'Day 1', body: '' }, 'en', signal());
     const [sent] = model.classify.mock.calls[0] as [BaseMessage[]];
-    expect(sent[0].text).toContain('Travel legs');
+    expect(sent[0].text).toContain("goes in A's transit");
+    expect(sent[0].text).toContain('before the first stop in its note');
     // Lines like "Narita Airport → Ueno (Skyliner)" were extracted as stops in live runs, and eval drafts
     // had hotels and transfer stations extracted as stops.
     expect(sent[0].text).toContain('never a route or an arrow');
@@ -213,7 +236,7 @@ describe('revise', () => {
     requirements: { destination: 'Kyoto', departureDate: '2026-11-30', returnDate: '2026-12-01' },
     days: [
       { title: 'Day 1 | A (light)', body: '- 10:00 A', stops: [], stayRef: null },
-      { title: 'Day 2 | B (light)', body: '- 10:00 B', stops: [{ name: '兴福寺', time: null, note: null }, { name: '东本愿寺', time: '16:00', note: null }], stayRef: null },
+      { title: 'Day 2 | B (light)', body: '- 10:00 B', stops: [{ name: '兴福寺', time: null, note: null, hours: null, closes: null, transit: null }, { name: '东本愿寺', time: '16:00', note: null, hours: null, closes: null, transit: null }], stayRef: null },
     ],
   });
 

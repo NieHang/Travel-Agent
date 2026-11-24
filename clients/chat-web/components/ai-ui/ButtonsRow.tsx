@@ -20,7 +20,7 @@ export function ButtonsRow({ component, onCommand }: {
       {buttons.map((button) => (
         <PillButton
           key={button.command}
-          variant={PRIMARY[button.command] ? 'ink' : 'ghost'}
+          variant={PRIMARY[button.command] ? 'trip-ink' : 'trip-outline'}
           size="sm"
           loading={!onCommand && clicked === button.command}
           disabled={!onCommand && clicked !== button.command}

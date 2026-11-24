@@ -42,7 +42,7 @@ describe('frozen persisted snapshots', () => {
       const state = readState(readFixture(file), 91);
       // Compare with the original JSON, not schema output that could strip lost data.
       expect(state).toMatchObject({ ...raw, version: 3, revision: 91 });
-      expect(state.days.map(({ title, stops, stayRef }) => ({ title, stops, stayRef }))).toEqual(days);
+      expect(state.days).toMatchObject(z.array(z.unknown()).parse(days));
       // Every line of the stored draft is still in the derived markdown.
       const markdown = toTripView(state)?.itineraryMarkdown ?? '';
       for (const line of z.string().nullable().parse(itinerary)?.split('\n').filter((l) => l.trim() && !l.startsWith('## Day')) ?? [])
@@ -82,7 +82,7 @@ describe('frozen persisted snapshots', () => {
       },
       preamble: context.itinerary,
     });
-    expect(state?.days.map(({ title, stops }) => ({ title, stops }))).toEqual(trip.days);
+    expect(state?.days).toMatchObject(z.array(z.unknown()).parse(trip.days));
     expect(readState(state, 92)).toMatchObject({ ...state, revision: 92 });
   });
 
@@ -92,7 +92,7 @@ describe('frozen persisted snapshots', () => {
       stage: 'review',
       locale: 'en',
       preamble: '# 草稿',
-      days: [{ title: '第 1 天', stops: [{ name: '西湖', note: null, time: null }], stayRef: null }],
+      days: [{ title: '第 1 天', stops: [{ name: '西湖', note: null, time: null, hours: null, closes: null, transit: null }], stayRef: null }],
       toolResults: [{ callId: 'legacy-1', tool: 'searchHotels', args: {}, content: '{}', isError: false }],
     });
     expect(state?.requirements).toEqual({

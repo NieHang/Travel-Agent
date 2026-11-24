@@ -40,6 +40,7 @@ export function ComponentRenderer({ component, mode }: ComponentRendererProps) {
     case 'buttons':
       return <ButtonsRow component={c} onCommand={mode.kind === 'live' ? mode.onCommand : undefined} />
     case 'cards':
-      return <div className="grid gap-3 sm:grid-cols-2">{c.items.map((item) => <ResultCard key={item.ref} item={item} />)}</div>
+      // Two columns once the message list (an @container) is wide enough, not by viewport: the desktop chat column is narrow.
+      return <div className="grid gap-3 @lg:grid-cols-2">{c.items.map((item) => <ResultCard key={item.ref} item={item} />)}</div>
   }
 }

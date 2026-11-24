@@ -6,15 +6,20 @@ import { motion } from 'motion/react'
 import type { ReactNode, Ref } from 'react'
 import { springs } from '@/lib/motion'
 
-type Variant = 'ink' | 'lime' | 'pink' | 'ghost' | 'danger'
+type Variant = 'ink' | 'lime' | 'ghost' | 'danger' | 'trip-ink' | 'trip-soft' | 'trip-white' | 'trip-quiet' | 'trip-outline'
 type Size = 'sm' | 'md' | 'lg'
 
 const VARIANT: Record<Variant, string> = {
   ink: 'bg-ink text-white',
   lime: 'bg-lime text-ink',
-  pink: 'bg-stage-pink text-ink',
   ghost: 'bg-transparent text-ink border-2 border-ink',
   danger: 'bg-danger text-ink',
+  // The trip screen (/chat).
+  'trip-ink': 'bg-trip-ink text-white',
+  'trip-soft': 'bg-trip-fill text-trip-ink',
+  'trip-white': 'bg-white text-trip-ink',
+  'trip-quiet': 'bg-transparent text-trip-ink hover:bg-trip-fill',
+  'trip-outline': 'bg-transparent text-trip-ink border border-trip-line',
 }
 
 // 每档都不小于 44px 触摸区域
@@ -36,6 +41,8 @@ export type PillButtonProps = {
   loading?: boolean
   disabled?: boolean
   iconOnly?: boolean
+  /** Fill the container's width. */
+  block?: boolean
   'aria-label'?: string
   type?: 'button' | 'submit'
   onClick?: () => void
@@ -50,6 +57,7 @@ export function PillButton({
   loading = false,
   disabled = false,
   iconOnly = false,
+  block = false,
   type = 'button',
   onClick,
   autoFocus,
@@ -75,11 +83,11 @@ export function PillButton({
       transition={springs.snappy}
       className={`relative inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap ${
         VARIANT[variant]
-      } ${iconOnly ? ICON_SIZE[size] : SIZE[size]} ${
+      } ${iconOnly ? ICON_SIZE[size] : SIZE[size]} ${block ? 'w-full' : ''} ${
         disabled ? 'cursor-not-allowed opacity-40' : loading ? 'cursor-progress' : 'cursor-pointer'
       }`}
     >
-      <span className={loading ? 'invisible' : undefined}>{children}</span>
+      <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>{children}</span>
       {loading ? (
         <span
           aria-hidden

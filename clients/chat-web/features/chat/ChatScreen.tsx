@@ -8,13 +8,13 @@ import { useLocale, useTranslations } from 'next-intl'
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react'
 import { Chip } from '@/components/ui/Chip'
-import { LogoDot } from '@/components/ui/Logo'
 import { PillButton } from '@/components/ui/PillButton'
 import { toast } from '@/components/ui/toast'
 import { ApiRequestError } from '@/features/auth/api-client'
@@ -24,14 +24,11 @@ import { createConversation } from '@/features/conversations/api'
 import { HistoryDrawer } from '@/features/conversations/HistoryDrawer'
 import { messagesKey, useMessages } from '@/features/conversations/queries'
 import { useCountdown } from '@/lib/use-countdown'
-import { BG_TRANSITION } from '@/lib/motion'
-import {
-  PanelTabs,
-  SaveTripButton,
-  TripPanels,
-} from '@/features/panels/TripPanels'
-import { STAGE_COLOR, type PanelTab } from '@/features/panels/tabs'
+import { LiveTripPanels } from '@/features/panels/LiveTripPanels'
 import { MobileSheet } from '@/features/panels/MobileSheet'
+import { MobileTrip } from '@/features/panels/MobileTrip'
+import { PanelTabs, SaveTripButton } from '@/features/panels/TripPanels'
+import type { PanelTab } from '@/features/panels/tabs'
 import { useIsDesktop } from '@/lib/use-media-query'
 import { Composer } from './Composer'
 import { MessageList, SkeletonBubbles } from './MessageList'
@@ -53,14 +50,14 @@ export function conversationIdFromPath(pathname: string): string | null {
   }
 }
 
-function SuggestionChips({ onPick }: { onPick: (text: string) => void }) {
+function SuggestionChips({ centered = false, onPick }: { centered?: boolean; onPick: (text: string) => void }) {
   const t = useTranslations('chat')
   return (
-    <div className="flex flex-wrap justify-center gap-2">
+    <div className={`flex flex-wrap gap-2 ${centered ? 'justify-center' : ''}`}>
       {Array.from({ length: CHIP_COUNT }, (_, i) => {
         const text = t(`chips.${i}`)
         return (
-          <Chip key={i} onClick={() => onPick(text)}>
+          <Chip key={i} variant="outline" onClick={() => onPick(text)}>
             {text}
           </Chip>
         )
@@ -72,6 +69,8 @@ function SuggestionChips({ onPick }: { onPick: (text: string) => void }) {
 export function ChatScreen(): ReactNode {
   const t = useTranslations('chat')
   const tc = useTranslations('common')
+  const tp = useTranslations('panels')
+  const chatLabelId = useId()
   const router = useRouter()
   const queryClient = useQueryClient()
   const auth = useAuth()
@@ -82,7 +81,6 @@ export function ChatScreen(): ReactNode {
   const [sheetOpen, setSheetOpen] = useState(false)
   const isDesktop = useIsDesktop()
   const [panelTab, setPanelTab] = useState<PanelTab>('plan')
-  const background = STAGE_COLOR[panelTab]
   // The turn contract accepts only the two app locales.
   const locale = useLocale() === 'en' ? 'en' : 'zh'
 
@@ -262,8 +260,8 @@ export function ChatScreen(): ReactNode {
   } else if (notFound) {
     body = (
       <div className="m-auto flex flex-col items-center gap-4 text-center">
-        <p className="text-2xl font-extrabold text-ink">{t('notFound')}</p>
-        <PillButton variant="lime" onClick={() => router.push('/chat')}>
+        <p className="text-2xl font-bold">{t('notFound')}</p>
+        <PillButton variant="trip-ink" onClick={() => router.push('/chat')}>
           {t('startNew')}
         </PillButton>
       </div>
@@ -271,8 +269,8 @@ export function ChatScreen(): ReactNode {
   } else if (query.isError) {
     body = (
       <div className="m-auto flex flex-col items-center gap-4 text-center">
-        <p className="text-base font-bold text-ink">{tc('loadFailed')}</p>
-        <PillButton variant="ink" onClick={() => void query.refetch()}>
+        <p className="text-[15px] font-bold">{tc('loadFailed')}</p>
+        <PillButton variant="trip-ink" onClick={() => void query.refetch()}>
           {tc('retry')}
         </PillButton>
       </div>
@@ -280,20 +278,16 @@ export function ChatScreen(): ReactNode {
   } else if (isNewChat) {
     body = (
       <div className="m-auto flex flex-col items-center gap-6 text-center">
-        <h1 className="text-4xl font-extrabold leading-none text-ink">
+        <h1 className="text-[32px] leading-tight font-bold tracking-[-0.5px]">
           {t('greeting', { nickname })}
         </h1>
-        {showChips ? <SuggestionChips onPick={pickChip} /> : null}
+        {showChips ? <SuggestionChips centered onPick={pickChip} /> : null}
       </div>
     )
   }
 
   return (
-    <div
-      data-testid="chat-screen"
-      className="flex h-dvh flex-col"
-      style={{ backgroundColor: background, transition: BG_TRANSITION }}
-    >
+    <div data-testid="chat-screen" className="flex h-dvh flex-col bg-trip-ground font-trip text-trip-ink">
       <TopBar
         center={
           isDesktop ? <PanelTabs tab={panelTab} onChange={setPanelTab} /> : null
@@ -310,19 +304,11 @@ export function ChatScreen(): ReactNode {
         isBlankNewChat={viewId === null && input === ''}
         returnFocusRef={drawerButtonRef}
       />
-      <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 sm:px-6">
-        <section className="flex min-h-0 w-full flex-col gap-3 lg:w-[42%]">
-          <div className="flex items-center gap-3">
-            <LogoDot className="bg-ink" />
-            <div className="min-w-0">
-              <p className="text-base font-extrabold text-ink">
-                {t('assistantName')}
-              </p>
-              <p className="text-sm text-ink">
-                {generating ? t('typing') : t('online')}
-              </p>
-            </div>
-          </div>
+      <div className="flex min-h-0 flex-1 gap-8 px-4 pb-4 lg:px-8 lg:pt-2 lg:pb-10">
+        <section aria-labelledby={chatLabelId} className="flex min-h-0 w-full min-w-0 flex-col gap-3 lg:max-w-[420px] lg:flex-[1_1_340px]">
+          <span id={chatLabelId} className="px-0.5 pt-1 pb-2 text-[13px] text-trip-muted">
+            {t('conversation')}
+          </span>
           <div className="relative flex min-h-0 flex-1 flex-col">
             <MessageList
               scrollRef={stick.ref}
@@ -345,7 +331,7 @@ export function ChatScreen(): ReactNode {
             {stick.atBottom ? null : (
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
                 <PillButton
-                  variant="ink"
+                  variant="trip-ink"
                   iconOnly
                   aria-label={t('jumpToLatest')}
                   onClick={stick.scrollToBottom}
@@ -360,7 +346,7 @@ export function ChatScreen(): ReactNode {
           ) : null}
           {!isDesktop ? (
             <PillButton
-              variant="ghost"
+              variant="trip-outline"
               size="sm"
               onClick={() => setSheetOpen(true)}
             >
@@ -378,20 +364,29 @@ export function ChatScreen(): ReactNode {
           />
         </section>
         {isDesktop ? (
-          <aside className="min-h-0 flex-1 overflow-y-auto rounded-panel bg-ink">
-            <TripPanels tab={panelTab} data={panelData} draft={stream.draft} busy={generating || uiState.isPending} onCommand={(command) => void sendCommand(command)} />
+          <aside aria-label={tp('live.title')} className="min-h-0 min-w-0 flex-[2_1_560px] overflow-y-auto rounded-trip-panel bg-trip-panel shadow-trip-panel">
+            <LiveTripPanels
+              key={viewId ?? 'new'}
+              tab={panelTab}
+              data={panelData}
+              draft={stream.draft}
+              busy={generating || uiState.isPending}
+              onCommand={(command) => void sendCommand(command)}
+              conversationId={viewId}
+            />
           </aside>
         ) : null}
       </div>
       {!isDesktop ? (
         <MobileSheet open={sheetOpen} onClose={() => setSheetOpen(false)}>
-          <div className="flex items-center gap-3 px-4 py-3">
-            <div className="min-w-0 flex-1">
-              <PanelTabs tab={panelTab} onChange={setPanelTab} scrollable />
-            </div>
-            <SaveTripButton />
-          </div>
-          <TripPanels tab={panelTab} data={panelData} draft={stream.draft} busy={generating || uiState.isPending} onCommand={(command) => void sendCommand(command)} />
+          <MobileTrip
+            key={viewId ?? 'new'}
+            data={panelData}
+            draft={stream.draft}
+            busy={generating || uiState.isPending}
+            onCommand={(command) => void sendCommand(command)}
+            conversationId={viewId}
+          />
         </MobileSheet>
       ) : null}
     </div>

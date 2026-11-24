@@ -82,7 +82,7 @@ it('puts the request, the tool calls, the grounded hotel facts, the draft and th
   const text = (original: string) => ({ original, translation: null });
   const hotel = { ref: 'h1', id: null, title: text('Hotel A'), address: null, price: { amount: 900, currency: 'CNY' }, rating: 4, url: null, image: null, details: [{ label: 'Distance (m)', value: text('87') }], amenities: [text('Elevator')], summary: 'Best pick' };
   const out = {
-    next: { ...initialState(0, 'en'), requirements: { destination: 'Osaka', travelers: 4 }, stays: { panel: null, items: [hotel] }, days: [{ title: 'Day 1', stayRef: 'h1', stops: [{ name: 'Osaka Castle', note: null, time: null }] }] },
+    next: { ...initialState(0, 'en'), requirements: { destination: 'Osaka', travelers: 4 }, stays: { panel: null, items: [hotel] }, days: [{ title: 'Day 1', stayRef: 'h1', stops: [{ name: 'Osaka Castle', note: null, time: null, hours: null, closes: null, transit: null }] }] },
     draft: 'Day 1: Osaka Castle',
     toolCalls: [{ name: 'mcp_rollingGo_searchHotels', args: { place: 'Osaka' } }],
     toolResults: [{ content: JSON.stringify({ message: 'ok', hotels: [{ name: 'Hotel A', distanceInMeters: 2312, tags: ['Twin rooms'] }] }) }],

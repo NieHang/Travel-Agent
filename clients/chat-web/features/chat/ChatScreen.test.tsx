@@ -8,6 +8,7 @@ import { PENDING_KEY } from '@/features/auth/pending-prompt'
 import {
   makeConversation,
   makeMessage,
+  makeTripView,
   makeUser,
   sseController,
 } from '@/test/fixtures'
@@ -203,7 +204,7 @@ it('新对话：显示「嗨，Ann，想去哪？」与四个建议 chip', () =>
   ]) {
     expect(screen.getByRole('button', { name: chip })).toBeInTheDocument()
   }
-  expect(screen.getByText('你的旅行助手 · 在线')).toBeInTheDocument()
+  expect(screen.getByRole('region', { name: '与 Hilda 的对话' })).toBeInTheDocument()
 })
 
 it('点击 chip：文字填入输入框并聚焦，不发请求；输入框非空时 chip 隐藏', async () => {
@@ -353,7 +354,6 @@ it('生成中：副标题为「正在输入…」，气泡里逐步显示到达�
 
   await typeAndSend(user, '继续')
   expect(await screen.findByRole('status')).toHaveTextContent('理解需求')
-  expect(screen.getByText('正在输入…', { selector: 'p' })).toBeInTheDocument()
   expect(
     screen.queryByRole('button', { name: '当地人去哪吃' }),
   ).not.toBeInTheDocument()
@@ -823,15 +823,15 @@ it('顶栏：抽屉开关切换图标但标签不变；头像菜单在顶栏里'
   ).toBeInTheDocument()
 })
 
-it('窄屏查看行程打开底部面板，酒店标签改变页面背景', async () => {
+it('窄屏查看行程打开底部面板，面板里有行程、清单、酒店标签和保存按钮', async () => {
   const { user } = renderScreen()
   expect(screen.queryByRole('tab', { name: '酒店' })).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: '查看行程' }))
   const dialog = await screen.findByRole('dialog')
+  expect(within(dialog).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['行程', '清单', '酒店'])
   await user.click(within(dialog).getByRole('tab', { name: '酒店' }))
-  expect(screen.getByTestId('chat-screen')).toHaveStyle({
-    backgroundColor: 'var(--color-stage-purple)',
-  })
+  expect(within(dialog).getByRole('tab', { name: '酒店' })).toHaveAttribute('aria-selected', 'true')
+  expect(within(dialog).getByText('开始规划后，行程会显示在这里')).toBeInTheDocument()
   expect(
     within(dialog).getByRole('button', { name: '保存行程' }),
   ).toBeInTheDocument()
@@ -860,23 +860,13 @@ it('restores the latest panel snapshot without loading older failed message page
       HttpResponse.json({
         revision: 1,
         components: [],
-        trip: {
-          revision: 1,
-          status: 'draft',
+        trip: makeTripView({
           destination: '杭州',
           departureDate: null,
           returnDate: null,
           travelers: null,
-          budget: null,
-          budgetCurrency: null,
-          overview: null,
           itineraryMarkdown: '持久化的行程',
-          stayPlan: [],
-          days: [],
-          hotels: [],
-          routes: [],
-          hotspots: [],
-        },
+        }),
       }),
     ),
   )

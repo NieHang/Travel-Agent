@@ -6,6 +6,8 @@ import type { Locale, TripState } from './state.js';
 import type { LoopEvent } from './tool-loop.js';
 
 const FAKE_REPLY_CHUNKS = ['好的，', '这是一段', '用于测试的回复。'];
+const CROWD_TIP = '避开周末午后的人潮。';
+const ARRIVAL_TASK = '抵达后领取 IC 卡';
 const CITIES = ['杭州', '里斯本'];
 const NULL_PATCH: Classified['patch'] = {
   destination: null, tripType: null, departureDate: null, returnDate: null,
@@ -44,15 +46,23 @@ export class FakeTripLlm implements TripLlm {
     const chunks =
       task === 'answer'
         ? FAKE_REPLY_CHUNKS
-        : [`## ${input.state.requirements.destination ?? ''}行程草稿\n\n**总览**：轻松\n\n`, '**第 1 天 | 市区漫步（轻松）**\n- 10:00 市区漫步'];
+        : [`## ${input.state.requirements.destination ?? ''}行程草稿\n\n**总览**：轻松\n${CROWD_TIP}\n\n**出发前要办**\n- ${ARRIVAL_TASK}\n\n`, '**第 1 天 | 市区漫步（轻松）**\n- 10:00 市区漫步'];
     for (const delta of chunks) {
       signal.throwIfAborted();
       yield { type: 'text', delta };
     }
   }
 
+  async extractBrief(preamble: string, _locale: Locale, _signal?: AbortSignal): Promise<Pick<TripState, 'tip' | 'todos'>> {
+    const [overview, checklist] = preamble.split('**出发前要办**');
+    return {
+      tip: overview.includes(CROWD_TIP) ? CROWD_TIP : null,
+      todos: checklist?.includes(ARRIVAL_TASK) ? [{ kind: 'on_arrival', title: ARRIVAL_TASK, note: null }] : [],
+    };
+  }
+
   async extractStops(day: Pick<PlanDay, 'title' | 'body'>, _locale: Locale, _signal?: AbortSignal): Promise<Stop[]> {
     const name = day.title.split('|')[1]?.replace(/（.*）/, '').trim() || day.title;
-    return [{ name, note: null, time: null }];
+    return [{ name, note: null, time: null, hours: null, closes: null, transit: null }];
   }
 }

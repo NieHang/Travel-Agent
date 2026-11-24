@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { NightRange, ResultGroup, ResultItem } from '@autix/contracts';
+import { PaceSchema, type NightRange, type Pace, type ResultGroup, type ResultItem } from '@autix/contracts';
 
 type Locale = 'zh' | 'en';
 
@@ -7,6 +7,16 @@ export const StopSchema = z.object({
   name: z.string().min(1).max(200),
   note: z.string().max(500).nullable(),
   time: z.string().max(50).nullable(),
+  hours: z.string().max(500).nullable(),
+  /** "HH:MM" when the model follows the prompt; anything else never counts as late. */
+  closes: z.string().max(20).nullable(),
+  transit: z.string().max(500).nullable(),
+});
+// Older stored stops omit these keys. The strict model schema above requires them.
+const StoredStopSchema = StopSchema.extend({
+  hours: StopSchema.shape.hours.default(null),
+  closes: StopSchema.shape.closes.default(null),
+  transit: StopSchema.shape.transit.default(null),
 });
 export type Stop = z.infer<typeof StopSchema>;
 
@@ -15,7 +25,7 @@ export const PlanDaySchema = z.object({
   /** "Day 3 | Nijo Castle · Nishiki Market (light)", without markdown decoration. */
   title: z.string().min(1).max(300),
   body: z.string().max(6000),
-  stops: z.array(StopSchema).max(20),
+  stops: z.array(StoredStopSchema).max(20),
   /** The hotel for the night after this day: a ref into `stays`, or null. */
   stayRef: z.string().nullable(),
 });
@@ -32,6 +42,21 @@ export type Draft = { preamble: string; days: DraftDay[]; footer: string };
 
 /** A day header: the skill's "Day 3 | …" / "**第3天 | …**", and older drafts' "## Day 3" or "Day 3: …". */
 const DAY_HEADER = /^[#*\s]*(?:Day\s*\d+|第\s*\d+\s*天)(?=\s*(?:[|｜:：*]|$))/i;
+const { light, standard, tiring } = PaceSchema.enum;
+const PACE_WORDS = new Map<string, Pace>([
+  [light, light], ['轻松', light],
+  [standard, standard], ['标准', standard],
+  [tiring, tiring], ['较累', tiring],
+]);
+
+export function dayHeading(title: string): { heading: string; pace: Pace | null } {
+  if (!DAY_HEADER.test(title)) return { heading: title, pace: null };
+  const heading = title.replace(DAY_HEADER, '').replace(/^[\s|｜:：*]+/, '').trimEnd();
+  const suffix = /\s*(?:\(([^()]*)\)|（([^（）]*)）)$/.exec(heading);
+  const pace = suffix && PACE_WORDS.get((suffix[1] ?? suffix[2]).trim().toLowerCase());
+  return suffix && pace ? { heading: heading.slice(0, suffix.index), pace } : { heading, pace: null };
+}
+
 /** The hotel line the itinerary task asks for under each overnight day. */
 const STAY_LINE = /^[-*\s]*(?:Tonight|今晚|住宿)[^:：\n]{0,6}[:：]/i;
 const LIST_LINE = /^\s*(?:[-*+]|\d+[.)])\s/;

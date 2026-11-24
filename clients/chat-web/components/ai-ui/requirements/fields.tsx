@@ -95,7 +95,7 @@ export function DestinationEditor({ field, onCommit }: EditorProps<'destination'
         <TextField aria-label={field.label} value={text} onChange={setText} className="min-w-0 flex-1">
           <Input autoFocus placeholder={field.placeholder ?? undefined} maxLength={200} />
         </TextField>
-        <Button type="submit" isDisabled={!value} className="bg-ink text-white">{t('done')}</Button>
+        <Button type="submit" isDisabled={!value} className="bg-trip-ink text-white">{t('done')}</Button>
       </div>
     </form>
   )
@@ -146,7 +146,7 @@ export function PreferencesEditor({ field, onCommit }: EditorProps<'preferences'
       <TextField aria-label={field.label} value={text} onChange={setText}>
         <TextArea rows={3} maxLength={4000} placeholder={field.placeholder ?? undefined} />
       </TextField>
-      <Button className="self-end bg-ink text-white" onPress={() => onCommit({ ...field, value: text.trim() })}>{t('done')}</Button>
+      <Button className="self-end bg-trip-ink text-white" onPress={() => onCommit({ ...field, value: text.trim() })}>{t('done')}</Button>
     </div>
   )
 }
@@ -175,9 +175,9 @@ export function TravelersStepper({ field, onChange }: {
   )
 }
 
-export const chipBase = 'inline-flex min-h-11 items-center rounded-full border-2 text-sm font-bold'
-export const missingChip = 'border-dashed border-ink/30 text-ink/60'
-export const filledChip = 'border-ink bg-paper text-ink'
+export const chipBase = 'inline-flex min-h-11 items-center rounded-full border text-sm font-semibold'
+export const missingChip = 'border-dashed border-trip-muted/50 text-trip-muted'
+export const filledChip = 'border-trip-line bg-white text-trip-ink'
 
 const pickClass = (on: boolean) =>
-  `min-h-9 rounded-full border-2 px-3 text-sm font-bold transition ${on ? 'border-ink bg-lime text-ink' : 'border-ink/15 text-ink hover:border-ink'}`
+  `min-h-9 rounded-full border px-3 text-sm font-semibold transition ${on ? 'border-trip-ink bg-trip-ink text-white' : 'border-trip-line text-trip-ink hover:border-trip-ink'}`

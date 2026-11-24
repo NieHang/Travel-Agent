@@ -56,7 +56,7 @@ export function ReplyTrace({
       {detail ? (
         <Disclosure className="min-w-0 flex-1">
           <Disclosure.Heading>
-            <Disclosure.Trigger className="flex items-center gap-1 text-sm text-ink/60 hover:text-ink">
+            <Disclosure.Trigger className="flex items-center gap-1 text-[13px] text-trip-muted hover:text-trip-ink">
               <Summary text={summary} status={status} />
               <Disclosure.Indicator className="ms-0" />
             </Disclosure.Trigger>
@@ -73,12 +73,12 @@ export function ReplyTrace({
           </Disclosure.Content>
         </Disclosure>
       ) : (
-        <span className="min-w-0 flex-1 text-sm text-ink/60">
+        <span className="min-w-0 flex-1 text-[13px] text-trip-muted">
           <Summary text={summary} status={status} />
         </span>
       )}
       {onResume ? (
-        <Button size="sm" variant="ghost" onPress={onResume} className="shrink-0 text-ink">
+        <Button size="sm" variant="ghost" onPress={onResume} className="shrink-0 text-trip-ink">
           {status === 'error' ? t('retry') : t('resume')}
         </Button>
       ) : null}
@@ -126,22 +126,22 @@ function StepRow({ step, next, endedAt, active, interrupted = false, reduced }: 
       initial={reduced ? false : { opacity: 0, y: 6, filter: 'blur(2px)' }}
       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
       transition={springs.smooth}
-      className="flex items-center gap-2 text-sm"
+      className="flex items-center gap-2 text-[13px]"
     >
       <span className="grid size-4 shrink-0 place-items-center" aria-hidden>
         <AnimatePresence mode="wait" initial={false}>
           {active ? (
-            <motion.span key="spin" exit={reduced ? undefined : { scale: 0.4, opacity: 0 }} className="block size-3.5 animate-spin rounded-full border-2 border-ink/20 border-t-ink motion-reduce:animate-none" />
+            <motion.span key="spin" exit={reduced ? undefined : { scale: 0.4, opacity: 0 }} className="block size-3.5 animate-spin rounded-full border-2 border-trip-line border-t-trip-ink motion-reduce:animate-none" />
           ) : interrupted ? (
-            <motion.span key="stop" className="block size-2.5 rounded-xs bg-ink/50" />
+            <motion.span key="stop" className="block size-2.5 rounded-xs bg-trip-muted" />
           ) : (
             <Check key="check" reduced={reduced} />
           )}
         </AnimatePresence>
       </span>
-      <span className={active ? 'trace-shimmer' : 'text-ink/70'}>{t(`phase.${step.phase}`)}</span>
+      <span className={active ? 'trace-shimmer' : 'text-trip-muted'}>{t(`phase.${step.phase}`)}</span>
       {duration !== null && !interrupted ? (
-        <span className="text-xs text-ink/40 tabular-nums">
+        <span className="text-xs text-trip-muted/70 tabular-nums">
           {t('seconds', { n: duration })}
         </span>
       ) : null}
@@ -151,7 +151,7 @@ function StepRow({ step, next, endedAt, active, interrupted = false, reduced }: 
 
 function Check({ reduced }: { reduced: boolean }) {
   return (
-    <motion.svg viewBox="0 0 16 16" className="size-4 text-ink" initial={reduced ? false : { scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springs.snappy}>
+    <motion.svg viewBox="0 0 16 16" className="size-4 text-trip-ink" initial={reduced ? false : { scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springs.snappy}>
       <motion.path
         d="M3.5 8.5l3 3 6-7"
         fill="none"
@@ -177,9 +177,9 @@ function Verification({ data }: { data: TraceVerification }) {
   const titles = data.reading.slice(0, READING_SHOWN).map((page) => page.title)
   const hidden = data.reading.length - titles.length
   return (
-    <div className="mt-3 flex flex-col gap-1 border-t border-ink/10 pt-3 text-sm">
-      <span className="text-xs font-bold text-ink/60">{t('verification')}</span>
-      <ul className="flex flex-col gap-1 text-ink/70">
+    <div className="mt-3 flex flex-col gap-1 border-t border-trip-line pt-3 text-[13px]">
+      <span className="text-xs font-semibold text-trip-muted">{t('verification')}</span>
+      <ul className="flex flex-col gap-1 text-trip-muted">
         {titles.length ? (
           <li>{t('reading', { pages: format.list(hidden ? [...titles, t('readingMore', { n: hidden })] : titles) })}</li>
         ) : null}

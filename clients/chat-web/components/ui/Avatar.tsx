@@ -6,8 +6,8 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   return (
     <span
       aria-hidden
-      className="inline-flex shrink-0 items-center justify-center rounded-full bg-lime font-extrabold text-ink select-none"
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.45) }}
+      className="inline-flex shrink-0 items-center justify-center rounded-full bg-trip-fill font-bold text-trip-ink select-none"
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.34) }}
     >
       {first}
     </span>

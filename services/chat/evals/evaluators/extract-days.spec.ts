@@ -2,7 +2,7 @@ import type { PlanDay } from '../../src/trip/itinerary.js';
 import { gradeExtractDays } from './extract-days.js';
 
 const day = (names: string[], stayRef: string | null = null): PlanDay => ({
-  title: 'Day 1', body: '', stops: names.map((name) => ({ name, note: null, time: null })), stayRef,
+  title: 'Day 1', body: '', stops: names.map((name) => ({ name, note: null, time: null, hours: null, closes: null, transit: null })), stayRef,
 });
 
 it('normalizes width, whitespace, case and bracketed names', () => {

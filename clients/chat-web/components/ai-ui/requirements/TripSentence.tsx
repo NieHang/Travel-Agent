@@ -54,10 +54,10 @@ export function TripSentence({ component, onCommand }: {
     const commit = (f: FormField) => update(f, true)
     return (
       <Popover.Root key={field.name} isOpen={open === field.name} onOpenChange={(isOpen) => setOpen(isOpen ? field.name : null)}>
-        <Button variant="ghost" aria-label={text ? `${field.label}: ${text}` : field.label} className={`${look} h-auto hover:border-ink`}>
+        <Button variant="ghost" aria-label={text ? `${field.label}: ${text}` : field.label} className={`${look} h-auto hover:border-trip-ink`}>
           {content}
         </Button>
-        <Popover.Content placement="bottom start" className="trip-form max-w-[calc(100vw-32px)] rounded-card">
+        <Popover.Content placement="bottom start" className="trip-form max-w-[calc(100vw-32px)] rounded-trip-md font-trip text-trip-ink">
           <Popover.Dialog aria-label={field.label} className="p-3">
             {field.name === 'destination' ? <DestinationEditor field={field} onCommit={commit} />
               : field.name === 'dates' ? <DatesEditor field={field} onCommit={commit} />
@@ -72,11 +72,11 @@ export function TripSentence({ component, onCommand }: {
   return (
     <I18nProvider locale={locale}>
     <section aria-label={component.title} className="trip-form flex flex-col gap-3">
-      <h3 className="text-sm font-bold text-ink/60">{component.title}</h3>
+      <h3 className="text-[13px] font-medium text-trip-muted">{component.title}</h3>
       <div className="flex flex-wrap gap-2">{draft.map(chip)}</div>
       {live || sent ? (
         <div className="flex">
-          <PillButton variant="ink" size="sm" loading={sent && !live} disabled={!live && !sent} onClick={primary}>
+          <PillButton variant="trip-ink" size="sm" loading={sent && !live} disabled={!live && !sent} onClick={primary}>
             {missing ? t('next', { field: missing.label }) : component.submitLabel}
           </PillButton>
         </div>

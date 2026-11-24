@@ -32,19 +32,19 @@ export function UserMenu() {
         aria-label={t('accountMenu')}
         className="inline-flex size-11 cursor-pointer items-center justify-center rounded-full"
       >
-        <Avatar name={user?.nickname ?? ''} size={40} />
+        <Avatar name={user?.nickname ?? ''} size={44} />
       </Popover.Trigger>
       <Popover.Content
         placement="bottom end"
-        className="rounded-card bg-paper text-ink shadow-float"
+        className="rounded-trip-md bg-white font-trip text-trip-ink shadow-trip-card"
       >
         <Popover.Dialog aria-label={t('accountMenu')} className="flex w-64 flex-col gap-4 p-4">
           <div className="min-w-0">
             <p className="truncate text-base font-bold">{user?.nickname}</p>
-            <p className="truncate text-sm">{user?.email}</p>
+            <p className="truncate text-[13px] text-trip-muted">{user?.email}</p>
           </div>
           <LocaleSwitch />
-          <PillButton variant="ghost" size="sm" loading={signingOut} onClick={signOut}>
+          <PillButton variant="trip-outline" size="sm" loading={signingOut} onClick={signOut}>
             {t('signOut')}
           </PillButton>
         </Popover.Dialog>

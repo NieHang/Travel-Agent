@@ -19,8 +19,12 @@ describe('FakeTripLlm', () => {
     for await (const e of llm.respond('itinerary', { text: null, state, history: [] }, signal))
       if (e.type === 'text') text += e.delta;
     expect(text).toContain('杭州行程草稿');
+    expect(await llm.extractBrief(text, 'zh', signal)).toEqual({
+      tip: '避开周末午后的人潮。', todos: [{ kind: 'on_arrival', title: '抵达后领取 IC 卡', note: null }],
+    });
+    expect(await llm.extractBrief('总览：轻松', 'zh', signal)).toEqual({ tip: null, todos: [] });
     expect(await llm.extractStops({ title: '第 1 天 | 市区漫步（轻松）', body: '' }, 'zh', signal)).toEqual([
-      { name: '市区漫步', note: null, time: null },
+      { name: '市区漫步', note: null, time: null, hours: null, closes: null, transit: null },
     ]);
   });
   it('rewrites the first target day on revise', async () => {

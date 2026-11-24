@@ -71,6 +71,19 @@ const ResultItemSchema = z
   .strict();
 export type ResultItem = z.infer<typeof ResultItemSchema>;
 
+/** What a before-you-go item asks of the traveler; the client picks its tag, icon and tint from this. */
+export const TodoSchema = z
+  .object({
+    kind: z.enum(['reserve', 'tickets', 'on_arrival', 'reminder', 'optional']),
+    title: z.string().min(1).max(120),
+    note: z.string().max(200).nullable(),
+  })
+  .strict();
+export type Todo = z.infer<typeof TodoSchema>;
+
+export const PaceSchema = z.enum(['light', 'standard', 'tiring']);
+export type Pace = z.infer<typeof PaceSchema>;
+
 export const ResultGroupSchema = z
   .object({ panel: PanelSchema.nullable(), items: z.array(ResultItemSchema).max(20) })
   .strict();
@@ -141,14 +154,26 @@ const TripViewSchema = z
     /** The draft's overview and before-you-go section. */
     overview: z.string().nullable(),
     itineraryMarkdown: z.string().nullable(),
+    /** One line of season or crowd advice from the draft's overview; null when the draft gives none. */
+    tip: z.string().nullable(),
+    /** The draft's before-you-go section as items. */
+    todos: z.array(TodoSchema),
     days: z.array(
       z.object({
+        /** The full header, "Day 3 | Nijo Castle · Nishiki Market (light)". */
         title: z.string(),
+        /** The header's places without the day number and pace: "Nijo Castle · Nishiki Market". */
+        heading: z.string(),
+        pace: PaceSchema.nullable(),
         stops: z.array(
           z.object({
             name: z.string(),
             note: z.string().nullable(),
             time: z.string().nullable(),
+            /** Opening hours as the day states them; `late` when the planned time is at or after closing. */
+            hours: z.object({ text: z.string(), late: z.boolean() }).strict().nullable(),
+            /** How the traveler gets from this stop to the next one. */
+            transit: z.string().nullable(),
           }),
         ),
         stay: ResultItemSchema.nullable(),

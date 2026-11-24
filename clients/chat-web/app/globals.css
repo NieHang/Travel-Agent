@@ -17,6 +17,54 @@
   --shadow-float: 0 12px 32px rgba(27, 21, 53, 0.18);
 
   --font-sans: var(--font-plus-jakarta), var(--font-noto-sc), sans-serif;
+
+  /* The trip screen (/chat): chat column, itinerary panels and the mobile sheet. */
+  --color-trip-ground: #faf6f3;
+  --color-trip-panel: #fff8f7;
+  --color-trip-ink: #1f1d1e;
+  --color-trip-muted: #6b6566;
+  --color-trip-fill: #efe8e4;
+  --color-trip-tile: #f9eae8;
+  --color-trip-line: #e6ddd8;
+  --color-trip-accent: #c8442b;
+  --color-trip-brand: #e5532d;
+  --color-trip-success: #4fa83a;
+  --color-trip-scrim: rgb(24 14 8 / 0.62);
+
+  /* Hue pairs: a light tint for the background, a tone for icons and labels on it. */
+  --color-tint-rose: #ffe1ea;
+  --color-tone-rose: #c22560;
+  --color-tint-violet: #eee8ff;
+  --color-tone-violet: #5a3fd6;
+  --color-tint-sky: #dfeeff;
+  --color-tone-sky: #1a62c0;
+  --color-tint-apricot: #ffe9d9;
+  --color-tone-apricot: #b5500a;
+  --color-tint-olive: #e8f4cc;
+  --color-tone-olive: #3f6b0a;
+
+  --color-map-ground: #f2ede7;
+  --color-map-park: #e4ecd6;
+  --color-map-block: #ece5dd;
+  --color-map-water: #d3e4f1;
+  --color-map-rail: #d9cfc7;
+  --color-map-maple: #f08a24;
+
+  --radius-trip-panel: 36px;
+  --radius-trip-lg: 28px;
+  --radius-trip-md: 22px;
+  --radius-trip-sm: 20px;
+  --radius-trip-xs: 16px;
+  --radius-trip-tail: 6px;
+
+  --shadow-trip-panel: 0 30px 70px rgb(120 90 70 / 0.16);
+  --shadow-trip-card: 0 8px 20px rgb(190 140 135 / 0.12);
+  --shadow-trip-pin: 0 6px 14px rgb(190 140 135 / 0.22);
+  --shadow-trip-label: 0 4px 10px rgb(70 50 40 / 0.18);
+  --drop-shadow-trip-leaf: 0 3px 5px rgb(70 50 40 / 0.25);
+  --text-shadow-trip-cover: 0 2px 12px rgb(24 14 8 / 0.5);
+
+  --font-trip: var(--font-outfit), var(--font-noto-sc), sans-serif;
 }
 
 @layer base {
@@ -63,9 +111,9 @@
   .trace-shimmer {
     background: linear-gradient(
         90deg,
-        color-mix(in srgb, var(--color-ink) 45%, transparent) 30%,
-        var(--color-ink) 50%,
-        color-mix(in srgb, var(--color-ink) 45%, transparent) 70%
+        color-mix(in srgb, var(--color-trip-ink) 45%, transparent) 30%,
+        var(--color-trip-ink) 50%,
+        color-mix(in srgb, var(--color-trip-ink) 45%, transparent) 70%
       )
       0 0 / 250% 100%;
     background-clip: text;
@@ -77,7 +125,7 @@
     .trace-shimmer {
       animation: none;
       background: none;
-      color: var(--color-ink);
+      color: var(--color-trip-ink);
     }
   }
 
@@ -90,14 +138,14 @@
     }
   }
 
-  /* HeroUI controls in the trip form (incl. its portalled popovers) use the site's lime/ink instead of HeroUI blue. */
+  /* HeroUI controls in the trip form (incl. its portalled popovers) use the trip screen's ink instead of HeroUI blue. */
   .trip-form {
-    --accent: var(--color-lime);
-    --accent-foreground: var(--color-ink);
-    --accent-hover: color-mix(in srgb, var(--color-lime) 85%, var(--color-ink));
-    --accent-soft: color-mix(in srgb, var(--color-lime) 35%, var(--color-paper));
-    --accent-soft-foreground: var(--color-ink);
-    --accent-soft-hover: color-mix(in srgb, var(--color-lime) 50%, var(--color-paper));
+    --accent: var(--color-trip-ink);
+    --accent-foreground: var(--color-white);
+    --accent-hover: color-mix(in srgb, var(--color-trip-ink) 85%, var(--color-white));
+    --accent-soft: var(--color-trip-fill);
+    --accent-soft-foreground: var(--color-trip-ink);
+    --accent-soft-hover: var(--color-trip-line);
   }
 
   /* Travelers stepper drawn as a trip-form chip: replaces HeroUI's field box and 3-column grid. */
@@ -108,18 +156,18 @@
     height: auto;
     min-height: 2.75rem;
     padding: 0 0.25rem 0 0.875rem;
-    border: 2px solid var(--color-ink);
+    border: 1px solid var(--color-trip-line);
     border-radius: 9999px;
-    background: var(--color-paper);
+    background: var(--color-white);
     box-shadow: none;
-    color: var(--color-ink);
+    color: var(--color-trip-ink);
     font-size: 0.875rem;
-    font-weight: 700;
+    font-weight: 600;
   }
 
   .trip-form .number-field__group.trip-stepper[data-missing] {
     border-style: dashed;
-    border-color: color-mix(in srgb, var(--color-ink) 30%, transparent);
+    border-color: color-mix(in srgb, var(--color-trip-muted) 50%, transparent);
   }
 
   .trip-form .trip-stepper .number-field__input {

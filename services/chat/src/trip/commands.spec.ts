@@ -163,11 +163,11 @@ describe('reduce', () => {
 
   it('a changed requirement clears the draft, days and stays', () => {
     const { state, effect } = reduce(
-      at({ stage: 'review', requirements: full, preamble: '# 草稿', days: [{ title: 'D1', body: '', stops: [], stayRef: 'h1' }], stays: { panel: 'hotels', items: [] } }),
+      at({ stage: 'review', requirements: full, preamble: '# 草稿', tip: 'Visit early.', todos: [{ kind: 'reserve', title: 'Book entry', note: null }], days: [{ title: 'D1', body: '', stops: [], stayRef: 'h1' }], stays: { panel: 'hotels', items: [] } }),
       { type: 'message', text: '改成 5 人' },
       plan({ travelers: 5 }),
     );
-    expect(state).toMatchObject({ preamble: null, days: [], stays: null, stage: 'review' });
+    expect(state).toMatchObject({ preamble: null, tip: null, todos: [], days: [], stays: null, stage: 'review' });
     expect(effect).toEqual({ type: 'itinerary' });
   });
 

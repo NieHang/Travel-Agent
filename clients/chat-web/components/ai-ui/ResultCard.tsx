@@ -3,13 +3,13 @@
 import { useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import { Tooltip } from '@heroui/react'
 import { useFormatter, useTranslations } from 'next-intl'
-import { ArrowUpRight, BedDouble, Building2, MapPin, Star } from 'lucide-react'
+import { ArrowUpRight, Building2, MapPin, Star } from 'lucide-react'
 import type { LocalizedText, ResultItem } from '@autix/contracts'
 import { amenityIcon } from './amenity-icon'
 
 const FACE_AMENITIES = 3
 
-function Banner({ item, className }: { item: ResultItem; className: string }) {
+export function Banner({ item, className }: { item: ResultItem; className: string }) {
   const [failed, setFailed] = useState(false)
   const src = item.image?.startsWith('https:') && !failed ? item.image : null
   return (
@@ -26,7 +26,7 @@ function Banner({ item, className }: { item: ResultItem; className: string }) {
           className="size-full object-cover"
         />
       ) : (
-        <div data-testid="image-placeholder" className="image-placeholder flex size-full items-center justify-center text-ink">
+        <div data-testid="image-placeholder" className="flex size-full items-center justify-center bg-trip-tile text-trip-muted">
           <Building2 size={22} aria-hidden />
         </div>
       )}
@@ -52,7 +52,7 @@ export function ResultCard({
   selected = false,
 }: {
   item: ResultItem
-  variant?: 'full' | 'compact' | 'stay'
+  variant?: 'full' | 'compact'
   selected?: boolean
 }) {
   const t = useTranslations('resultCard')
@@ -84,19 +84,19 @@ export function ResultCard({
         onPointerDown={(e: PointerEvent<HTMLDivElement>) => {
           if (e.pointerType === 'touch') setOpenSpanningCard(!open)
         }}
-        className="flex w-fit flex-wrap gap-1.5 rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ink"
+        className="flex w-fit flex-wrap gap-1.5 rounded-trip-xs outline-none focus-visible:ring-2 focus-visible:ring-trip-ink"
       >
         {item.amenities.slice(0, FACE_AMENITIES).map((a) => {
           const Icon = amenityIcon(a.original)
           return (
-            <span key={a.original} className="inline-flex items-center gap-1 rounded-full bg-ink/5 px-2.5 py-1 text-xs font-bold text-ink">
+            <span key={a.original} className="inline-flex items-center gap-1 rounded-full bg-trip-fill px-2.5 py-1 text-xs font-semibold text-trip-ink">
               <Icon size={13} aria-hidden />
               {a.translation ?? a.original}
             </span>
           )
         })}
         {item.amenities.length > FACE_AMENITIES ? (
-          <span className="rounded-full bg-lime px-2.5 py-1 text-xs font-bold text-ink">
+          <span className="rounded-full bg-trip-fill px-2.5 py-1 text-xs font-semibold text-trip-ink">
             {t('more', { count: item.amenities.length - FACE_AMENITIES })}
           </span>
         ) : null}
@@ -106,16 +106,15 @@ export function ResultCard({
         offset={8}
         crossOffset={span.crossOffset}
         style={{ width: span.width }}
-        data-on-ink
-        className="max-w-none break-normal rounded-[16px] bg-ink p-3 text-white shadow-float"
+        className="max-w-none break-normal rounded-trip-xs bg-trip-ink p-3 font-trip text-white shadow-trip-card"
       >
-        <p className="mb-1 text-xs font-bold text-lime">{t('amenities', { count: item.amenities.length })}</p>
+        <p className="mb-1 text-xs font-semibold text-white/70">{t('amenities', { count: item.amenities.length })}</p>
         <ul className="grid gap-1">
           {item.amenities.map((a) => {
             const Icon = amenityIcon(a.original)
             return (
-              <li key={a.original} className="grid grid-cols-[20px_1fr] gap-x-2 text-sm font-bold">
-                <Icon size={16} className="mt-0.5 text-lime" aria-hidden />
+              <li key={a.original} className="grid grid-cols-[20px_1fr] gap-x-2 text-sm font-semibold">
+                <Icon size={16} className="mt-0.5 text-white/70" aria-hidden />
                 <span>{a.translation ?? a.original}</span>
                 {a.translation ? <span className="col-start-2 text-xs font-medium text-white/60">{a.original}</span> : null}
               </li>
@@ -126,26 +125,15 @@ export function ResultCard({
     </Tooltip>
   ) : null
 
-  const title = <Text text={item.title} main="block font-extrabold leading-tight" sub="block text-xs font-medium text-ink/60" />
-
-  if (variant === 'stay')
-    return (
-      <article className="relative flex items-center gap-3 rounded-[16px] bg-white/10 p-2 text-white outline-none">
-        <Banner item={item} className="h-[42px] w-14 shrink-0 rounded-[10px]" />
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-lime"><BedDouble size={13} className="mr-1 inline" aria-hidden />{t('tonight')}</p>
-          <p className="truncate text-sm font-extrabold">{item.title.translation ?? item.title.original}{price ? ` · ${price}` : ''}</p>
-        </div>
-      </article>
-    )
+  const title = <Text text={item.title} main="block font-bold leading-tight" sub="block text-xs font-medium text-trip-muted" />
 
   if (variant === 'compact')
     return (
       <article
         ref={cardRef}
-        className={`relative grid grid-cols-[96px_minmax(0,1fr)] items-center gap-3 rounded-card border-2 bg-paper p-3 text-ink outline-none ${selected ? 'border-lime' : 'border-transparent'}`}
+        className={`relative grid grid-cols-[96px_minmax(0,1fr)] items-center gap-3 rounded-trip-md bg-white p-3 text-trip-ink shadow-trip-card outline-none ring-2 ${selected ? 'ring-trip-ink' : 'ring-transparent'}`}
       >
-        <Banner item={item} className="aspect-[4/3] rounded-[12px]" />
+        <Banner item={item} className="aspect-[4/3] rounded-[calc(var(--radius-trip-md)-12px)]" />
         <div className="min-w-0 text-sm">
           {title}
           {chips ? <div className="mt-2">{chips}</div> : null}
@@ -154,11 +142,11 @@ export function ResultCard({
     )
 
   return (
-    <article ref={cardRef} className="relative rounded-card bg-paper p-3 text-ink outline-none">
+    <article ref={cardRef} className="relative rounded-trip-md border border-trip-line bg-white p-3 text-trip-ink outline-none">
       <div className="relative">
-        <Banner item={item} className="aspect-video rounded-[14px]" />
+        <Banner item={item} className="aspect-video rounded-[calc(var(--radius-trip-md)-12px)]" />
         {item.rating !== null ? (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-xs font-bold">
+          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold">
             <Star size={12} aria-hidden />{item.rating}
           </span>
         ) : null}
@@ -167,17 +155,17 @@ export function ResultCard({
       {item.address ? (
         <p className="mt-1.5 text-xs font-medium">
           <MapPin size={12} className="mr-1 inline" aria-hidden />
-          <Text text={item.address} main="" sub="ml-1 text-ink/60" />
+          <Text text={item.address} main="" sub="ml-1 text-trip-muted" />
         </p>
       ) : null}
       {item.summary ? <p className="mt-1.5 text-xs" title={t('aiNote')}>{item.summary}</p> : null}
       {chips ? <div className="my-2.5">{chips}</div> : null}
       <div className="mt-2 flex items-center justify-between gap-2">
         {price ? (
-          <p><span className="text-2xl font-extrabold">{price}</span><span className="text-xs font-bold"> {t('fromPerNight')}</span></p>
+          <p><span className="text-2xl font-bold">{price}</span><span className="text-xs text-trip-muted"> {t('fromPerNight')}</span></p>
         ) : <span />}
         {item.url ? (
-          <a href={item.url} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-11 items-center gap-1 rounded-full bg-lime px-4 text-sm font-extrabold text-ink">
+          <a href={item.url} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-11 items-center gap-1 rounded-full bg-trip-ink px-4 text-sm font-semibold text-white">
             {t('book')}<ArrowUpRight size={14} aria-hidden />
           </a>
         ) : null}
