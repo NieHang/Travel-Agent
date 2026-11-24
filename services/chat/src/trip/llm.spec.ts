@@ -212,12 +212,13 @@ describe('extractStops', () => {
     expect(sent[1].text).toBe('Day 3 | Nijo Castle (light)\n- 09:30 Nijo Castle');
   });
 
-  it('tells extraction that travel legs are not stops', async () => {
+  it('specifies which places are stops and where travel legs and hours belong', async () => {
     model.classify.mockReset().mockResolvedValue({ stops: [] });
     await new ModelTripLlm().extractStops({ title: 'Day 1', body: '' }, 'en', signal());
     const [sent] = model.classify.mock.calls[0] as [BaseMessage[]];
     expect(sent[0].text).toContain("goes in A's transit");
     expect(sent[0].text).toContain('before the first stop in its note');
+    expect(sent[0].text).toContain('Omit that text from note. Use null for note if nothing else remains.');
     // Lines like "Narita Airport → Ueno (Skyliner)" were extracted as stops in live runs, and eval drafts
     // had hotels and transfer stations extracted as stops.
     expect(sent[0].text).toContain('never a route or an arrow');
