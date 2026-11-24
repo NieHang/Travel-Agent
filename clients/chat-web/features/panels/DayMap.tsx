@@ -15,8 +15,10 @@ const LEAVES = [
   { x: 10, y: 12, size: 26, tilt: 30, fill: 'fill-trip-accent' },
 ]
 
-/** Room a pin needs so that its photo and name clear the pins above and below it. */
-const PIN_HEIGHT = 72
+/** A pin with its photo is this tall; half of it is kept free above the first pin and below the last. */
+const PIN_HEIGHT = 128
+/** The least distance between two stops: pins two stops apart share a column and must not touch. */
+const PIN_STEP = 64
 
 /**
  * A drawn town, not a real map: every stop of the day sits on it with its photo and name, joined by a
@@ -28,18 +30,13 @@ export function DayMap({ stops, day }: { stops: TripView['days'][number]['stops'
     <div
       aria-hidden
       data-testid="day-map"
-      // The @2xl variant reads PlanTab's row: a column beside the timeline once both fit, else full width under it.
-      className="relative w-full shrink-0 overflow-hidden rounded-trip-lg bg-map-ground @2xl:w-60"
-      style={{ minHeight: Math.max(2, pins.length) * PIN_HEIGHT }}
+      // The @3xl variant reads PlanTab's row: a column beside the timeline once both fit, else full width under it.
+      className="relative w-full shrink-0 overflow-hidden rounded-trip-lg bg-map-ground @3xl:w-90"
+      style={{ minHeight: PIN_HEIGHT + Math.max(1, pins.length - 1) * PIN_STEP }}
     >
       <svg viewBox="0 0 600 600" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 size-full">
         <Town />
       </svg>
-      {route ? (
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 size-full">
-          <path d={route} fill="none" strokeWidth={5} strokeDasharray="1 13" strokeLinecap="round" vectorEffect="non-scaling-stroke" className="stroke-trip-ink" />
-        </svg>
-      ) : null}
       {LEAVES.map((leaf, i) => (
         <svg
           key={i}
@@ -50,9 +47,16 @@ export function DayMap({ stops, day }: { stops: TripView['days'][number]['stops'
           <path d={LEAF} strokeWidth={1.6} strokeLinejoin="round" className={`stroke-white ${leaf.fill}`} />
         </svg>
       ))}
-      {pins.map((pin, i) => (
-        <Pin key={`${i}:${pin.name}`} pin={pin} index={i} />
-      ))}
+      <div className="absolute inset-x-0" style={{ top: PIN_HEIGHT / 2, bottom: PIN_HEIGHT / 2 }}>
+        {route ? (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible">
+            <path d={route} fill="none" strokeWidth={5} strokeDasharray="1 13" strokeLinecap="round" vectorEffect="non-scaling-stroke" className="stroke-trip-ink" />
+          </svg>
+        ) : null}
+        {pins.map((pin, i) => (
+          <Pin key={`${i}:${pin.name}`} pin={pin} index={i} />
+        ))}
+      </div>
     </div>
   )
 }
@@ -61,17 +65,17 @@ function Pin({ pin, index }: { pin: MapPin; index: number }) {
   const [failed, setFailed] = useState(false)
   return (
     <span
-      className="absolute flex w-[46%] -translate-1/2 flex-col items-center"
+      className="absolute flex w-36 -translate-1/2 flex-col items-center"
       style={{ left: `${pin.x}%`, top: `${pin.y}%`, rotate: index % 2 ? '3deg' : '-3deg' }}
     >
       {pin.image && !failed ? (
         <Image
           src={pin.image}
           alt=""
-          width={72}
-          height={48}
+          width={144}
+          height={96}
           onError={() => setFailed(true)}
-          className="-mb-2.5 h-12 w-[72px] rounded-trip-xs border-[3px] border-white object-cover shadow-trip-label"
+          className="-mb-2.5 h-24 w-36 rounded-trip-xs border-[3px] border-white object-cover shadow-trip-label"
         />
       ) : null}
       <span className={`relative max-w-full truncate rounded-full border-[3px] border-white px-[11px] py-[3px] text-[13px] font-bold text-white shadow-trip-label ${stopHue(index).solid}`}>

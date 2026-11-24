@@ -5,7 +5,7 @@ const name = z.string().trim().min(1);
 const fields = z.object({
   title: name, names: z.object({ zh: name, ja: name }), aliases: name.array().default([]), updated: z.string().date(),
   /** Where the page's photo came from; the file itself is clients/chat-web/public/places/<page id>.webp. */
-  image: z.object({ source: z.string().url(), credit: name }).strict().optional(),
+  image: z.object({ source: z.string().url().optional(), credit: name }).strict().optional(),
 });
 const frontmatter = z.discriminatedUnion('type', [
   fields.extend({ type: z.literal('place'), placeId: name.optional() }).strict(),

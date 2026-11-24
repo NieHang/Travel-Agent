@@ -110,18 +110,18 @@ export function stopHue(index: number) {
 export type MapPin = { name: string; image: string | null; x: number; y: number }
 
 /** Stops alternate between these two columns, so neighbours never sit on top of each other. */
-const PIN_COLUMNS = [34, 66]
+const PIN_COLUMNS = [28, 72]
 
 /**
- * A pin for every stop, top to bottom in the timeline's order, and a curved route through them
- * in the map's 100-unit viewBox. Each day starts on the other column so neighbouring days differ.
+ * A pin for every stop, the first at the top and the last at the bottom in the timeline's order,
+ * and a curved route through them in a 100-unit viewBox. Each day starts on the other column so neighbouring days differ.
  */
 export function dayMap(stops: Stop[], dayIndex: number): { pins: MapPin[]; route: string | null } {
   const pins = stops.map((stop, i) => ({
     name: stop.name,
     image: stop.image,
     x: PIN_COLUMNS[(i + dayIndex) % 2],
-    y: Math.round(((i + 0.5) * 1000) / stops.length) / 10,
+    y: stops.length === 1 ? 50 : Math.round((i * 1000) / (stops.length - 1)) / 10,
   }))
   if (pins.length < 2) return { pins, route: null }
   const route = pins.slice(1).reduce((path, { x, y }, i) => {
