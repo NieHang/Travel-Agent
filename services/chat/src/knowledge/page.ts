@@ -4,6 +4,8 @@ import { z } from 'zod';
 const name = z.string().trim().min(1);
 const fields = z.object({
   title: name, names: z.object({ zh: name, ja: name }), aliases: name.array().default([]), updated: z.string().date(),
+  /** Where the page's photo came from; the file itself is clients/chat-web/public/places/<page id>.webp. */
+  image: z.object({ source: z.string().url().optional(), credit: name }).strict().optional(),
 });
 const frontmatter = z.discriminatedUnion('type', [
   fields.extend({ type: z.literal('place'), placeId: name.optional() }).strict(),
@@ -21,3 +23,9 @@ export function parsePage(id: string, text: string) {
 }
 
 export type WikiPage = ReturnType<typeof parsePage>;
+
+/** Every name a page answers to. */
+export const pageNames = (page: WikiPage) => [page.title, page.names.zh, page.names.ja, ...page.aliases];
+
+/** Names compare by letters and digits only, so "Tofuku-ji" and "tofukuji" are one name. */
+export const nameKey = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');

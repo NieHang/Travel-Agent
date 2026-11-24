@@ -16,7 +16,7 @@ const hotel = (ref: string, name: string): ResultItem => ({
   price: { amount: 118, currency: 'EUR' }, rating: null, url: 'https://rollinggo.ai/h/1', image: null,
   details: [], amenities: [{ original: 'Kitchen', translation: '厨房' }], summary: null,
 })
-const stop = (over: Partial<Stop> & { name: string }): Stop => ({ note: null, time: null, hours: null, transit: null, ...over })
+const stop = (over: Partial<Stop> & { name: string }): Stop => ({ note: null, time: null, hours: null, transit: null, image: null, ...over })
 
 const granvia: ResultItem = {
   ...hotel('h1', 'Hotel Granvia Kyoto'),
@@ -96,7 +96,8 @@ describe('行程页', () => {
 
   it('时间圈：钟点上方标出时段，文字照写，没有时间时显示序号', () => {
     renderWithProviders(<LiveTripPanels tab="plan" data={{ ...kyoto, todos: [] }} conversationId="c-time" />)
-    const circles = screen.getAllByRole('listitem').map((item) => item.firstElementChild?.textContent)
+    const [timeline] = screen.getAllByRole('list')
+    const circles = within(timeline).getAllByRole('listitem').map((item) => item.firstElementChild?.textContent)
     expect(circles).toEqual(['下午', '下午16:30', '3'])
   })
 
@@ -118,34 +119,32 @@ describe('行程页', () => {
     expect(screen.queryByRole('heading', { name: '出发前要办' })).toBeNull()
   })
 
-  it('日程地图铺在京都的封面照片上，当晚酒店有图片也一样', () => {
-    const withHotelPhoto = { ...kyoto, days: [{ ...kyoto.days[0], stay: { ...granvia, image: 'https://img.example/granvia.jpg' } }] }
-    renderWithProviders(<LiveTripPanels tab="plan" data={withHotelPhoto} conversationId="c-map-cover" />)
-    expect(screen.getByTestId('day-map').querySelector('img')).toHaveAttribute('src', '/covers/kyoto.webp')
-  })
-
-  it('目的地没有封面照片时，日程地图用当晚酒店的 https 图片', () => {
-    const osaka = { ...kyoto, destination: '大阪', days: [{ ...kyoto.days[0], stay: { ...granvia, image: 'https://img.example/granvia.jpg' } }] }
-    renderWithProviders(<LiveTripPanels tab="plan" data={osaka} conversationId="c-map-hotel" />)
-    expect(screen.getByTestId('day-map').querySelector('img')).toHaveAttribute('src', 'https://img.example/granvia.jpg')
-  })
-
-  it('既没有封面也没有 https 酒店图片时，日程地图只画地点', () => {
-    const osaka = (image: string | null) => ({ ...kyoto, destination: '大阪', days: [{ ...kyoto.days[0], stay: { ...granvia, image } }] })
-    const { rerender } = renderWithProviders(<LiveTripPanels tab="plan" data={osaka(null)} conversationId="c-map-none" />)
+  it('日程地图标出当天每一站的名字，知识库有配图的站带照片', () => {
+    const day = { ...kyoto.days[0], stops: kyoto.days[0].stops.map((s) => (s.name === '东本愿寺' ? { ...s, image: '/places/kyoto/higashi-hongan-ji.webp' } : s)) }
+    renderWithProviders(<LiveTripPanels tab="plan" data={{ ...kyoto, days: [day] }} conversationId="c-map-pins" />)
     const map = screen.getByTestId('day-map')
-    expect(map.querySelector('img')).toBeNull()
-    expect(within(map).getByText('东本愿寺')).toBeInTheDocument()
-    rerender(<LiveTripPanels tab="plan" data={osaka('http://img.example/granvia.jpg')} conversationId="c-map-none" />)
-    expect(screen.getByTestId('day-map').querySelector('img')).toBeNull()
+    for (const name of ['抵达京都站', '东本愿寺', '京都站附近晚饭']) expect(within(map).getByText(name)).toBeInTheDocument()
+    const photos = [...map.querySelectorAll('img')]
+    expect(photos).toHaveLength(1)
+    expect(decodeURIComponent(photos[0].getAttribute('src') ?? '')).toContain('/places/kyoto/higashi-hongan-ji.webp')
+    expect(within(map).getByText('东本愿寺').parentElement).toContainElement(photos[0])
   })
 
-  it('日程地图的照片加载失败时退回只画地点', () => {
-    renderWithProviders(<LiveTripPanels tab="plan" data={kyoto} conversationId="c-map-error" />)
+  it('站点照片加载失败时只留名字', () => {
+    const day = { ...kyoto.days[0], stops: kyoto.days[0].stops.map((s) => ({ ...s, image: '/places/kyoto/missing.webp' })) }
+    renderWithProviders(<LiveTripPanels tab="plan" data={{ ...kyoto, days: [day] }} conversationId="c-map-error" />)
     const map = screen.getByTestId('day-map')
-    fireEvent.error(map.querySelector('img') as HTMLImageElement)
-    expect(map.querySelector('img')).toBeNull()
-    expect(within(map).getByText('东本愿寺')).toBeInTheDocument()
+    fireEvent.error(map.querySelectorAll('img')[1])
+    expect(map.querySelectorAll('img')).toHaveLength(2)
+    expect(within(map).getByText('东本愿寺').parentElement?.querySelector('img')).toBeNull()
+  })
+
+  it('住宿卡片列出酒店的全部设施', () => {
+    const amenities = ['客房WIFI（免费）', '行李寄存', '24小时前台', '餐厅', '洗衣设施', '电梯'].map((original) => ({ original, translation: null }))
+    const day = { ...kyoto.days[0], stay: { ...granvia, amenities } }
+    renderWithProviders(<LiveTripPanels tab="plan" data={{ ...kyoto, days: [day] }} conversationId="c-amenities" />)
+    const list = screen.getByRole('list', { name: '设施' })
+    expect(within(list).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['客房WIFI（免费）', '行李寄存', '24小时前台', '餐厅', '洗衣设施', '电梯'])
   })
 
   it('住宿卡片显示当晚酒店、每晚价格、入住退房日期和详情', () => {

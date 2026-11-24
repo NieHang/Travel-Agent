@@ -1,8 +1,9 @@
 'use client'
 
 import type { TripView } from '@autix/contracts'
+import Image from 'next/image'
 import { useState } from 'react'
-import { dayMap, stopHue } from './plan-model'
+import { dayMap, stopHue, type MapPin } from './plan-model'
 
 const LEAF = 'M12 2l2.2 4.6 3.6-1.6-.9 4.4 4.6.4-3.3 3.2 2.3 2.8-4.4.6.3 3.6-4.4-2.4V22h-1v-4.4l-4.4 2.4.3-3.6-4.4-.6 2.3-2.8L1.5 9.8l4.6-.4-.9-4.4 3.6 1.6z'
 
@@ -14,37 +15,27 @@ const LEAVES = [
   { x: 10, y: 12, size: 26, tilt: 30, fill: 'fill-trip-accent' },
 ]
 
+/** A pin with its photo is this tall; half of it is kept free above the first pin and below the last. */
+const PIN_HEIGHT = 128
+/** The least distance between two stops: pins two stops apart share a column and must not touch. */
+const PIN_STEP = 64
+
 /**
- * Not a real map: it labels the day's first stops in their tint and joins them with a dotted route,
- * over `photo` when the day has one and over a drawn town otherwise.
+ * A drawn town, not a real map: every stop of the day sits on it with its photo and name, joined by a
+ * dotted route. It is as tall as the timeline beside it, and never too short for its pins.
  */
-export function DayMap({ stops, day, photo }: { stops: TripView['days'][number]['stops']; day: number; photo: string | null }) {
+export function DayMap({ stops, day }: { stops: TripView['days'][number]['stops']; day: number }) {
   const { pins, route } = dayMap(stops, day)
-  const [failed, setFailed] = useState<string | null>(null)
-  const src = photo !== failed ? photo : null
   return (
-    // The @2xl variants read PlanTab's row: a square beside the timeline once both fit, else full width under it.
-    <div aria-hidden data-testid="day-map" className="relative aspect-[2/1] w-full shrink-0 overflow-hidden rounded-trip-lg bg-map-ground @2xl:aspect-square @2xl:w-60">
-      {src ? (
-        <>
-          {/* oxlint-disable-next-line nextjs/no-img-element -- hotel photos come from arbitrary hosts, which next/image would need listed one by one */}
-          <img
-            src={src}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            onError={() => setFailed(src)}
-            className="absolute inset-0 size-full object-cover"
-          />
-          <span className="absolute inset-0 bg-trip-ink/25" />
-        </>
-      ) : null}
-      <svg viewBox="0 0 600 600" preserveAspectRatio="none" className="absolute inset-0 size-full">
-        {src ? null : <Town />}
-        {route ? (
-          <path d={route} fill="none" strokeWidth={5} strokeDasharray="1 13" strokeLinecap="round" className={src ? 'stroke-white' : 'stroke-trip-ink'} />
-        ) : null}
+    <div
+      aria-hidden
+      data-testid="day-map"
+      // The @3xl variant reads PlanTab's row: a column beside the timeline once both fit, else full width under it.
+      className="relative w-full shrink-0 overflow-hidden rounded-trip-lg bg-map-ground @3xl:w-90"
+      style={{ minHeight: PIN_HEIGHT + Math.max(1, pins.length - 1) * PIN_STEP }}
+    >
+      <svg viewBox="0 0 600 600" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 size-full">
+        <Town />
       </svg>
       {LEAVES.map((leaf, i) => (
         <svg
@@ -56,17 +47,41 @@ export function DayMap({ stops, day, photo }: { stops: TripView['days'][number][
           <path d={LEAF} strokeWidth={1.6} strokeLinejoin="round" className={`stroke-white ${leaf.fill}`} />
         </svg>
       ))}
-      {/* Two of dayMap's spots sit 38% apart at nearly the same height; at 36% wide their labels cannot touch on the short 2:1 map. */}
-      {pins.map((pin, i) => (
-        <span
-          key={i}
-          className={`absolute max-w-[36%] -translate-1/2 truncate @2xl:max-w-[45%] rounded-full border-[3px] border-white px-[11px] py-[3px] text-[13px] font-bold text-white shadow-trip-label ${stopHue(i).solid}`}
-          style={{ left: `${pin.x}%`, top: `${pin.y}%`, rotate: `${pin.tilt}deg` }}
-        >
-          {pin.name}
-        </span>
-      ))}
+      <div className="absolute inset-x-0" style={{ top: PIN_HEIGHT / 2, bottom: PIN_HEIGHT / 2 }}>
+        {route ? (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible">
+            <path d={route} fill="none" strokeWidth={5} strokeDasharray="1 13" strokeLinecap="round" vectorEffect="non-scaling-stroke" className="stroke-trip-ink" />
+          </svg>
+        ) : null}
+        {pins.map((pin, i) => (
+          <Pin key={`${i}:${pin.name}`} pin={pin} index={i} />
+        ))}
+      </div>
     </div>
+  )
+}
+
+function Pin({ pin, index }: { pin: MapPin; index: number }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <span
+      className="absolute flex w-36 -translate-1/2 flex-col items-center"
+      style={{ left: `${pin.x}%`, top: `${pin.y}%`, rotate: index % 2 ? '3deg' : '-3deg' }}
+    >
+      {pin.image && !failed ? (
+        <Image
+          src={pin.image}
+          alt=""
+          width={144}
+          height={96}
+          onError={() => setFailed(true)}
+          className="-mb-2.5 h-24 w-36 rounded-trip-xs border-[3px] border-white object-cover shadow-trip-label"
+        />
+      ) : null}
+      <span className={`relative max-w-full truncate rounded-full border-[3px] border-white px-[11px] py-[3px] text-[13px] font-bold text-white shadow-trip-label ${stopHue(index).solid}`}>
+        {pin.name}
+      </span>
+    </span>
   )
 }
 

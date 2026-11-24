@@ -8,6 +8,7 @@ import { toMessageContract } from '../conversations/conversations.service.js';
 import { deriveTitle } from '../chat/derive-title.js';
 import { errorName } from '../common/error-name.js';
 import { ContextManager } from '../llm/context-manager.js';
+import { imageLookup, loadLibrary } from '../knowledge/index.js';
 import { CommandError, assertAllowed, reduce, uncheckedDestination } from './commands.js';
 import { copy, lookupSubject } from './copy.js';
 import { TRIP_LLM, type TripLlm } from './llm.js';
@@ -15,6 +16,8 @@ import { runEffect } from './effect.js';
 import { readState, toTripView, type TripState } from './state.js';
 import { describe, render, stageMessage } from './view.js';
 import { lookupCount, TurnTraceBuilder } from './trace.js';
+
+const placeImage = imageLookup(loadLibrary().values());
 
 @Injectable()
 export class TurnService {
@@ -29,7 +32,7 @@ export class TurnService {
 
   async getState(conversationId: string): Promise<TripUIState> {
     const state = await this.load(conversationId);
-    return { revision: state.revision, trip: toTripView(state), components: render(state, copy(state.locale)) };
+    return { revision: state.revision, trip: toTripView(state, placeImage), components: render(state, copy(state.locale)) };
   }
 
   /**
@@ -129,7 +132,7 @@ export class TurnService {
       const message = await this.saveTurn(conversationId, next, reply ?? stageMessage(next, c, command), components, user.createdAt,
         trace.started ? trace.finish(new Date().toISOString()) : undefined);
       turn = { status: 'saved' };
-      yield { type: 'done', message, components, trip: toTripView(next) };
+      yield { type: 'done', message, components, trip: toTripView(next, placeImage) };
     } catch (error) {
       if (signal.aborted) return;
       status = 'error';

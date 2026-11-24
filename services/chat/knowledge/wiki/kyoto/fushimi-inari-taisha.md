@@ -3,6 +3,7 @@ title: "Fushimi Inari Taisha"
 names: {"zh": "伏见稻荷大社", "ja": "伏見稲荷大社"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Torii_path_with_lantern_at_Fushimi_Inari_Taisha_Shrine,_Kyoto,_Japan.jpg", "credit": "Basile Morin, CC BY-SA 4.0"}
 aliases: ["Fushimi Inari", "伏见稻荷", "伏見稲荷", "千本鸟居", "Senbon Torii"]
 placeId: "ChIJIW0uPRUPAWAR6eI6dRzKGns"
 ---

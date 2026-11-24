@@ -3,6 +3,7 @@ title: "To-ji"
 names: {"zh": "东寺", "ja": "東寺"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Toji_2015.JPG", "credit": "Kakidai, CC BY-SA 4.0"}
 aliases: ["Toji", "To-ji Temple", "Kyo-o-gokoku-ji", "教王護国寺"]
 placeId: "ChIJTar7hQQGAWAREHkXsNkt7tM"
 ---

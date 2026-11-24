@@ -3,6 +3,7 @@ title: "Kinkaku-ji"
 names: {"zh": "金阁寺", "ja": "金閣寺"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Golden_Pavilion_Kinkaku-ji_water_mirror_2024.jpg", "credit": "Nacaru, CC BY-SA 4.0"}
 aliases: ["Kinkakuji", "Golden Pavilion", "Rokuon-ji", "鹿苑寺"]
 placeId: "ChIJvUbrwCCoAWARX2QiHCsn5A4"
 ---

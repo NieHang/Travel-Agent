@@ -3,6 +3,7 @@ title: "Yasaka Shrine"
 names: {"zh": "八坂神社", "ja": "八坂神社"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Yasaka_jinja.jpg", "credit": "Moja, CC BY-SA 3.0"}
 aliases: ["Yasaka Jinja", "Gion-san", "祇園さん"]
 placeId: "ChIJqewQoHkIAWAR6RokWp3Iesc"
 ---

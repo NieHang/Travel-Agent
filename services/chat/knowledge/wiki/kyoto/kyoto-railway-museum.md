@@ -3,6 +3,7 @@ title: "Kyoto Railway Museum"
 names: {"zh": "京都铁道博物馆", "ja": "京都鉄道博物館"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Kyoto_Railway_Museum_entrance_20161017.jpg", "credit": "Cheng-en Cheng from Taipei City, Taiwan, CC BY-SA 2.0"}
 aliases: ["Kyoto Tetsudo Hakubutsukan", "京鉄博"]
 placeId: "ChIJQ8KtRhcGAWAR7XnOmoj6n4k"
 ---

@@ -3,6 +3,7 @@ title: "Kiyomizu-dera"
 names: {"zh": "清水寺", "ja": "清水寺"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Kiyomizu.jpg", "credit": "Jordy Meow, CC BY-SA 3.0"}
 aliases: ["Kiyomizudera", "Kiyomizu Temple"]
 placeId: "ChIJB_vchdMIAWARujTEUIZlr2I"
 ---

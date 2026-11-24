@@ -3,6 +3,7 @@ title: "Ryoan-ji"
 names: {"zh": "龙安寺", "ja": "龍安寺"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Kare-sansui_zen_garden,_Ry%C5%8Dan-ji,_Kyoto_20190416_1.jpg", "credit": "DXR, CC BY-SA 4.0"}
 aliases: ["Ryoanji", "龍安寺石庭", "龙安寺石庭"]
 placeId: "ChIJp7ocMCqoAWARQoXXRj4Xq-E"
 ---

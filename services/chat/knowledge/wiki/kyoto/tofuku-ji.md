@@ -3,6 +3,7 @@ title: "Tofuku-ji"
 names: {"zh": "东福寺", "ja": "東福寺"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:TofukujiHondo.jpg", "credit": "PlusMinus, CC BY-SA 3.0"}
 aliases: ["Tofukuji", "通天桥", "通天橋", "Tsutenkyo"]
 placeId: "ChIJrZ8NkJJIAWARwRVgbKoRx2I"
 ---

@@ -3,6 +3,7 @@ title: "Katsura Imperial Villa"
 names: {"zh": "桂离宫", "ja": "桂離宮"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Katsura_Rikyu_(3264799678).jpg", "credit": "KimonBerlin, CC BY-SA 2.0"}
 aliases: ["Katsura Rikyu", "Katsura Villa"]
 placeId: "ChIJ83xvU_cGAWAReHBFa6lh5Uk"
 ---

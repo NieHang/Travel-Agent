@@ -3,6 +3,7 @@ title: "Saiho-ji"
 names: {"zh": "西芳寺", "ja": "西芳寺"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Matsuojingatanicho,_Nishikyo_Ward,_Kyoto,_Kyoto_Prefecture_615-8286,_Japan_-_panoramio_(1).jpg", "credit": "kajikawa, CC BY 3.0"}
 aliases: ["Saihoji", "Kokedera", "Koke-dera", "Moss Temple", "苔寺"]
 placeId: "ChIJM3V7rDEHAWAR1bBbYdXO7K4"
 ---

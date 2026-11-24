@@ -111,7 +111,8 @@ export function readState(raw: unknown, revision: number): TripState {
   return parsed.success ? { ...parsed.data, revision } : initialState(revision);
 }
 
-export function toTripView(s: TripState): TripView | null {
+/** `placeImage` finds a stop's photo by its name; a stop without one shows its name alone. */
+export function toTripView(s: TripState, placeImage: (name: string) => string | null = () => null): TripView | null {
   if (s.stage === 'idle' && s.results.length === 0) return null;
   const fromResults = (panel: Panel): ResultItem[] =>
     s.results.filter((g) => g.panel === panel).flatMap((g) => g.items);
@@ -133,9 +134,12 @@ export function toTripView(s: TripState): TripView | null {
     days: s.days.map((d) => ({
       title: d.title,
       ...dayHeading(d.title),
-      stops: d.stops.map(({ name, note, time, transit, hours, closes }) => ({
-        name, note, time, transit,
+      stops: d.stops.map(({ name, note, time, transit, hours, closes }, i) => ({
+        name, note, time,
+        // Extraction sometimes writes how the traveler reached the day's last stop as its onward leg.
+        transit: i === d.stops.length - 1 ? null : transit,
         hours: hours === null ? null : { text: hours, late: isLate(time, closes) },
+        image: placeImage(name),
       })),
       stay: stays.find((h) => h.ref === d.stayRef) ?? null,
     })),

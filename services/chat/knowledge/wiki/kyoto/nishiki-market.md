@@ -3,6 +3,7 @@ title: "Nishiki Market"
 names: {"zh": "锦市场", "ja": "錦市場"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Nishiki_Ichiba_by_matsuyuki.jpg", "credit": "matsuyuki, CC BY-SA 2.0"}
 aliases: ["Nishiki Ichiba", "Nishiki Food Market", "京都锦市场"]
 placeId: "ChIJT8uMzZwIAWARnGzsARCjnrY"
 ---

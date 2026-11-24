@@ -172,8 +172,10 @@ const TripViewSchema = z
             time: z.string().nullable(),
             /** Opening hours as the day states them; `late` when the planned time is at or after closing. */
             hours: z.object({ text: z.string(), late: z.boolean() }).strict().nullable(),
-            /** How the traveler gets from this stop to the next one. */
+            /** How the traveler gets from this stop to the next one; null on the day's last stop. */
             transit: z.string().nullable(),
+            /** Path of the place's photo in the web app, "/places/kyoto/tofuku-ji.webp"; null when the wiki has none. */
+            image: z.string().nullable(),
           }),
         ),
         stay: ResultItemSchema.nullable(),

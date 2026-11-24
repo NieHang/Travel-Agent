@@ -1,5 +1,6 @@
 import {
-  AirVent, Bath, Check, Coffee, CookingPot, Dumbbell, SquareParking, Waves, Wifi, type LucideIcon,
+  AirVent, Bath, Check, Coffee, ConciergeBell, CookingPot, Dumbbell, Luggage, SquareParking, Utensils, WashingMachine, Waves, Wifi,
+  type LucideIcon,
 } from 'lucide-react'
 
 /** Display-only: picks an icon for an amenity; never filters or adds amenities. */
@@ -12,6 +13,10 @@ const ICONS: [RegExp, LucideIcon][] = [
   [/breakfast|早餐/i, Coffee],
   [/gym|fitness|健身/i, Dumbbell],
   [/air.?condition|空调/i, AirVent],
+  [/luggage|baggage|行李/i, Luggage],
+  [/front desk|reception|前台/i, ConciergeBell],
+  [/restaurant|dining|餐厅/i, Utensils],
+  [/laundry|洗衣/i, WashingMachine],
 ]
 
 export function amenityIcon(original: string): LucideIcon {

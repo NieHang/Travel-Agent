@@ -168,7 +168,8 @@
       },
       "stay": "Stay",
       "checkIn": "Check-in",
-      "checkOut": "Check-out"
+      "checkOut": "Check-out",
+      "amenities": "Amenities"
     }
   },
   "resultCard": {

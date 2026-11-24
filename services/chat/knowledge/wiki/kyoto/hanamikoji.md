@@ -3,6 +3,7 @@ title: "Hanamikoji"
 names: {"zh": "花见小路", "ja": "花見小路"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:150124_Gion_Kyoto_Japan01s3.jpg", "credit": "663highland, CC BY 2.5"}
 aliases: ["Hanamikoji Street", "Hanami-koji", "花見小路通", "花见小路通"]
 placeId: "ChIJpbbNCeoIAWARwF2GEvKOAOw"
 ---
