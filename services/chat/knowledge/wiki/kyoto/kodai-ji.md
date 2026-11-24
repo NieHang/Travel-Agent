@@ -3,6 +3,7 @@ title: "Kodai-ji"
 names: {"zh": "高台寺", "ja": "高台寺"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:170923_Kodaiji_Kyoto_Japan09n.jpg", "credit": "663highland, CC BY-SA 4.0"}
 aliases: ["Kodaiji", "Kodai-ji Temple"]
 placeId: "ChIJuU17z9oIAWARgMhsX3kqUSQ"
 ---

@@ -3,6 +3,7 @@ title: "Rurikoin"
 names: {"zh": "琉璃光院", "ja": "瑠璃光院"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Komyoji_Rurikoin,_Reflection_of_Fresh_Green_Maple_Leaves_02.jpg", "credit": "Naokijp, CC BY-SA 4.0"}
 aliases: ["Ruriko-in", "Rurikoin Temple", "瑠璃光院 八瀬"]
 placeId: "ChIJXZuLhMIJAWARSLNKYkYbX8g"
 ---

@@ -3,6 +3,7 @@ title: "Kurama-dera"
 names: {"zh": "鞍马寺", "ja": "鞍馬寺"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Kurama-dera_sanmon.jpg", "credit": "KENPEI, CC BY-SA 3.0"}
 aliases: ["Kuramadera", "Kurama Temple", "鞍馬山"]
 placeId: "ChIJnTF3sxKmAWAROIRwRX49KFA"
 ---

@@ -3,6 +3,7 @@ title: "Sannenzaka and Ninenzaka"
 names: {"zh": "三年坂二年坂", "ja": "産寧坂・二年坂"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Sannenzaka_street,_Kyoto_(3811257874).jpg", "credit": "Andrea Schaffer from Sydney, Australia, CC BY 2.0"}
 aliases: ["Sannenzaka", "Ninenzaka", "Sannei-zaka", "三年坂", "二年坂", "二寧坂", "産寧坂"]
 ---
 Allow about an hour for the two stone-paved slopes of old townhouses, shops and teahouses below [[kyoto/kiyomizu-dera]]. Walk them downhill after the temple toward [[kyoto/kodai-ji]] and [[kyoto/yasaka-shrine]]. The lanes are public streets and free to walk at any hour; go early or after the shops close for quiet, as [[kyoto/crowds]] explains.

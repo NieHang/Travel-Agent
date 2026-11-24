@@ -3,6 +3,7 @@ title: "Kifune Shrine"
 names: {"zh": "贵船神社", "ja": "貴船神社"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Kifune-jinja_haiden.jpg", "credit": "KENPEI, CC BY-SA 3.0"}
 aliases: ["Kifune Jinja", "Kibune Shrine", "貴船"]
 placeId: "ChIJCZEK8wimAWARi1RkteQaAh0"
 ---

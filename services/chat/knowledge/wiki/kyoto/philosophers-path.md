@@ -3,6 +3,7 @@ title: "Philosopher's Path"
 names: {"zh": "哲学之道", "ja": "哲学の道"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Path_of_Philosophy_(3612088653).jpg", "credit": "KimonBerlin, CC BY-SA 2.0"}
 aliases: ["Philosophers Path", "Path of Philosophy", "Tetsugaku-no-michi", "哲学の径"]
 placeId: "ChIJC1iQcQQJAWARJ1jqp_e7tLU"
 ---

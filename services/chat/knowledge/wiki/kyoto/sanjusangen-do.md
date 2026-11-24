@@ -3,6 +3,7 @@ title: "Sanjusangen-do"
 names: {"zh": "三十三间堂", "ja": "三十三間堂"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Sanjusangendo_2022.jpg", "credit": "Akonnchiroll, CC BY-SA 4.0"}
 aliases: ["Sanjusangendo", "Rengeo-in", "蓮華王院"]
 placeId: "ChIJs4Cbj8oIAWARiBZl2-sBK6o"
 ---

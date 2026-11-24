@@ -3,6 +3,7 @@ title: "Kennin-ji"
 names: {"zh": "建仁寺", "ja": "建仁寺"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:150124_Kenninji_Kyoto_Japan01s3.jpg", "credit": "663highland, CC BY-SA 4.0"}
 aliases: ["Kenninji", "Kennin-ji Temple"]
 placeId: "ChIJJ3srJMEIAWARUrvFhhmPYH4"
 ---

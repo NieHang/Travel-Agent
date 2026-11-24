@@ -3,6 +3,7 @@ title: "Nanzen-ji"
 names: {"zh": "南禅寺", "ja": "南禅寺"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:251213_Nanzen-ji_Kyoto_Japan01s3.jpg", "credit": "663highland, CC BY-SA 4.0"}
 aliases: ["Nanzenji", "Nanzen-in", "南禅院"]
 placeId: "ChIJ_fuXcyEJAWARTQDnx6Q5szg"
 ---

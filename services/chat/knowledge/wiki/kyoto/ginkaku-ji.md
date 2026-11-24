@@ -3,6 +3,7 @@ title: "Ginkaku-ji"
 names: {"zh": "银阁寺", "ja": "銀閣寺"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Ginkakuji_Kyoto03-r.jpg", "credit": "Oilstreet, CC BY 2.5"}
 aliases: ["Ginkakuji", "Silver Pavilion", "Jisho-ji", "慈照寺"]
 placeId: "ChIJ4W9CCwUJAWARyauI6BzKiiU"
 ---

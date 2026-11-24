@@ -3,6 +3,7 @@ title: "Shimogamo Shrine"
 names: {"zh": "下鸭神社", "ja": "下鴨神社"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Shimogamo_01.jpg", "credit": "Mochi at Japanese Wikipedia, CC BY-SA 3.0"}
 aliases: ["Shimogamo Jinja", "Kamomioya Shrine", "賀茂御祖神社", "糺の森"]
 placeId: "ChIJf438RkAIAWARzM3lfzI7uAM"
 ---

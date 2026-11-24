@@ -3,6 +3,7 @@ title: "Higashi Hongan-ji"
 names: {"zh": "东本愿寺", "ja": "東本願寺"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:170216_Higashi_Honganji_Kyoto_Japan03bs5.jpg", "credit": "663highland, CC BY-SA 4.0"}
 aliases: ["Higashi Honganji", "Higashi Hongwanji", "真宗本庙", "真宗本廟"]
 placeId: "ChIJkWH_sqUIAWARWsn28jWc7y0"
 ---

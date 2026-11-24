@@ -3,6 +3,7 @@ title: "Byodo-in"
 names: {"zh": "平等院", "ja": "平等院"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Phoenix_Hall_in_Byodo-in_Temple,_Ujirenge_Uji_city_2026.jpg", "credit": "Tomio344456, CC0"}
 aliases: ["Byodoin", "Phoenix Hall", "Hoo-do", "鳳凰堂", "凤凰堂"]
 placeId: "ChIJqyva4AwRAWARpAf6j5MUhGA"
 ---

@@ -3,6 +3,7 @@ title: "Heian Jingu"
 names: {"zh": "平安神宫", "ja": "平安神宮"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Heian-jing%C5%AB_daigokuden.jpg", "credit": "KENPEI, CC BY-SA 3.0"}
 aliases: ["Heian Shrine", "Heian Jingu Shrine"]
 placeId: "ChIJjch8GOUIAWART0WX2JLZvnU"
 ---

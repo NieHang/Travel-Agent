@@ -3,6 +3,7 @@ title: "Tenryu-ji"
 names: {"zh": "天龙寺", "ja": "天龍寺"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Tenryuji_Kyoto.jpg", "credit": "osakaosaka, CC BY-SA 3.0"}
 aliases: ["Tenryuji", "Sogenchi Garden", "曹源池"]
 placeId: "ChIJk54PuAGqAWARwEgz_9o-nM0"
 ---

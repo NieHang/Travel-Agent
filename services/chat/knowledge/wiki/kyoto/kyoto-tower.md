@@ -3,6 +3,7 @@ title: "Kyoto Tower"
 names: {"zh": "京都塔", "ja": "京都タワー"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Kyoto_Tower_(%E4%BA%AC%E9%83%BD%E3%82%BF%E3%83%AF%E3%83%BC,_Ky%C5%8Dto-taw%C4%81_by_Don_Ramey_Logan.jpg", "credit": "Don Ramey Logan, CC BY 4.0"}
 aliases: ["Nidec Kyoto Tower", "ニデック京都タワー"]
 placeId: "ChIJd9pWqK8IAWAR1L-X_-4WKew"
 ---

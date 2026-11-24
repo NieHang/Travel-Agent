@@ -3,6 +3,7 @@ title: "Nijo Castle"
 names: {"zh": "二条城", "ja": "二条城"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:NinomaruPalace.jpg", "credit": "Pazuzu, Public domain"}
 aliases: ["Nijo-jo", "Nijojo", "元离宫二条城", "元離宮二条城"]
 placeId: "ChIJC5srCtQHAWARLy9qkFmHaxA"
 ---

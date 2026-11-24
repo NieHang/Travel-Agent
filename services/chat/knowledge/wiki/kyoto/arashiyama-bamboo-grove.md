@@ -3,6 +3,7 @@ title: "Arashiyama Bamboo Grove"
 names: {"zh": "岚山竹林", "ja": "竹林の小径"}
 type: "place"
 updated: "2026-11-22"
+image: {"source": "https://commons.wikimedia.org/wiki/File:Bamboo_Park,_Kyoto_Japan;_by_Don_Ramey_Logan.jpg", "credit": "Don Ramey Logan, CC BY 4.0"}
 aliases: ["Bamboo Grove", "Bamboo Forest", "Sagano Bamboo Grove", "岚山竹林小径", "嵯峨野竹林", "竹林小径"]
 ---
 Allow about 30 minutes. The path is a public lane, free and open at any hour, and it is far calmer soon after sunrise; see [[kyoto/crowds]]. Enter from the north gate of [[kyoto/tenryu-ji]] to join it without doubling back; see [[kyoto/arashiyama]].

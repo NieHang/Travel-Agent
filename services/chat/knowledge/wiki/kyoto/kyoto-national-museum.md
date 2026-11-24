@@ -3,6 +3,7 @@ title: "Kyoto National Museum"
 names: {"zh": "京都国立博物馆", "ja": "京都国立博物館"}
 type: "place"
 updated: "2026-11-21"
+image: {"source": "https://commons.wikimedia.org/wiki/File:260214_Kyoto_National_Museum_Kyoto_Japan04bs4.jpg", "credit": "663highland, CC BY-SA 4.0"}
 aliases: ["Kyohaku", "京博"]
 placeId: "ChIJt1kBRcoIAWAR00msugECEYw"
 ---
