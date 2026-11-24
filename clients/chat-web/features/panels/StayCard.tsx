@@ -68,6 +68,19 @@ export function StayCard({ data, day, stay }: { data: TripView; day: number; sta
               ))}
             </dl>
           ) : null}
+          {stay.amenities.length ? (
+            <ul aria-label={t('plan.amenities')} className="flex flex-wrap gap-1.5">
+              {stay.amenities.map((amenity) => {
+                const Icon = amenityIcon(amenity.original)
+                return (
+                  <li key={amenity.original} className="inline-flex items-center gap-1 rounded-full bg-trip-fill px-2.5 py-1 text-xs font-semibold">
+                    <Icon size={13} aria-hidden />
+                    {amenity.translation ?? amenity.original}
+                  </li>
+                )
+              })}
+            </ul>
+          ) : null}
         </div>
       </div>
     </section>

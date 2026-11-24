@@ -116,6 +116,16 @@ it.each([
   const stop = { name: 'Castle', note: null, time, hours: 'Last entry 16:30', closes: '16:30', transit: 'Bus to station' };
   const todo = { kind: 'tickets', title: 'Buy exhibition tickets', note: null } as const;
   const view = toTripView(state({ stage: 'review', tip: 'Visit early.', todos: [todo], days: [{ title: 'Day 1', body: '', stops: [stop], stayRef: null }] }));
-  expect(view?.days[0].stops).toEqual([{ name: 'Castle', note: null, time, hours: { text: 'Last entry 16:30', late }, transit: 'Bus to station' }]);
+  expect(view?.days[0].stops).toEqual([{ name: 'Castle', note: null, time, hours: { text: 'Last entry 16:30', late }, transit: null, image: null }]);
   expect(view).toMatchObject({ tip: 'Visit early.', todos: [todo] });
+});
+
+it('keeps the leg between stops, drops one after the last stop and finds each stop its photo', () => {
+  const stop = (name: string) => ({ name, note: null, time: null, hours: null, closes: null, transit: 'Walk' });
+  const days = [{ title: 'Day 1', body: '', stops: [stop('Tofuku-ji'), stop('Kamo River')], stayRef: null }];
+  const view = toTripView(state({ stage: 'review', days }), (name) => (name === 'Tofuku-ji' ? '/places/kyoto/tofuku-ji.webp' : null));
+  expect(view?.days[0].stops.map(({ name, transit, image }) => ({ name, transit, image }))).toEqual([
+    { name: 'Tofuku-ji', transit: 'Walk', image: '/places/kyoto/tofuku-ji.webp' },
+    { name: 'Kamo River', transit: null, image: null },
+  ]);
 });

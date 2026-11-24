@@ -1,6 +1,6 @@
 # Maintaining the travel wiki
 
-Pages are English Markdown with YAML frontmatter. Use an English `title`, Chinese and Japanese `names` (`zh`, `ja`), optional `aliases` (defaults to an empty list), a `type` and an ISO `updated` date. Only a place can have an optional Google `placeId`. Store only the confirmed ID. Names and aliases must be unique across pages after normalization.
+Pages are English Markdown with YAML frontmatter. Use an English `title`, Chinese and Japanese `names` (`zh`, `ja`), optional `aliases` (defaults to an empty list), a `type` and an ISO `updated` date. Only a place can have an optional Google `placeId`. Store only the confirmed ID. Any page can have a photo, which the trip panel shows on the stops named after the page: save it as WebP at `clients/chat-web/public/places/<page id>.webp` and record where it came from as `image: {"source": "<page URL of the original>", "credit": "<author and licence>"}`. Use only photos whose licence allows this use. The checker fails on an `image` without its file and on a file without its `image`. Names and aliases must be unique across pages after normalization.
 
 A city lists areas and topics, or links directly to places. An area groups nearby sights and suggests how to combine them. A place describes a visit. A topic covers a planning question. A curated page holds human selections. Maintainers may link to curated pages and leave their content to the editor.
 

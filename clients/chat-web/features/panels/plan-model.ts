@@ -106,39 +106,30 @@ export function stopHue(index: number) {
   return STOP_HUES[index % STOP_HUES.length]
 }
 
-/** A label on the decorative map, in percent of its width and height. */
-export type MapPin = { name: string; x: number; y: number; tilt: number }
+/** A stop on the decorative map, in percent of its width and height. */
+export type MapPin = { name: string; image: string | null; x: number; y: number }
+
+/** Stops alternate between these two columns, so neighbours never sit on top of each other. */
+const PIN_COLUMNS = [34, 66]
 
 /**
- * Label spots per layout; each day takes the next layout so neighbouring days differ.
- * Every label has its own height band, so two long names side by side cannot overlap.
+ * A pin for every stop, top to bottom in the timeline's order, and a curved route through them
+ * in the map's 100-unit viewBox. Each day starts on the other column so neighbouring days differ.
  */
-const PIN_LAYOUTS: [x: number, y: number][][] = [
-  [[40, 76], [24, 50], [62, 24]],
-  [[64, 76], [30, 50], [70, 24]],
-  [[32, 24], [66, 50], [28, 76]],
-  [[68, 24], [34, 50], [72, 76]],
-]
-const PIN_TILTS = [-4, 5, -3]
-const MAP_UNITS = 600
-
-/** Labels for the day's first stops and a curved route through them in the map's 600-unit viewBox. */
 export function dayMap(stops: Stop[], dayIndex: number): { pins: MapPin[]; route: string | null } {
-  const layout = PIN_LAYOUTS[dayIndex % PIN_LAYOUTS.length]
-  const pins = stops.slice(0, layout.length).map((stop, i) => ({
+  const pins = stops.map((stop, i) => ({
     name: stop.name,
-    x: layout[i][0],
-    y: layout[i][1],
-    tilt: PIN_TILTS[i],
+    image: stop.image,
+    x: PIN_COLUMNS[(i + dayIndex) % 2],
+    y: Math.round(((i + 0.5) * 1000) / stops.length) / 10,
   }))
-  const points = pins.map(({ x, y }) => [(x * MAP_UNITS) / 100, (y * MAP_UNITS) / 100])
-  if (points.length < 2) return { pins, route: null }
-  const route = points.slice(1).reduce((path, [x, y], i) => {
-    const [px, py] = points[i]
+  if (pins.length < 2) return { pins, route: null }
+  const route = pins.slice(1).reduce((path, { x, y }, i) => {
+    const prev = pins[i]
     const bend = i % 2 === 0 ? 0.3 : -0.3
-    const cx = Math.round((px + x) / 2 - (y - py) * bend)
-    const cy = Math.round((py + y) / 2 + (x - px) * bend)
+    const cx = Math.round((prev.x + x) / 2 - (y - prev.y) * bend)
+    const cy = Math.round((prev.y + y) / 2 + (x - prev.x) * bend)
     return `${path} Q${cx} ${cy} ${x} ${y}`
-  }, `M${points[0][0]} ${points[0][1]}`)
+  }, `M${pins[0].x} ${pins[0].y}`)
   return { pins, route }
 }

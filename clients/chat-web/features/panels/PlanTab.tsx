@@ -8,7 +8,6 @@ import { Checklist, ChecklistReminder } from './Checklist'
 import { DayMap } from './DayMap'
 import { dayDates, stopHue, timeMark } from './plan-model'
 import { StayCard } from './StayCard'
-import { cityCover } from './TripCover'
 
 type Stop = TripView['days'][number]['stops'][number]
 
@@ -25,9 +24,6 @@ export function PlanTab({ data, day, onDay, conversationId, onOpenChecklist }: {
 }) {
   const t = useTranslations('panels.plan')
   const selected = data.days[day]
-  const stayImage = selected.stay?.image
-  // The stay card right below already shows the hotel photo, so the map takes it only when the city has no cover.
-  const dayPhoto = cityCover(data.destination)?.src ?? (stayImage?.startsWith('https:') ? stayImage : null)
   return (
     <div className="flex flex-col gap-5 lg:gap-7">
       <DayPicker data={data} day={day} onDay={onDay} />
@@ -48,13 +44,13 @@ export function PlanTab({ data, day, onDay, conversationId, onOpenChecklist }: {
         <span className="text-[13px] text-trip-muted">{t('kicker', { n: day + 1, pace: selected.pace ?? 'none' })}</span>
         <h2 className="text-2xl font-bold tracking-[-0.2px]">{selected.heading}</h2>
       </div>
-      <div className="@container flex flex-wrap items-start gap-5 lg:gap-8">
+      <div className="@container flex flex-wrap gap-5 lg:gap-8">
         <ol className="flex min-w-0 flex-[1_1_380px] flex-col">
           {selected.stops.map((stop, i) => (
             <StopRow key={i} stop={stop} index={i} last={i === selected.stops.length - 1} />
           ))}
         </ol>
-        <DayMap stops={selected.stops} day={day} photo={dayPhoto} />
+        <DayMap stops={selected.stops} day={day} />
       </div>
       {selected.stay ? <StayCard data={data} day={day} stay={selected.stay} /> : null}
     </div>
@@ -113,7 +109,7 @@ function StopRow({ stop, index, last }: { stop: Stop; index: number; last: boole
         </span>
         {last ? null : <span aria-hidden className="min-h-3.5 w-0.5 flex-1 bg-trip-line" />}
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-2 pb-3.5">
+      <div className={`flex min-w-0 flex-1 flex-col gap-2 ${last ? '' : 'pb-3.5'}`}>
         <div className="flex min-h-14 flex-col justify-center gap-[3px] rounded-trip-md bg-white py-2.5 pr-2.5 pl-4 shadow-trip-card lg:min-h-16">
           <span className="text-[15px] leading-[1.3] font-bold lg:text-lg">{stop.name}</span>
           {stop.note ? <span className="text-[13px] leading-normal text-trip-muted">{stop.note}</span> : null}

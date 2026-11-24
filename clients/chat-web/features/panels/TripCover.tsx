@@ -19,14 +19,10 @@ const STATUS_DOT: Record<TripView['status'], string> = {
   confirmed: 'bg-trip-success',
 }
 
-export function cityCover(destination: string | null) {
-  return destination ? COVERS.get(destination.trim().toLowerCase()) : undefined
-}
-
 export function TripCover({ data }: { data: TripView | null }) {
   const t = useTranslations('panels')
   const format = useFormatter()
-  const cover = data ? cityCover(data.destination) : undefined
+  const cover = data?.destination ? COVERS.get(data.destination.trim().toLowerCase()) : undefined
   const facts = data ? coverFacts(data) : null
   const date = (value: Date, withMonth: boolean) =>
     format.dateTime(value, withMonth ? { month: 'long', day: 'numeric', timeZone: 'UTC' } : { day: 'numeric', timeZone: 'UTC' })

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { WikiPage } from './page.js';
+import { nameKey, pageNames, type WikiPage } from './page.js';
 
 const definition = /^\[\^([\w-]+)\]: (https:\/\/[^\s<>]+) · checked (\d{4}-\d{2}-\d{2}) · "(.{1,300})"$/u;
 const concrete = /\d{1,2}:\d{2}|\d{4}-\d{2}-\d{2}|\p{Sc}\s*\d|\b(?:JPY|USD|EUR|GBP|CNY|yen)\s*\d|\d[\d,.]*\s*(?:\p{Sc}|円|元|yen\b|dollars?\b|euros?\b|JPY\b|USD\b|EUR\b|GBP\b|CNY\b)/iu;
@@ -21,8 +21,8 @@ export function check(pages: WikiPage[], today: string, cache: ReadonlyMap<strin
     // The log is append-only, so it outgrows the limit that keeps reading pages short.
     if (page.id !== 'log' && page.rendered.length > 1800) fail('rendered page exceeds 1800 characters');
     if ([page.title, page.names.zh, page.names.ja].some(value => concrete.test(value))) fail('time, price or date outside Practical');
-    for (const alias of [page.title, page.names.zh, page.names.ja, ...page.aliases]) {
-      const key = alias.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    for (const alias of pageNames(page)) {
+      const key = nameKey(alias);
       const previous = aliases.get(key);
       if (previous && previous !== page.id) fail(`alias "${alias}" also names ${previous}`);
       aliases.set(key, page.id);

@@ -168,7 +168,8 @@
       },
       "stay": "住宿",
       "checkIn": "入住",
-      "checkOut": "退房"
+      "checkOut": "退房",
+      "amenities": "设施"
     }
   },
   "resultCard": {
