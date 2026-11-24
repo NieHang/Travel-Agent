@@ -113,21 +113,21 @@ describe('dayMap', () => {
   it('labels the first three stops and draws a route through them', () => {
     expect(dayMap(stops, 0)).toEqual({
       pins: [
-        { name: '京都站', x: 40, y: 74, tilt: -4 },
-        { name: '东本愿寺', x: 24, y: 40, tilt: 5 },
+        { name: '京都站', x: 40, y: 76, tilt: -4 },
+        { name: '东本愿寺', x: 24, y: 50, tilt: 5 },
         { name: '晚饭', x: 62, y: 24, tilt: -3 },
       ],
-      route: 'M240 444 Q253 313 144 240 Q229 124 372 144',
+      route: 'M240 456 Q239 349 144 300 Q211 154 372 144',
     })
   })
 
   it('gives the next day the next layout and repeats after four days', () => {
-    expect(dayMap(stops, 1).pins[0]).toEqual({ name: '京都站', x: 64, y: 70, tilt: -4 })
+    expect(dayMap(stops, 1).pins[0]).toEqual({ name: '京都站', x: 64, y: 76, tilt: -4 })
     expect(dayMap(stops, 4)).toEqual(dayMap(stops, 0))
   })
 
   it('has no route with fewer than two stops', () => {
-    expect(dayMap([stop('伏见稻荷')], 0)).toEqual({ pins: [{ name: '伏见稻荷', x: 40, y: 74, tilt: -4 }], route: null })
+    expect(dayMap([stop('伏见稻荷')], 0)).toEqual({ pins: [{ name: '伏见稻荷', x: 40, y: 76, tilt: -4 }], route: null })
     expect(dayMap([], 0)).toEqual({ pins: [], route: null })
   })
 })

@@ -8,6 +8,7 @@ import { Checklist, ChecklistReminder } from './Checklist'
 import { DayMap } from './DayMap'
 import { dayDates, stopHue, timeMark } from './plan-model'
 import { StayCard } from './StayCard'
+import { cityCover } from './TripCover'
 
 type Stop = TripView['days'][number]['stops'][number]
 
@@ -24,6 +25,9 @@ export function PlanTab({ data, day, onDay, conversationId, onOpenChecklist }: {
 }) {
   const t = useTranslations('panels.plan')
   const selected = data.days[day]
+  const stayImage = selected.stay?.image
+  // The stay card right below already shows the hotel photo, so the map takes it only when the city has no cover.
+  const dayPhoto = cityCover(data.destination)?.src ?? (stayImage?.startsWith('https:') ? stayImage : null)
   return (
     <div className="flex flex-col gap-5 lg:gap-7">
       <DayPicker data={data} day={day} onDay={onDay} />
@@ -44,13 +48,13 @@ export function PlanTab({ data, day, onDay, conversationId, onOpenChecklist }: {
         <span className="text-[13px] text-trip-muted">{t('kicker', { n: day + 1, pace: selected.pace ?? 'none' })}</span>
         <h2 className="text-2xl font-bold tracking-[-0.2px]">{selected.heading}</h2>
       </div>
-      <div className="flex flex-wrap items-start gap-5 lg:gap-8">
-        <ol className="flex min-w-0 flex-[1.5_1_380px] flex-col">
+      <div className="@container flex flex-wrap items-start gap-5 lg:gap-8">
+        <ol className="flex min-w-0 flex-[1_1_380px] flex-col">
           {selected.stops.map((stop, i) => (
             <StopRow key={i} stop={stop} index={i} last={i === selected.stops.length - 1} />
           ))}
         </ol>
-        <DayMap stops={selected.stops} day={day} />
+        <DayMap stops={selected.stops} day={day} photo={dayPhoto} />
       </div>
       {selected.stay ? <StayCard data={data} day={day} stay={selected.stay} /> : null}
     </div>

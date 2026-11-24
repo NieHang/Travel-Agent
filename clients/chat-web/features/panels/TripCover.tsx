@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useFormatter, useTranslations } from 'next-intl'
 import { coverFacts } from './plan-model'
 
-const KYOTO = { src: '/covers/kyoto.jpg', position: '50% 42%' }
+const KYOTO = { src: '/covers/kyoto.webp', position: '50% 55%' }
 
 /** Destinations with a cover photo, by trimmed lowercase name; any other gets a plain tinted cover. */
 const COVERS = new Map([
@@ -19,10 +19,14 @@ const STATUS_DOT: Record<TripView['status'], string> = {
   confirmed: 'bg-trip-success',
 }
 
+export function cityCover(destination: string | null) {
+  return destination ? COVERS.get(destination.trim().toLowerCase()) : undefined
+}
+
 export function TripCover({ data }: { data: TripView | null }) {
   const t = useTranslations('panels')
   const format = useFormatter()
-  const cover = data?.destination ? COVERS.get(data.destination.trim().toLowerCase()) : undefined
+  const cover = data ? cityCover(data.destination) : undefined
   const facts = data ? coverFacts(data) : null
   const date = (value: Date, withMonth: boolean) =>
     format.dateTime(value, withMonth ? { month: 'long', day: 'numeric', timeZone: 'UTC' } : { day: 'numeric', timeZone: 'UTC' })

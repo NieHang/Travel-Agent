@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ResultItem, TripView } from '@autix/contracts'
 import { Toaster } from '@/components/ui/toast'
@@ -69,7 +69,8 @@ describe('行程页', () => {
     expect(screen.getByRole('heading', { name: '京都', level: 2 })).toBeInTheDocument()
     expect(screen.getByText('行程草稿')).toBeInTheDocument()
     expect(screen.getByText('11月22日 – 26日 · 1 人 · 4 晚不换酒店')).toBeInTheDocument()
-    expect(container.querySelector('img[src*="kyoto.jpg"]')).not.toBeNull()
+    const outsideMap = [...container.querySelectorAll('img')].filter((img) => !screen.getByTestId('day-map').contains(img))
+    expect(outsideMap.map((img) => img.getAttribute('src'))).toEqual([expect.stringContaining('kyoto.webp')])
   })
 
   it('其他目的地用纯色封面，跨月日期写出月份', () => {
@@ -115,6 +116,36 @@ describe('行程页', () => {
     rerender(<LiveTripPanels tab="plan" data={{ ...kyoto, tip: null, todos: [] }} conversationId="c-tip" />)
     expect(screen.queryByText('红叶季人多：清水寺、东福寺一带早出门')).toBeNull()
     expect(screen.queryByRole('heading', { name: '出发前要办' })).toBeNull()
+  })
+
+  it('日程地图铺在京都的封面照片上，当晚酒店有图片也一样', () => {
+    const withHotelPhoto = { ...kyoto, days: [{ ...kyoto.days[0], stay: { ...granvia, image: 'https://img.example/granvia.jpg' } }] }
+    renderWithProviders(<LiveTripPanels tab="plan" data={withHotelPhoto} conversationId="c-map-cover" />)
+    expect(screen.getByTestId('day-map').querySelector('img')).toHaveAttribute('src', '/covers/kyoto.webp')
+  })
+
+  it('目的地没有封面照片时，日程地图用当晚酒店的 https 图片', () => {
+    const osaka = { ...kyoto, destination: '大阪', days: [{ ...kyoto.days[0], stay: { ...granvia, image: 'https://img.example/granvia.jpg' } }] }
+    renderWithProviders(<LiveTripPanels tab="plan" data={osaka} conversationId="c-map-hotel" />)
+    expect(screen.getByTestId('day-map').querySelector('img')).toHaveAttribute('src', 'https://img.example/granvia.jpg')
+  })
+
+  it('既没有封面也没有 https 酒店图片时，日程地图只画地点', () => {
+    const osaka = (image: string | null) => ({ ...kyoto, destination: '大阪', days: [{ ...kyoto.days[0], stay: { ...granvia, image } }] })
+    const { rerender } = renderWithProviders(<LiveTripPanels tab="plan" data={osaka(null)} conversationId="c-map-none" />)
+    const map = screen.getByTestId('day-map')
+    expect(map.querySelector('img')).toBeNull()
+    expect(within(map).getByText('东本愿寺')).toBeInTheDocument()
+    rerender(<LiveTripPanels tab="plan" data={osaka('http://img.example/granvia.jpg')} conversationId="c-map-none" />)
+    expect(screen.getByTestId('day-map').querySelector('img')).toBeNull()
+  })
+
+  it('日程地图的照片加载失败时退回只画地点', () => {
+    renderWithProviders(<LiveTripPanels tab="plan" data={kyoto} conversationId="c-map-error" />)
+    const map = screen.getByTestId('day-map')
+    fireEvent.error(map.querySelector('img') as HTMLImageElement)
+    expect(map.querySelector('img')).toBeNull()
+    expect(within(map).getByText('东本愿寺')).toBeInTheDocument()
   })
 
   it('住宿卡片显示当晚酒店、每晚价格、入住退房日期和详情', () => {
