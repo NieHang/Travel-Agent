@@ -198,7 +198,8 @@ Stops are the places the traveler visits, in order, one place per stop:
 Travel legs (train, subway, bus, walking between places) are not stops: a line like "A → B by train, approx. 40 min"
 goes in A's transit, the leg from this stop to the next. Put travel before the first stop in its note.
 Use null for transit when no onward leg to the next stop is stated, including on the final stop.
-hours: the opening hours or last-entry text as stated, otherwise null. closes: the stated last-entry time
+hours: the opening hours or last-entry text as stated, otherwise null. Omit that text from note. Use null for note if nothing else remains.
+closes: the stated last-entry time
 (or closing time if no last entry is stated), in 24-hour HH:MM, otherwise null. Never infer hours or times.
 A stop name is just the place, never a route or an arrow.`;
 }

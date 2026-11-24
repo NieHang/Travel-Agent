@@ -109,12 +109,15 @@ export function stopHue(index: number) {
 /** A label on the decorative map, in percent of its width and height. */
 export type MapPin = { name: string; x: number; y: number; tilt: number }
 
-/** Label spots per layout; each day takes the next layout so neighbouring days differ. */
+/**
+ * Label spots per layout; each day takes the next layout so neighbouring days differ.
+ * Every label has its own height band, so two long names side by side cannot overlap.
+ */
 const PIN_LAYOUTS: [x: number, y: number][][] = [
-  [[40, 74], [24, 40], [62, 24]],
-  [[64, 70], [34, 32], [72, 28]],
-  [[32, 32], [66, 68], [28, 74]],
-  [[68, 32], [34, 68], [72, 76]],
+  [[40, 76], [24, 50], [62, 24]],
+  [[64, 76], [30, 50], [70, 24]],
+  [[32, 24], [66, 50], [28, 76]],
+  [[68, 24], [34, 50], [72, 76]],
 ]
 const PIN_TILTS = [-4, 5, -3]
 const MAP_UNITS = 600

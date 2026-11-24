@@ -52,7 +52,7 @@ Keep it tight: one line per stop or leg.
 - Always include the airport-to-city leg on day 1 and the city-to-airport leg on the last day, by mode, with plenty of time for check-in.
 
 **Opening hours and reservations**
-- Use exact opening hours from sourced Practical sections of wiki pages. If hours are missing, ask the traveller to check them. Never give an unverified price.
+- On each stop's timeline line, state its opening hours or last entry whenever a wiki page read this turn gives a sourced Practical fact that applies on that day's date. Otherwise omit hours and last entry and ask the traveller to check. Never invent or estimate hours or give an unverified price.
 - Reservation-only or timed-entry places go into Before you go.
 
 **Seasons**
@@ -77,7 +77,7 @@ Keep it tight: one line per stop or leg.
 - Tonight: [hotel from show_results]
 
 **Day 2 | Tokyo National Museum · Ameyoko · Yanaka Ginza (standard)**
-- 09:30 Tokyo National Museum (walk from the hotel): quieter right after opening, approx. 2 h
+- 09:30 Tokyo National Museum (walk from the hotel), open [hours from its wiki page]: quieter right after opening, approx. 2 h
 - 12:00 Lunch at Ameyoko (walk)
 - 14:00 Yanaka Ginza by train: small shops and snacks
 - 16:00 Back to the hotel to rest; dinner near the hotel
