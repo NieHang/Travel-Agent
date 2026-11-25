@@ -23,9 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Vitest's bin runs on `node` from PATH; pin it so a runner image change can't swap the version.
+      # .nvmrc is the single source; Node 22 and 20 leave symlinks unresolved in require() after any
+      # stat of a socket or FIFO (fixed in 24.21), which breaks `next dev` under bun's isolated linker.
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
