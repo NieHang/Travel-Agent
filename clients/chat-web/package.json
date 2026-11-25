@@ -42,7 +42,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.1.1",
     "jsdom": "^30.1.1",
-    "msw": "^3.0.2",
+    "msw": "^3.0.7",
     "oxlint": "^1.58.0",
     "oxlint-tsgolint": "^7.0.2001",
     "tailwindcss": "^4",
