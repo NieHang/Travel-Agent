@@ -116,9 +116,9 @@ function ResultList({ items, label }: { items: ResultItem[]; label: string }) {
     <div className="flex flex-col gap-4">
       <div role="radiogroup" aria-label={label} className="grid gap-3">
         {items.map((item, i) => (
-          <div key={item.ref} role="radio" aria-checked={i === index} tabIndex={-1} onClick={() => setIndex(i)} className="cursor-pointer">
+          <button key={item.ref} type="button" role="radio" aria-checked={i === index} onClick={() => setIndex(i)} className="cursor-pointer rounded-trip-md text-left">
             <ResultCard item={item} variant="compact" selected={i === index} />
-          </div>
+          </button>
         ))}
       </div>
       <Offer item={selected} />
