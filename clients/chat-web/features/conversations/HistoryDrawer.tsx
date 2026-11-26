@@ -62,7 +62,7 @@ function DrawerContent({ onClose, activeId, isBlankNewChat }: Omit<Props, 'open'
           value={search} onChange={(event) => setSearch(event.target.value)}
           className="min-h-11 min-w-0 flex-1 bg-transparent outline-none" />
         {search ? <PillButton variant="trip-quiet" size="sm" iconOnly aria-label={t('clear')}
-          onClick={() => { setSearch(''); input.current?.focus() }}><X size={18} aria-hidden /></PillButton> : null}
+          onClick={() => { setSearch(''); input.current?.focus() }}><X size={20} aria-hidden /></PillButton> : null}
       </div>
       <div ref={root} className="min-h-0 flex-1 overflow-y-auto">
         <ul aria-label={t('search')} className="flex flex-col gap-2">

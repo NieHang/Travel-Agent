@@ -3,7 +3,10 @@
 import type { TripView } from '@autix/contracts'
 import { ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { ArrowDown, Clock, Leaf } from 'lucide-react'
+import { motion } from 'motion/react'
 import { useFormatter, useTranslations } from 'next-intl'
+import { springs } from '@/lib/motion'
+import { useReducedMotion } from '@/lib/use-reduced-motion'
 import { Checklist, ChecklistReminder } from './Checklist'
 import { DayMap } from './DayMap'
 import { dayDates, stopHue, timeMark } from './plan-model'
@@ -29,7 +32,7 @@ export function PlanTab({ data, day, onDay, conversationId, onOpenChecklist }: {
       <DayPicker data={data} day={day} onDay={onDay} />
       {data.tip ? (
         <p className="flex items-center gap-2 text-[13px] lg:gap-2.5 lg:text-[15px]">
-          <Leaf size={18} aria-hidden className="shrink-0 text-trip-accent" />
+          <Leaf size={20} aria-hidden className="shrink-0 text-trip-accent" />
           {data.tip}
         </p>
       ) : null}
@@ -60,6 +63,7 @@ export function PlanTab({ data, day, onDay, conversationId, onOpenChecklist }: {
 function DayPicker({ data, day, onDay }: { data: TripView; day: number; onDay: (day: number) => void }) {
   const t = useTranslations('panels.plan')
   const format = useFormatter()
+  const reduced = useReducedMotion()
   return (
     <ToggleButtonGroup
       aria-label={t('pickDay')}
@@ -78,15 +82,23 @@ function DayPicker({ data, day, onDay }: { data: TripView; day: number; onDay: (
           key={i}
           id={String(i)}
           aria-label={date ? `${t('day', { n: i + 1 })} · ${format.dateTime(date, { month: 'long', day: 'numeric', weekday: 'short', timeZone: 'UTC' })}` : t('day', { n: i + 1 })}
-          // Mobile marks the chosen day with an outline, desktop with the panel's one black block.
-          className="group h-auto min-h-[60px] w-full flex-col gap-px rounded-trip-sm border-2 border-trip-tile bg-trip-tile px-1 text-trip-ink data-[selected=true]:border-trip-ink data-[selected=true]:bg-white lg:min-h-[72px] lg:gap-0.5 lg:border-0 lg:data-[selected=true]:bg-trip-ink lg:data-[selected=true]:text-white"
+          className="group h-auto min-h-[60px] w-full flex-col gap-px rounded-trip-sm border-2 border-trip-tile bg-trip-tile px-1 text-trip-ink lg:min-h-[72px] lg:gap-0.5 lg:border-0"
         >
+          {i === day ? (
+            // Mobile marks the chosen day with an outline over the tile's border, desktop with the panel's one black block.
+            <motion.span
+              aria-hidden
+              layoutId="day-picker"
+              transition={reduced ? { duration: 0 } : springs.smooth}
+              className="absolute -inset-0.5 rounded-trip-sm border-2 border-trip-ink bg-white lg:inset-0 lg:border-0 lg:bg-trip-ink"
+            />
+          ) : null}
           {date ? (
-            <span className="text-[13px] font-normal text-trip-muted lg:group-data-[selected=true]:text-white/80">
+            <span className="relative text-[13px] font-normal text-trip-muted transition-colors duration-150 lg:group-data-[selected=true]:text-white">
               {format.dateTime(date, { weekday: 'short', timeZone: 'UTC' })}
             </span>
           ) : null}
-          <span className="text-lg leading-[1.1] font-bold lg:text-2xl">{date ? date.getUTCDate() : i + 1}</span>
+          <span className="relative text-lg leading-[1.1] font-bold transition-colors duration-150 lg:text-2xl lg:group-data-[selected=true]:text-white">{date ? date.getUTCDate() : i + 1}</span>
         </ToggleButton>
       ))}
     </ToggleButtonGroup>
@@ -115,14 +127,14 @@ function StopRow({ stop, index, last }: { stop: Stop; index: number; last: boole
           {stop.note ? <span className="text-[13px] leading-normal text-trip-muted">{stop.note}</span> : null}
           {stop.hours ? (
             <span className={`flex items-center gap-[5px] pt-0.5 text-[13px] font-medium ${stop.hours.late ? 'text-trip-accent' : 'text-trip-muted'}`}>
-              <Clock size={14} aria-hidden className="shrink-0" />
+              <Clock size={16} aria-hidden className="shrink-0" />
               {stop.hours.late ? `${stop.hours.text} · ${t('late')}` : stop.hours.text}
             </span>
           ) : null}
         </div>
         {stop.transit ? (
           <span className="flex items-center gap-1.5 pl-4 text-[13px] text-trip-muted">
-            <ArrowDown size={14} aria-hidden className="shrink-0" />
+            <ArrowDown size={16} aria-hidden className="shrink-0" />
             {stop.transit}
           </span>
         ) : null}
