@@ -75,13 +75,13 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-ink);
+    outline: 2px solid var(--color-trip-ink);
     outline-offset: 2px;
   }
 
-  /* HeroUI 的聚焦环读取 --focus；映射到 ink，ink 底上为 lime（spec 8.6） */
+  /* HeroUI 的聚焦环读取 --focus；映射到 trip-ink。落地页的 ink 底上为 lime。 */
   :root {
-    --focus: var(--color-ink);
+    --focus: var(--color-trip-ink);
   }
 
   [data-on-ink] {

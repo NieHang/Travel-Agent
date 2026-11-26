@@ -6,14 +6,13 @@ import { motion } from 'motion/react'
 import type { ReactNode, Ref } from 'react'
 import { springs } from '@/lib/motion'
 
-type Variant = 'ink' | 'lime' | 'ghost' | 'danger' | 'trip-ink' | 'trip-soft' | 'trip-white' | 'trip-quiet' | 'trip-outline'
+type Variant = 'ink' | 'lime' | 'danger' | 'trip-ink' | 'trip-soft' | 'trip-white' | 'trip-quiet' | 'trip-outline'
 type Size = 'sm' | 'md' | 'lg'
 
 const VARIANT: Record<Variant, string> = {
   ink: 'bg-ink text-white',
   lime: 'bg-lime text-ink',
-  ghost: 'bg-transparent text-ink border-2 border-ink',
-  danger: 'bg-danger text-ink',
+  danger: 'bg-danger text-trip-ink',
   // The trip screen (/chat).
   'trip-ink': 'bg-trip-ink text-white',
   'trip-soft': 'bg-trip-fill text-trip-ink',
