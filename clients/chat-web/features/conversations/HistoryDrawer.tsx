@@ -3,12 +3,13 @@
 import { useReducedMotion } from '@/lib/use-reduced-motion'
 
 import { Modal } from '@heroui/react'
-import { X } from 'lucide-react'
+import { MessagesSquare, SearchX, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { PillButton } from '@/components/ui/PillButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { springs } from '@/lib/motion'
@@ -80,7 +81,7 @@ function DrawerContent({ onClose, activeId, isBlankNewChat }: Omit<Props, 'open'
           <p>{tc('loadFailed')}</p><PillButton variant="trip-ink" size="sm" onClick={() => {
             if (query.isFetchNextPageError) void fetchNextPage(); else void query.refetch()
           }}>{tc('retry')}</PillButton>
-        </div> : !query.isPending && items.length === 0 ? <p className="py-6 text-center">{q ? t('noMatch') : t('empty')}</p> : null}
+        </div> : !query.isPending && items.length === 0 ? <EmptyState icon={q ? SearchX : MessagesSquare} title={q ? t('noMatch') : t('empty')} /> : null}
         <div ref={sentinel} aria-hidden className="h-px" />
       </div>
       <ConfirmDialog open={deleteId !== null} title={t('confirmTitle')} body={t('confirmBody')}

@@ -146,10 +146,10 @@ it('列表：标题与相对时间；当前会话 aria-current', async () => {
   expect(row('Kyoto trip')).toHaveAttribute('aria-current', 'page')
 })
 
-it('列表为空且无搜索词：「还没有对话，从一个目的地开始吧」', async () => {
+it('列表为空且无搜索词：「还没有对话」', async () => {
   onList(() => ({ items: [], nextCursor: null }))
   await renderOpen()
-  expect(await screen.findByText('还没有对话，从一个目的地开始吧')).toBeInTheDocument()
+  expect(await screen.findByText('还没有对话')).toBeInTheDocument()
 })
 
 it('搜索：输入后 299ms 不请求，300ms 后带 q 请求；无结果显示「没有匹配的对话」', async () => {
@@ -166,7 +166,7 @@ it('搜索：输入后 299ms 不请求，300ms 后带 q 请求；无结果显示
   act(() => { vi.advanceTimersByTime(2) })
   expect(await screen.findByText('没有匹配的对话')).toBeInTheDocument()
   expect(listRequests.at(-1)).toEqual({ q: 'zzz', cursor: null })
-  expect(screen.queryByText('还没有对话，从一个目的地开始吧')).not.toBeInTheDocument()
+  expect(screen.queryByText('还没有对话')).not.toBeInTheDocument()
 })
 
 it('清空按钮仅在搜索框非空时出现；点击后搜索词清空且焦点回到搜索框', async () => {

@@ -28,7 +28,7 @@ import { LiveTripPanels } from '@/features/panels/LiveTripPanels'
 import { MobileSheet } from '@/features/panels/MobileSheet'
 import { MobileTrip } from '@/features/panels/MobileTrip'
 import { PanelTabs, SaveTripButton } from '@/features/panels/TripPanels'
-import type { PanelTab } from '@/features/panels/tabs'
+import { panelTabs, type PanelTab } from '@/features/panels/tabs'
 import { useIsDesktop } from '@/lib/use-media-query'
 import { Composer } from './Composer'
 import { MessageList, SkeletonBubbles } from './MessageList'
@@ -125,6 +125,9 @@ export function ChatScreen(): ReactNode {
       ? { text: stream.text, components: stream.components, steps: stream.steps }
       : null
   const revision = uiState.data?.revision ?? 0
+  const tabs = panelTabs(panelData)
+  // Routes and hotspots drop out of the tabs when a trip has no such results.
+  const shownTab = tabs.includes(panelTab) ? panelTab : 'plan'
 
   const stick = useStickToBottom(
     `${messages.at(-1)?.id ?? ''}|${pending?.text.length ?? -1}|${pending?.components?.length ?? 0}|${loadingInitial}`,
@@ -290,7 +293,7 @@ export function ChatScreen(): ReactNode {
     <div data-testid="chat-screen" className="flex h-dvh flex-col bg-trip-ground font-trip text-trip-ink">
       <TopBar
         center={
-          isDesktop ? <PanelTabs tab={panelTab} onChange={setPanelTab} /> : null
+          isDesktop ? <PanelTabs tabs={tabs} tab={shownTab} onChange={setPanelTab} /> : null
         }
         right={isDesktop ? <SaveTripButton /> : null}
         drawerButtonRef={drawerButtonRef}
@@ -367,7 +370,7 @@ export function ChatScreen(): ReactNode {
           <aside aria-label={tp('live.title')} className="min-h-0 min-w-0 flex-[2_1_560px] overflow-y-auto rounded-trip-panel bg-trip-panel shadow-trip-panel">
             <LiveTripPanels
               key={viewId ?? 'new'}
-              tab={panelTab}
+              tab={shownTab}
               data={panelData}
               draft={stream.draft}
               busy={generating || uiState.isPending}

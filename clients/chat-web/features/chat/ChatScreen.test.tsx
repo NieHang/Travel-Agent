@@ -831,7 +831,7 @@ it('窄屏查看行程打开底部面板，面板里有行程、清单、酒店�
   expect(within(dialog).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['行程', '清单', '酒店'])
   await user.click(within(dialog).getByRole('tab', { name: '酒店' }))
   expect(within(dialog).getByRole('tab', { name: '酒店' })).toHaveAttribute('aria-selected', 'true')
-  expect(within(dialog).getByText('开始规划后，行程会显示在这里')).toBeInTheDocument()
+  expect(within(dialog).getByText('还没有行程')).toBeInTheDocument()
   expect(
     within(dialog).getByRole('button', { name: '保存行程' }),
   ).toBeInTheDocument()

@@ -1,8 +1,10 @@
 'use client'
 import { useState, type ReactNode } from 'react'
 import type { Command, ResultItem, TripView } from '@autix/contracts'
+import { MapIcon, NotebookPen, SearchX, SquareCheckBig } from 'lucide-react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { ResultCard } from '@/components/ai-ui/ResultCard'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { Markdown } from '@/components/ui/Markdown'
 import { PillButton } from '@/components/ui/PillButton'
 import { Checklist } from './Checklist'
@@ -70,14 +72,14 @@ function TabBody({ tab, data, draft, busy, onCommand, conversationId, day, onDay
 }) {
   const t = useTranslations('panels')
   if (draft && tab === 'plan') return <MarkdownCard content={draft} />
-  if (!data || conversationId === null) return <Note>{t('live.empty')}</Note>
+  if (!data || conversationId === null) return <EmptyState icon={MapIcon} title={t('live.empty')} />
   switch (tab) {
     case 'plan':
       if (data.days.length)
         return <PlanTab data={data} day={day} onDay={onDay} conversationId={conversationId} onOpenChecklist={onOpenChecklist} />
-      return data.itineraryMarkdown ? <MarkdownCard content={data.itineraryMarkdown} /> : <Note>{t('live.waiting')}</Note>
+      return data.itineraryMarkdown ? <MarkdownCard content={data.itineraryMarkdown} /> : <EmptyState icon={NotebookPen} title={t('live.waiting')} />
     case 'checklist':
-      return data.todos.length ? <Checklist todos={data.todos} conversationId={conversationId} /> : <Note>{t('live.noTodos')}</Note>
+      return data.todos.length ? <Checklist todos={data.todos} conversationId={conversationId} /> : <EmptyState icon={SquareCheckBig} title={t('live.noTodos')} />
     case 'hotels':
       if (onCommand && data.stayPlan.some((segment) => segment.options.length))
         return (
@@ -103,14 +105,10 @@ function MarkdownCard({ content }: { content: string }) {
   )
 }
 
-function Note({ children }: { children: ReactNode }) {
-  return <p className="text-[15px] text-trip-muted">{children}</p>
-}
-
 function ResultList({ items, label }: { items: ResultItem[]; label: string }) {
   const t = useTranslations('panels.live')
   const [index, setIndex] = useState(0)
-  if (!items.length) return <Note>{t('noResults')}</Note>
+  if (!items.length) return <EmptyState icon={SearchX} title={t('noResults')} />
   const selected = items[Math.min(index, items.length - 1)]
   return (
     <div className="flex flex-col gap-4">

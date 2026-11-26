@@ -7,9 +7,7 @@ import { PillButton } from '@/components/ui/PillButton'
 import { toast } from '@/components/ui/toast'
 import type { PanelTab } from './tabs'
 
-const PANEL_TABS: PanelTab[] = ['plan', 'hotels', 'routes', 'hotspots']
-
-export function PanelTabs({ tab, onChange }: { tab: PanelTab; onChange: (tab: PanelTab) => void }) {
+export function PanelTabs({ tabs, tab, onChange }: { tabs: PanelTab[]; tab: PanelTab; onChange: (tab: PanelTab) => void }) {
   const t = useTranslations('panels')
   return (
     <PillTabs
@@ -17,7 +15,7 @@ export function PanelTabs({ tab, onChange }: { tab: PanelTab; onChange: (tab: Pa
       layoutId="panel-tabs"
       value={tab}
       onChange={onChange}
-      items={PANEL_TABS.map((value) => ({ value, label: t(`tabs.${value}`) }))}
+      items={tabs.map((value) => ({ value, label: t(`tabs.${value}`) }))}
     />
   )
 }
