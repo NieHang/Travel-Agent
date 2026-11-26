@@ -15,7 +15,7 @@ const COVERS = new Map([
 
 const STATUS_DOT: Record<TripView['status'], string> = {
   collecting: 'bg-trip-muted',
-  draft: 'bg-tone-apricot',
+  draft: 'bg-trip-success',
   confirmed: 'bg-trip-success',
 }
 
@@ -52,7 +52,7 @@ export function TripCover({ data }: { data: TripView | null }) {
       ) : null}
       {data ? (
         <span className="absolute top-[76px] left-4 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[13px] font-semibold text-trip-ink lg:top-5 lg:left-6 lg:gap-[7px] lg:px-3.5 lg:py-2">
-          <span aria-hidden className={`size-2 rounded-full lg:size-[9px] ${STATUS_DOT[data.status]}`} />
+          <span aria-hidden className={`size-2 rounded-full ${STATUS_DOT[data.status]}`} />
           {t(`live.${data.status}`)}
         </span>
       ) : null}
