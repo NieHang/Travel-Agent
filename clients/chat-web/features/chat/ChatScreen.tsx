@@ -14,7 +14,6 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { Chip } from '@/components/ui/Chip'
 import { PillButton } from '@/components/ui/PillButton'
 import { toast } from '@/components/ui/toast'
 import { ApiRequestError } from '@/features/auth/api-client'
@@ -50,16 +49,16 @@ export function conversationIdFromPath(pathname: string): string | null {
   }
 }
 
-function SuggestionChips({ centered = false, onPick }: { centered?: boolean; onPick: (text: string) => void }) {
+function SuggestionChips({ onPick }: { onPick: (text: string) => void }) {
   const t = useTranslations('chat')
   return (
-    <div className={`flex flex-wrap gap-2 ${centered ? 'justify-center' : ''}`}>
+    <div className="flex flex-wrap justify-center gap-2">
       {Array.from({ length: CHIP_COUNT }, (_, i) => {
         const text = t(`chips.${i}`)
         return (
-          <Chip key={i} variant="outline" onClick={() => onPick(text)}>
+          <PillButton key={i} variant="trip-outline" size="sm" onClick={() => onPick(text)}>
             {text}
-          </Chip>
+          </PillButton>
         )
       })}
     </div>
@@ -256,7 +255,6 @@ export function ChatScreen(): ReactNode {
   }
 
   const isNewChat = viewId === null
-  const showChips = !notFound && !loadingInitial && input === '' && !generating
   let body: ReactNode = null
   if (loadingInitial) {
     body = <SkeletonBubbles count={3} />
@@ -284,7 +282,7 @@ export function ChatScreen(): ReactNode {
         <h1 className="text-[32px] leading-tight font-bold tracking-[-0.5px]">
           {t('greeting', { nickname })}
         </h1>
-        {showChips ? <SuggestionChips centered onPick={pickChip} /> : null}
+        {input === '' && !generating ? <SuggestionChips onPick={pickChip} /> : null}
       </div>
     )
   }
@@ -344,9 +342,6 @@ export function ChatScreen(): ReactNode {
               </div>
             )}
           </div>
-          {!isNewChat && showChips ? (
-            <SuggestionChips onPick={pickChip} />
-          ) : null}
           {!isDesktop ? (
             <PillButton
               variant="trip-outline"
