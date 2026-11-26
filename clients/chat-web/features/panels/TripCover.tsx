@@ -36,7 +36,7 @@ export function TripCover({ data }: { data: TripView | null }) {
   const title = data ? (data.destination ?? t('live.untitled')) : t('live.title')
 
   return (
-    <div className={`relative shrink-0 ${cover ? 'h-[330px] text-white lg:h-[340px]' : 'h-[232px] bg-trip-tile lg:h-[240px]'}`}>
+    <div data-sheet-hero className={`relative shrink-0 ${cover ? 'h-[330px] text-white lg:h-[340px]' : 'h-[232px] bg-trip-tile lg:h-[240px]'}`}>
       {cover ? (
         <>
           <Image

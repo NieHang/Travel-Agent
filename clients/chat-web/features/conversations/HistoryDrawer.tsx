@@ -108,7 +108,7 @@ export function HistoryDrawer({ open, onClose, returnFocusRef, ...props }: Props
   }, [open, returnFocusRef])
   return (
     <Modal.Backdrop isOpen={open} onOpenChange={(next) => { if (!next) onClose() }} isDismissable
-      data-testid="drawer-scrim" className="!fixed !inset-y-0 !left-0 !right-auto !z-50 !w-full !justify-start !bg-trip-ink/40 lg:!w-[44%]">
+      data-testid="drawer-scrim" className="!fixed !inset-y-0 !left-0 !right-auto !z-50 !w-full !justify-start !bg-trip-scrim">
       <Modal.Container className="!m-0 !p-0 !h-full !max-h-none !w-full lg:!max-w-[360px] !rounded-none !bg-trip-panel">
         <Modal.Dialog aria-label={t('history')} className="!h-full !p-0 !outline-none">
           <motion.div initial={{ x: reduced ? 0 : -360, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
