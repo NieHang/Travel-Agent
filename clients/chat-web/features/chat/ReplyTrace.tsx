@@ -3,7 +3,8 @@ import { Button, Disclosure } from '@heroui/react'
 import type { Message, TraceVerification } from '@autix/contracts'
 import { AnimatePresence, motion } from 'motion/react'
 import { useFormatter, useTranslations } from 'next-intl'
-import { springs } from '@/lib/motion'
+import { IconSwap } from '@/components/ui/IconSwap'
+import { enter, springs } from '@/lib/motion'
 import { useReducedMotion } from '@/lib/use-reduced-motion'
 import type { TraceStep } from '@/stores/ai-ui.store'
 
@@ -42,7 +43,7 @@ export function ReplyTrace({
       <ol role="status" aria-live="polite" className="flex flex-col gap-1">
         <AnimatePresence initial={false}>
           {steps.map((step, i) => (
-            <StepRow key={step.phase + step.at} step={step} next={steps[i + 1]} endedAt={trace?.endedAt} active={i === steps.length - 1} reduced={reduced} />
+            <StepRow key={step.phase + step.at} step={step} next={steps[i + 1]} endedAt={trace?.endedAt} active={i === steps.length - 1} animateIn reduced={reduced} />
           ))}
         </AnimatePresence>
       </ol>
@@ -65,7 +66,7 @@ export function ReplyTrace({
             <Disclosure.Body className="px-0 pt-2 pb-0">
               <ol className="flex flex-col gap-1">
                 {steps.map((step, i) => (
-                  <StepRow key={step.phase + step.at} step={step} next={steps[i + 1]} endedAt={trace?.endedAt} active={false} interrupted={i === steps.length - 1 && status !== 'complete' && status !== 'running'} reduced />
+                  <StepRow key={step.phase + step.at} step={step} next={steps[i + 1]} endedAt={trace?.endedAt} active={false} interrupted={i === steps.length - 1 && status !== 'complete' && status !== 'running'} animateIn={false} reduced={reduced} />
                 ))}
               </ol>
               {trace?.verification ? <Verification data={trace.verification} /> : null}
@@ -110,38 +111,35 @@ function Summary({ text, status }: { text: string; status: ReplyStatus }) {
   return <span className={status === 'running' ? 'trace-shimmer' : status === 'error' ? 'text-danger' : undefined}>{text}</span>
 }
 
-function StepRow({ step, next, endedAt, active, interrupted = false, reduced }: {
+function StepRow({ step, next, endedAt, active, interrupted = false, animateIn, reduced }: {
   step: TraceStep
   next: TraceStep | undefined
   endedAt: string | undefined
   active: boolean
   interrupted?: boolean
+  animateIn: boolean
   reduced: boolean
 }) {
   const t = useTranslations('chat.trace')
   const end = next?.at ?? endedAt
   const duration = !active && end ? secondsBetween(step.at, end) : null
+  const mark = active ? 'spin' : interrupted ? 'stop' : 'done'
   return (
-    <motion.li
-      initial={reduced ? false : { opacity: 0, y: 6, filter: 'blur(2px)' }}
-      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-      transition={springs.smooth}
-      className="flex items-center gap-2 text-[13px]"
-    >
+    <motion.li {...(animateIn ? enter(0, reduced) : {})} className="flex items-center gap-2 text-[13px]">
       <span className="grid size-4 shrink-0 place-items-center" aria-hidden>
-        <AnimatePresence mode="wait" initial={false}>
-          {active ? (
-            <motion.span key="spin" exit={reduced ? undefined : { scale: 0.4, opacity: 0 }} className="block size-3.5 animate-spin rounded-full border-2 border-trip-line border-t-trip-ink motion-reduce:animate-none" />
-          ) : interrupted ? (
-            <motion.span key="stop" className="block size-2.5 rounded-xs bg-trip-muted" />
+        <IconSwap swapKey={mark}>
+          {mark === 'spin' ? (
+            <span className="block size-3.5 animate-spin rounded-full border-2 border-trip-line border-t-trip-ink motion-reduce:animate-none" />
+          ) : mark === 'stop' ? (
+            <span className="block size-2.5 rounded-xs bg-trip-muted" />
           ) : (
-            <Check key="check" reduced={reduced} />
+            <Check draw={animateIn && !reduced} />
           )}
-        </AnimatePresence>
+        </IconSwap>
       </span>
       <span className={active ? 'trace-shimmer' : 'text-trip-muted'}>{t(`phase.${step.phase}`)}</span>
       {duration !== null && !interrupted ? (
-        <span className="text-xs text-trip-muted/70 tabular-nums">
+        <span className="text-xs text-trip-muted tabular-nums">
           {t('seconds', { n: duration })}
         </span>
       ) : null}
@@ -149,9 +147,9 @@ function StepRow({ step, next, endedAt, active, interrupted = false, reduced }: 
   )
 }
 
-function Check({ reduced }: { reduced: boolean }) {
+function Check({ draw }: { draw: boolean }) {
   return (
-    <motion.svg viewBox="0 0 16 16" className="size-4 text-trip-ink" initial={reduced ? false : { scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springs.snappy}>
+    <svg viewBox="0 0 16 16" className="size-4 text-trip-ink">
       <motion.path
         d="M3.5 8.5l3 3 6-7"
         fill="none"
@@ -159,11 +157,11 @@ function Check({ reduced }: { reduced: boolean }) {
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
-        initial={reduced ? false : { pathLength: 0 }}
+        initial={draw ? { pathLength: 0 } : false}
         animate={{ pathLength: 1 }}
         transition={{ duration: 0.28, ease: 'easeOut' }}
       />
-    </motion.svg>
+    </svg>
   )
 }
 

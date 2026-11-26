@@ -25,7 +25,7 @@ it('renders trip commands inside actual message bubbles', async () => {
 })
 it('shows a real empty panel', () => {
   renderWithProviders(<LiveTripPanels tab="plan" data={null} conversationId={null} />)
-  expect(screen.getByText('开始规划后，行程会显示在这里')).toBeInTheDocument()
+  expect(screen.getByText('还没有行程')).toBeInTheDocument()
 })
 
 it('renders a legacy component from an old message as read-only text', () => {

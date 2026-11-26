@@ -32,12 +32,13 @@ export function ConfirmDialog({
     <AlertDialog.Backdrop
       isOpen={open}
       isKeyboardDismissDisabled={false}
+      className="!bg-trip-scrim"
       onOpenChange={(next) => {
         if (!next) onCancel()
       }}
     >
       <AlertDialog.Container>
-        <AlertDialog.Dialog className="rounded-card bg-paper text-ink">
+        <AlertDialog.Dialog className="rounded-trip-md bg-white font-trip text-trip-ink">
           <AlertDialog.Header>
             <AlertDialog.Heading>{title}</AlertDialog.Heading>
           </AlertDialog.Header>
@@ -45,7 +46,7 @@ export function ConfirmDialog({
             <p>{body}</p>
           </AlertDialog.Body>
           <AlertDialog.Footer className="flex justify-end gap-2">
-            <PillButton ref={cancelRef} variant="ghost" size="sm" autoFocus onClick={onCancel}>
+            <PillButton ref={cancelRef} variant="trip-outline" size="sm" autoFocus onClick={onCancel}>
               {cancelLabel}
             </PillButton>
             <PillButton variant="danger" size="sm" onClick={onConfirm}>

@@ -87,7 +87,7 @@ export function Composer({
             disabled={!canSend}
             onClick={onSend}
           >
-            <ArrowUp size={20} strokeWidth={2.2} aria-hidden />
+            <ArrowUp size={20} aria-hidden />
           </PillButton>
         )}
         {value.length >= COUNTER_FROM ? (

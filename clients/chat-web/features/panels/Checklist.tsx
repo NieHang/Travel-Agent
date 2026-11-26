@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useId } from 'react'
+import { IconSwap } from '@/components/ui/IconSwap'
 import { useChecklistDone } from './checklist-done'
 
 /** How each kind of item looks; its tag text is `panels.plan.todoKind.<kind>`. */
@@ -59,9 +60,9 @@ function TodoRow({ todo, done, onToggle }: { todo: Todo; done: boolean; onToggle
       </span>
       <span
         aria-hidden
-        className={`grid size-[26px] shrink-0 place-items-center rounded-full ${done ? 'bg-trip-ink text-white' : 'border-2 border-trip-muted bg-white'}`}
+        className={`grid size-[26px] shrink-0 place-items-center rounded-full border-2 transition-colors duration-150 ${done ? 'border-trip-ink bg-trip-ink text-white' : 'border-trip-muted bg-white'}`}
       >
-        {done ? <Check strokeWidth={3} className="m-0 size-3.5" /> : null}
+        <IconSwap swapKey={done ? 'done' : 'todo'}>{done ? <Check className="m-0 size-4" /> : null}</IconSwap>
       </span>
     </ToggleButton>
   )
@@ -89,7 +90,7 @@ export function ChecklistReminder({ todos, conversationId, onOpen }: {
         <span className="text-[15px] font-bold">{t('checklist')}</span>
         <span className="text-[13px] text-trip-muted">{left ? t('left', { left }) : t('allDone')}</span>
       </span>
-      <ChevronRight size={18} aria-hidden className="shrink-0" />
+      <ChevronRight size={20} aria-hidden className="shrink-0" />
     </button>
   )
 }

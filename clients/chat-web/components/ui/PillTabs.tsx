@@ -76,7 +76,7 @@ export function PillTabs<T extends string>({
             tabIndex={selected ? 0 : -1}
             onClick={() => select(item.value)}
             onKeyDown={(e) => onKeyDown(e, i)}
-            className={`relative inline-flex cursor-pointer items-center justify-center ${look.tab} ${selected ? look.on : look.off}`}
+            className={`relative inline-flex cursor-pointer items-center justify-center transition-colors duration-150 ${look.tab} ${selected ? look.on : look.off}`}
           >
             {selected ? (
               <motion.span
@@ -86,7 +86,7 @@ export function PillTabs<T extends string>({
                 className={`absolute inset-0 ${look.indicator}`}
               />
             ) : null}
-            {Icon ? <Icon size={20} strokeWidth={1.8} aria-hidden className="relative" /> : null}
+            {Icon ? <Icon size={20} aria-hidden className="relative" /> : null}
             <span className="relative max-w-full truncate">{item.label}</span>
             {item.badge ? (
               <span className="relative rounded-full bg-trip-ink px-2 text-xs text-white">

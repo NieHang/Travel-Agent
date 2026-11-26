@@ -336,7 +336,22 @@ it('会话不存在：显示「找不到这段对话」，按钮跳 /chat', asyn
   expect(nav.push).toHaveBeenCalledWith('/chat')
 })
 
-it('生成中：副标题为「正在输入…」，气泡里逐步显示到达的阶段，文字出现后收起；chip 隐藏', async () => {
+it('已有对话里不显示建议，只在新对话的问候下显示', async () => {
+  nav.path = '/chat/conv_1'
+  onList({
+    first: {
+      items: [makeMessage({ conversationId: 'conv_1', content: '旧消息' })],
+      nextCursor: null,
+    },
+  })
+  renderScreen()
+  await screen.findByText('旧消息')
+  expect(
+    screen.queryByRole('button', { name: '当地人去哪吃' }),
+  ).not.toBeInTheDocument()
+})
+
+it('生成中：副标题为「正在输入…」，气泡里逐步显示到达的阶段，文字出现后收起', async () => {
   nav.path = '/chat/conv_1'
   onList({
     first: {
@@ -348,15 +363,9 @@ it('生成中：副标题为「正在输入…」，气泡里逐步显示到达�
   onSend(() => sseResponse(stream.body))
   const { user } = renderScreen()
   await screen.findByText('旧消息')
-  expect(
-    screen.getByRole('button', { name: '当地人去哪吃' }),
-  ).toBeInTheDocument()
 
   await typeAndSend(user, '继续')
   expect(await screen.findByRole('status')).toHaveTextContent('理解需求')
-  expect(
-    screen.queryByRole('button', { name: '当地人去哪吃' }),
-  ).not.toBeInTheDocument()
 
   act(() =>
     stream.push(
@@ -831,7 +840,7 @@ it('窄屏查看行程打开底部面板，面板里有行程、清单、酒店�
   expect(within(dialog).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['行程', '清单', '酒店'])
   await user.click(within(dialog).getByRole('tab', { name: '酒店' }))
   expect(within(dialog).getByRole('tab', { name: '酒店' })).toHaveAttribute('aria-selected', 'true')
-  expect(within(dialog).getByText('开始规划后，行程会显示在这里')).toBeInTheDocument()
+  expect(within(dialog).getByText('还没有行程')).toBeInTheDocument()
   expect(
     within(dialog).getByRole('button', { name: '保存行程' }),
   ).toBeInTheDocument()

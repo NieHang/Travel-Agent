@@ -1,9 +1,12 @@
 'use client'
 import { useState, type ReactNode } from 'react'
 import type { Command, ResultItem, TripView } from '@autix/contracts'
+import { MapIcon, NotebookPen, SearchX, SquareCheckBig } from 'lucide-react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { ResultCard } from '@/components/ai-ui/ResultCard'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { Markdown } from '@/components/ui/Markdown'
+import { PillLink } from '@/components/ui/PillButton'
 import { Checklist } from './Checklist'
 import { PlanTab } from './PlanTab'
 import { useNightsLabel } from './StayCard'
@@ -69,14 +72,14 @@ function TabBody({ tab, data, draft, busy, onCommand, conversationId, day, onDay
 }) {
   const t = useTranslations('panels')
   if (draft && tab === 'plan') return <MarkdownCard content={draft} />
-  if (!data || conversationId === null) return <Note>{t('live.empty')}</Note>
+  if (!data || conversationId === null) return <EmptyState icon={MapIcon} title={t('live.empty')} />
   switch (tab) {
     case 'plan':
       if (data.days.length)
         return <PlanTab data={data} day={day} onDay={onDay} conversationId={conversationId} onOpenChecklist={onOpenChecklist} />
-      return data.itineraryMarkdown ? <MarkdownCard content={data.itineraryMarkdown} /> : <Note>{t('live.waiting')}</Note>
+      return data.itineraryMarkdown ? <MarkdownCard content={data.itineraryMarkdown} /> : <EmptyState icon={NotebookPen} title={t('live.waiting')} />
     case 'checklist':
-      return data.todos.length ? <Checklist todos={data.todos} conversationId={conversationId} /> : <Note>{t('live.noTodos')}</Note>
+      return data.todos.length ? <Checklist todos={data.todos} conversationId={conversationId} /> : <EmptyState icon={SquareCheckBig} title={t('live.noTodos')} />
     case 'hotels':
       if (onCommand && data.stayPlan.some((segment) => segment.options.length))
         return (
@@ -102,22 +105,18 @@ function MarkdownCard({ content }: { content: string }) {
   )
 }
 
-function Note({ children }: { children: ReactNode }) {
-  return <p className="text-[15px] text-trip-muted">{children}</p>
-}
-
 function ResultList({ items, label }: { items: ResultItem[]; label: string }) {
   const t = useTranslations('panels.live')
   const [index, setIndex] = useState(0)
-  if (!items.length) return <Note>{t('noResults')}</Note>
+  if (!items.length) return <EmptyState icon={SearchX} title={t('noResults')} />
   const selected = items[Math.min(index, items.length - 1)]
   return (
     <div className="flex flex-col gap-4">
       <div role="radiogroup" aria-label={label} className="grid gap-3">
         {items.map((item, i) => (
-          <div key={item.ref} role="radio" aria-checked={i === index} tabIndex={-1} onClick={() => setIndex(i)} className="cursor-pointer">
+          <button key={item.ref} type="button" role="radio" aria-checked={i === index} onClick={() => setIndex(i)} className="cursor-pointer rounded-trip-md text-left">
             <ResultCard item={item} variant="compact" selected={i === index} />
-          </div>
+          </button>
         ))}
       </div>
       <Offer item={selected} />
@@ -173,14 +172,9 @@ function Offer({ item }: { item: ResultItem }) {
         </p>
       ) : null}
       {item.url ? (
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="inline-flex min-h-11 items-center rounded-full bg-trip-ink px-5 text-[15px] font-semibold text-white"
-        >
+        <PillLink href={item.url} variant="trip-soft" size="sm">
           {t('book', { hotel: item.title.translation ?? item.title.original })}
-        </a>
+        </PillLink>
       ) : null}
     </div>
   )

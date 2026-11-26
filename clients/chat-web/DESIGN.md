@@ -165,7 +165,7 @@ token 定义在 [app/globals.css](app/globals.css)，动效参数在 [lib/motion
 - **卡片**：一张卡片表达一个对象（一次行程、一家酒店、一天）。有照片时照片在上、占满宽度，信息在下。
 - **元信息行**：`图标 + 数值 + 单位`，13px，多项之间间距 16。一行最多三项。
 - **状态**：用 `Chip` 加一个 8px 的色点，不用整块色底。
-- **空状态**：虚线描边的容器，一个图标、一个 title 档的标题、一个操作。
+- **空状态**：用 `EmptyState`。虚线描边的容器，一个图标、一个 title 档的标题、一个操作。
 - **加载**：内容区用 `Skeleton`，形状与将要出现的内容一致；整页等待用 `BrandLoader`。
 - **反馈**：操作结果用 `toast`；需要用户决定的用 `ConfirmDialog`。
 
@@ -198,7 +198,7 @@ token 定义在 [app/globals.css](app/globals.css)，动效参数在 [lib/motion
 |---|---|
 | 选中项改变（标签、分段） | 指示器用共享 `layoutId` 滑到新位置，`springs.smooth`。文字颜色同时用 150ms 过渡。 |
 | 按压 | `whileTap` 缩到 0.96，悬停放到 1.03，`springs.snappy`。只用于按钮和 `Chip`。 |
-| 图标换状态（播放/暂停、展开/收起、完成） | 同一个 SVG 内形变或旋转，不整体替换。做不到形变时，旧图标缩到 0.6 淡出、新图标从 0.6 弹入，`springs.snappy`。 |
+| 图标换状态（播放/暂停、展开/收起、完成） | 同一个 SVG 内形变或旋转，不整体替换。做不到形变时，用 `IconSwap`：旧图标缩到 0.6 淡出、新图标从 0.6 弹入，`springs.snappy`。 |
 | 文字换内容（排序标签、状态文案、数值） | `AnimatePresence mode="wait"`：旧文字上移 8px 淡出，新文字从下方 8px 淡入，各 150ms。 |
 | 内容入场 | `enter(index, reduced)`：上移 12px 加淡入，每项错开 40ms，最多错开 8 项。 |
 | 列表增删、重排 | `layout` 加 `springs.smooth`；删除项高度和透明度归零。 |
@@ -251,4 +251,4 @@ token 定义在 [app/globals.css](app/globals.css)，动效参数在 [lib/motion
 | 衬线强调字体 | 未加载 | 选定并加载一款衬线斜体，仅拉丁字符 |
 | 旧圆角与阴影 | `rounded-card`、`rounded-panel`、`shadow-float`、一处 `rounded-[30px]` | 换成 4.2、4.3 的 token 后删除 |
 | 零散的动效时长 | `ReplyTrace`（0.28s）、`BrandLoader`（1.2s）、`FloatingCard`（6s）写在组件里 | 在 `lib/motion.ts` 里补上时长常量并引用 |
-| 文字滚动替换、图标形变 | 没有共用实现 | 第二次用到时抽成 `components/ui` 里的组件 |
+| 文字滚动替换 | 没有共用实现 | 第二次用到时抽成 `components/ui` 里的组件 |

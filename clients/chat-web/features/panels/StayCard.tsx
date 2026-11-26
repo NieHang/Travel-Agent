@@ -59,7 +59,7 @@ export function StayCard({ data, day, stay }: { data: TripView; day: number; sta
             <dl className="grid grid-cols-2 gap-x-3 gap-y-3.5 lg:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]">
               {facts.map(({ icon: Icon, label, value }, i) => (
                 <div key={i} className="flex min-w-0 items-center gap-2.5">
-                  <Icon size={22} strokeWidth={1.7} aria-hidden className="shrink-0" />
+                  <Icon size={20} aria-hidden className="shrink-0" />
                   <div className="flex min-w-0 flex-col gap-px">
                     <dt className="text-[13px] text-trip-muted">{label}</dt>
                     <dd className="text-[15px] font-bold">{value}</dd>
@@ -74,7 +74,7 @@ export function StayCard({ data, day, stay }: { data: TripView; day: number; sta
                 const Icon = amenityIcon(amenity.original)
                 return (
                   <li key={amenity.original} className="inline-flex items-center gap-1 rounded-full bg-trip-fill px-2.5 py-1 text-xs font-semibold">
-                    <Icon size={13} aria-hidden />
+                    <Icon size={16} aria-hidden />
                     {amenity.translation ?? amenity.original}
                   </li>
                 )

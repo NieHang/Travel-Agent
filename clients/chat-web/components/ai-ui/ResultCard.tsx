@@ -5,6 +5,7 @@ import { Tooltip } from '@heroui/react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { ArrowUpRight, Building2, MapPin, Star } from 'lucide-react'
 import type { LocalizedText, ResultItem } from '@autix/contracts'
+import { PillLink } from '@/components/ui/PillButton'
 import { amenityIcon } from './amenity-icon'
 
 const FACE_AMENITIES = 3
@@ -27,7 +28,7 @@ export function Banner({ item, className }: { item: ResultItem; className: strin
         />
       ) : (
         <div data-testid="image-placeholder" className="flex size-full items-center justify-center bg-trip-tile text-trip-muted">
-          <Building2 size={22} aria-hidden />
+          <Building2 size={24} aria-hidden />
         </div>
       )}
     </div>
@@ -48,11 +49,11 @@ function Text({ text, main, sub }: { text: LocalizedText; main: string; sub: str
 
 export function ResultCard({
   item,
-  variant = 'full',
+  variant = 'bubble',
   selected = false,
 }: {
   item: ResultItem
-  variant?: 'full' | 'compact'
+  variant?: 'bubble' | 'compact'
   selected?: boolean
 }) {
   const t = useTranslations('resultCard')
@@ -90,7 +91,7 @@ export function ResultCard({
           const Icon = amenityIcon(a.original)
           return (
             <span key={a.original} className="inline-flex items-center gap-1 rounded-full bg-trip-fill px-2.5 py-1 text-xs font-semibold text-trip-ink">
-              <Icon size={13} aria-hidden />
+              <Icon size={16} aria-hidden />
               {a.translation ?? a.original}
             </span>
           )
@@ -108,15 +109,15 @@ export function ResultCard({
         style={{ width: span.width }}
         className="max-w-none break-normal rounded-trip-xs bg-trip-ink p-3 font-trip text-white shadow-trip-card"
       >
-        <p className="mb-1 text-xs font-semibold text-white/70">{t('amenities', { count: item.amenities.length })}</p>
+        <p className="mb-1 text-xs font-semibold text-white">{t('amenities', { count: item.amenities.length })}</p>
         <ul className="grid gap-1">
           {item.amenities.map((a) => {
             const Icon = amenityIcon(a.original)
             return (
               <li key={a.original} className="grid grid-cols-[20px_1fr] gap-x-2 text-sm font-semibold">
-                <Icon size={16} className="mt-0.5 text-white/70" aria-hidden />
+                <Icon size={16} className="mt-0.5 text-white" aria-hidden />
                 <span>{a.translation ?? a.original}</span>
-                {a.translation ? <span className="col-start-2 text-xs font-medium text-white/60">{a.original}</span> : null}
+                {a.translation ? <span className="col-start-2 text-xs font-medium text-white">{a.original}</span> : null}
               </li>
             )
           })}
@@ -142,19 +143,19 @@ export function ResultCard({
     )
 
   return (
-    <article ref={cardRef} className="relative rounded-trip-md border border-trip-line bg-white p-3 text-trip-ink outline-none">
+    <article ref={cardRef} className="relative text-trip-ink outline-none">
       <div className="relative">
-        <Banner item={item} className="aspect-video rounded-[calc(var(--radius-trip-md)-12px)]" />
+        <Banner item={item} className="aspect-video rounded-[max(8px,calc(var(--radius-trip-sm)_-_16px))]" />
         {item.rating !== null ? (
           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold">
-            <Star size={12} aria-hidden />{item.rating}
+            <Star size={16} aria-hidden />{item.rating}
           </span>
         ) : null}
       </div>
       <div className="mt-2.5 text-[17px]">{title}</div>
       {item.address ? (
         <p className="mt-1.5 text-xs font-medium">
-          <MapPin size={12} className="mr-1 inline" aria-hidden />
+          <MapPin size={16} className="mr-1 inline" aria-hidden />
           <Text text={item.address} main="" sub="ml-1 text-trip-muted" />
         </p>
       ) : null}
@@ -165,9 +166,9 @@ export function ResultCard({
           <p><span className="text-2xl font-bold">{price}</span><span className="text-xs text-trip-muted"> {t('fromPerNight')}</span></p>
         ) : <span />}
         {item.url ? (
-          <a href={item.url} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-11 items-center gap-1 rounded-full bg-trip-ink px-4 text-sm font-semibold text-white">
-            {t('book')}<ArrowUpRight size={14} aria-hidden />
-          </a>
+          <PillLink href={item.url} variant="trip-soft" size="sm">
+            {t('book')}<ArrowUpRight size={16} aria-hidden />
+          </PillLink>
         ) : null}
       </div>
     </article>

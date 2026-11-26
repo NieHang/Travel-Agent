@@ -14,7 +14,6 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { Chip } from '@/components/ui/Chip'
 import { PillButton } from '@/components/ui/PillButton'
 import { toast } from '@/components/ui/toast'
 import { ApiRequestError } from '@/features/auth/api-client'
@@ -28,7 +27,7 @@ import { LiveTripPanels } from '@/features/panels/LiveTripPanels'
 import { MobileSheet } from '@/features/panels/MobileSheet'
 import { MobileTrip } from '@/features/panels/MobileTrip'
 import { PanelTabs, SaveTripButton } from '@/features/panels/TripPanels'
-import type { PanelTab } from '@/features/panels/tabs'
+import { panelTabs, type PanelTab } from '@/features/panels/tabs'
 import { useIsDesktop } from '@/lib/use-media-query'
 import { Composer } from './Composer'
 import { MessageList, SkeletonBubbles } from './MessageList'
@@ -50,16 +49,16 @@ export function conversationIdFromPath(pathname: string): string | null {
   }
 }
 
-function SuggestionChips({ centered = false, onPick }: { centered?: boolean; onPick: (text: string) => void }) {
+function SuggestionChips({ onPick }: { onPick: (text: string) => void }) {
   const t = useTranslations('chat')
   return (
-    <div className={`flex flex-wrap gap-2 ${centered ? 'justify-center' : ''}`}>
+    <div className="flex flex-wrap justify-center gap-2">
       {Array.from({ length: CHIP_COUNT }, (_, i) => {
         const text = t(`chips.${i}`)
         return (
-          <Chip key={i} variant="outline" onClick={() => onPick(text)}>
+          <PillButton key={i} variant="trip-outline" size="sm" onClick={() => onPick(text)}>
             {text}
-          </Chip>
+          </PillButton>
         )
       })}
     </div>
@@ -125,6 +124,8 @@ export function ChatScreen(): ReactNode {
       ? { text: stream.text, components: stream.components, steps: stream.steps }
       : null
   const revision = uiState.data?.revision ?? 0
+  const tabs = panelTabs(panelData)
+  const shownTab = tabs.includes(panelTab) ? panelTab : 'plan'
 
   const stick = useStickToBottom(
     `${messages.at(-1)?.id ?? ''}|${pending?.text.length ?? -1}|${pending?.components?.length ?? 0}|${loadingInitial}`,
@@ -253,7 +254,6 @@ export function ChatScreen(): ReactNode {
   }
 
   const isNewChat = viewId === null
-  const showChips = !notFound && !loadingInitial && input === '' && !generating
   let body: ReactNode = null
   if (loadingInitial) {
     body = <SkeletonBubbles count={3} />
@@ -281,7 +281,7 @@ export function ChatScreen(): ReactNode {
         <h1 className="text-[32px] leading-tight font-bold tracking-[-0.5px]">
           {t('greeting', { nickname })}
         </h1>
-        {showChips ? <SuggestionChips centered onPick={pickChip} /> : null}
+        {input === '' && !generating ? <SuggestionChips onPick={pickChip} /> : null}
       </div>
     )
   }
@@ -290,7 +290,7 @@ export function ChatScreen(): ReactNode {
     <div data-testid="chat-screen" className="flex h-dvh flex-col bg-trip-ground font-trip text-trip-ink">
       <TopBar
         center={
-          isDesktop ? <PanelTabs tab={panelTab} onChange={setPanelTab} /> : null
+          isDesktop ? <PanelTabs tabs={tabs} tab={shownTab} onChange={setPanelTab} /> : null
         }
         right={isDesktop ? <SaveTripButton /> : null}
         drawerButtonRef={drawerButtonRef}
@@ -329,9 +329,9 @@ export function ChatScreen(): ReactNode {
               {body}
             </MessageList>
             {stick.atBottom ? null : (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 rounded-full shadow-trip-pin">
                 <PillButton
-                  variant="trip-ink"
+                  variant="trip-white"
                   iconOnly
                   aria-label={t('jumpToLatest')}
                   onClick={stick.scrollToBottom}
@@ -341,9 +341,6 @@ export function ChatScreen(): ReactNode {
               </div>
             )}
           </div>
-          {!isNewChat && showChips ? (
-            <SuggestionChips onPick={pickChip} />
-          ) : null}
           {!isDesktop ? (
             <PillButton
               variant="trip-outline"
@@ -367,7 +364,7 @@ export function ChatScreen(): ReactNode {
           <aside aria-label={tp('live.title')} className="min-h-0 min-w-0 flex-[2_1_560px] overflow-y-auto rounded-trip-panel bg-trip-panel shadow-trip-panel">
             <LiveTripPanels
               key={viewId ?? 'new'}
-              tab={panelTab}
+              tab={shownTab}
               data={panelData}
               draft={stream.draft}
               busy={generating || uiState.isPending}

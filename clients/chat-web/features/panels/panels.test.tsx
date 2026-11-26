@@ -6,7 +6,8 @@ import { makeTripView } from '@/test/fixtures'
 import { renderWithProviders } from '@/test/render'
 import { LiveTripPanels } from './LiveTripPanels'
 import { MobileTrip } from './MobileTrip'
-import { SaveTripButton } from './TripPanels'
+import { panelTabs } from './tabs'
+import { PanelTabs, SaveTripButton } from './TripPanels'
 
 type Day = TripView['days'][number]
 type Stop = Day['stops'][number]
@@ -221,6 +222,14 @@ describe('手机底部面板', () => {
   })
 })
 
+it('桌面顶栏的标签同手机一样只在有结果时给出路线和热点，清单留在行程页里', () => {
+  const tabs = () => within(screen.getByRole('tablist', { name: '你的行程' })).getAllByRole('tab').map((tab) => tab.textContent)
+  const { rerender } = renderWithProviders(<PanelTabs tabs={panelTabs(kyoto)} tab="plan" onChange={() => {}} />)
+  expect(tabs()).toEqual(['行程', '酒店'])
+  rerender(<PanelTabs tabs={panelTabs({ ...kyoto, routes: [hotel('r1', 'Philosopher’s Path')], hotspots: [hotel('s1', 'Nishiki Market')] })} tab="plan" onChange={() => {}} />)
+  expect(tabs()).toEqual(['行程', '酒店', '路线', '热点'])
+})
+
 describe('草稿与空态', () => {
   it('草稿生成时行程页显示正在写的草稿，完成后按天显示', () => {
     const { rerender } = renderWithProviders(<LiveTripPanels tab="plan" data={null} draft={'## 正在写\n\n第 1 天'} conversationId="c-draft" />)
@@ -230,11 +239,11 @@ describe('草稿与空态', () => {
     expect(screen.getByRole('heading', { name: '京都站周边 · 东本愿寺' })).toBeInTheDocument()
   })
 
-  it('还没有按天拆分时显示行程全文，没有全文时提示先完善需求', () => {
+  it('还没有按天拆分时显示行程全文，没有全文时显示尚无草稿', () => {
     const collecting = makeTripView({ status: 'collecting', destination: '杭州', itineraryMarkdown: null })
     const { rerender } = renderWithProviders(<LiveTripPanels tab="plan" data={collecting} conversationId="c-md" />)
     expect(screen.getByText('完善需求中')).toBeInTheDocument()
-    expect(screen.getByText('完善需求后生成行程草稿')).toBeInTheDocument()
+    expect(screen.getByText('尚无行程草稿')).toBeInTheDocument()
     rerender(<LiveTripPanels tab="plan" data={{ ...collecting, status: 'draft', itineraryMarkdown: '## 杭州行程草稿' }} conversationId="c-md" />)
     expect(screen.getByRole('heading', { name: '杭州行程草稿' })).toBeInTheDocument()
   })
@@ -242,7 +251,7 @@ describe('草稿与空态', () => {
   it('没有数据时显示空态', () => {
     renderWithProviders(<LiveTripPanels tab="hotels" data={null} conversationId={null} />)
     expect(screen.getByRole('heading', { name: '你的行程' })).toBeInTheDocument()
-    expect(screen.getByText('开始规划后，行程会显示在这里')).toBeInTheDocument()
+    expect(screen.getByText('还没有行程')).toBeInTheDocument()
   })
 })
 
@@ -281,4 +290,19 @@ it('酒店页用卡片列表，可选择，并显示所选酒店的价格和预�
   await user.click(radios[1])
   expect(radios[1]).toHaveAttribute('aria-checked', 'true')
   expect(screen.getByRole('link', { name: /Old Town Rooms/ })).toHaveAttribute('href', 'https://rollinggo.ai/h/1')
+})
+
+it('路线页的结果可用键盘选择，价格随所选结果变化', async () => {
+  const user = userEvent.setup()
+  const route = (ref: string, name: string, amount: number): ResultItem => ({ ...hotel(ref, name), amenities: [], price: { amount, currency: 'EUR' } })
+  renderWithProviders(<LiveTripPanels tab="routes" data={{ ...lisbon, routes: [route('r1', 'Alfama walk', 118), route('r2', 'Belém by tram', 240)] }} conversationId="c-routes" />)
+  const radios = within(screen.getByRole('radiogroup', { name: '路线' })).getAllByRole('radio')
+  expect(screen.getByText('€118')).toBeInTheDocument()
+  await user.tab()
+  await user.tab()
+  expect(radios[1]).toHaveFocus()
+  await user.keyboard('{Enter}')
+  expect(radios[1]).toHaveAttribute('aria-checked', 'true')
+  expect(screen.getByText('€240')).toBeInTheDocument()
+  expect(screen.queryByText('€118')).toBeNull()
 })

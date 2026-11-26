@@ -63,12 +63,12 @@ it('卡面显示 3 个设施和 +N，悬停、聚焦或点按设施区打开全�
   expect(screen.getByRole('tooltip')).toBeInTheDocument()
 })
 
-it.each(['full', 'compact'] as const)('%s 样式的设施弹层与卡片等宽', async (variant) => {
+it.each(['bubble', 'compact'] as const)('%s 样式的设施弹层与卡片等宽', async (variant) => {
   const user = userEvent.setup()
   const rect = (left: number, width: number) => ({ left, width, top: 300, right: left + width, bottom: 340, height: 40, x: left, y: 300, toJSON: () => ({}) })
   const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
     if (this.tagName === 'ARTICLE') return rect(100, 400)
-    if (this.getAttribute('role') === 'group') return rect(variant === 'full' ? 112 : 220, 150)
+    if (this.getAttribute('role') === 'group') return rect(variant === 'bubble' ? 112 : 220, 150)
     return rect(0, 0)
   })
   renderWithProviders(<ResultCard item={item} variant={variant} />)

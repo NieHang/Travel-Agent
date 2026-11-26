@@ -4,7 +4,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import type { Locale } from '@autix/contracts'
 import { useSetLocale } from '@/features/auth/use-set-locale'
 
-export function LocaleSwitch({ onInk = false }: { onInk?: boolean }) {
+export function LocaleSwitch() {
   const t = useTranslations('common')
   const current = useLocale()
   const setLocale = useSetLocale()
@@ -13,10 +13,7 @@ export function LocaleSwitch({ onInk = false }: { onInk?: boolean }) {
     { locale: 'en', label: t('localeEn') },
   ]
   return (
-    <div
-      data-on-ink={onInk || undefined}
-      className={`inline-flex gap-1 rounded-full p-1 ${onInk ? 'bg-ink' : 'bg-paper'}`}
-    >
+    <div className="inline-flex gap-1 rounded-full bg-trip-fill p-1">
       {segments.map(({ locale, label }) => {
         const selected = locale === current
         return (
@@ -27,10 +24,8 @@ export function LocaleSwitch({ onInk = false }: { onInk?: boolean }) {
             onClick={() => {
               if (!selected) setLocale(locale)
             }}
-            className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm font-bold ${
-              selected
-                ? 'cursor-default bg-lime text-ink'
-                : `cursor-pointer ${onInk ? 'text-white' : 'text-ink'}`
+            className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-[13px] font-medium ${
+              selected ? 'cursor-default bg-white text-trip-ink' : 'cursor-pointer text-trip-muted'
             }`}
           >
             {label}

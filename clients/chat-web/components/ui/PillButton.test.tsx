@@ -1,6 +1,6 @@
 import { vi } from 'vitest'
 import { renderWithProviders } from '@/test/render'
-import { PillButton } from './PillButton'
+import { PillButton, PillLink } from './PillButton'
 
 describe('PillButton', () => {
   it('加载态：aria-busy，点击不触发 onClick，文案仍在 DOM 里以保持宽度', async () => {
@@ -46,5 +46,18 @@ describe('PillButton', () => {
       </PillButton>,
     )
     expect(getByRole('button', { name: '发送' })).toBeInTheDocument()
+  })
+})
+
+describe('PillLink', () => {
+  it('渲染为新标签页打开的链接，不是按钮', () => {
+    const { getByRole, queryByRole } = renderWithProviders(
+      <PillLink href="https://rollinggo.ai/h/1">预订</PillLink>,
+    )
+    const link = getByRole('link', { name: '预订' })
+    expect(link).toHaveAttribute('href', 'https://rollinggo.ai/h/1')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noreferrer noopener')
+    expect(queryByRole('button')).toBeNull()
   })
 })

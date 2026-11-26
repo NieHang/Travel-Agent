@@ -12,7 +12,7 @@ test('375px 下落地页无溢出，聊天可打开行程并切换面板和抽�
   await expect(sheet).toBeVisible()
   expect(await sheet.getByTestId('sheet-scroll').evaluate(el => getComputedStyle(el).touchAction)).not.toBe('none')
   await sheet.getByRole('tab', { name: '酒店', exact: true }).click()
-  await expect(sheet.getByText('开始规划后，行程会显示在这里')).toBeVisible()
+  await expect(sheet.getByText('还没有行程')).toBeVisible()
   await expectNoSeriousViolations(page)
   await page.screenshot({ path: testInfo.outputPath('mobile-hotels.png'), fullPage: true })
   const handle = await page.getByTestId('sheet-handle').boundingBox()

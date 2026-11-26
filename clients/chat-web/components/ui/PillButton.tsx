@@ -6,14 +6,13 @@ import { motion } from 'motion/react'
 import type { ReactNode, Ref } from 'react'
 import { springs } from '@/lib/motion'
 
-type Variant = 'ink' | 'lime' | 'ghost' | 'danger' | 'trip-ink' | 'trip-soft' | 'trip-white' | 'trip-quiet' | 'trip-outline'
+type Variant = 'ink' | 'lime' | 'danger' | 'trip-ink' | 'trip-soft' | 'trip-white' | 'trip-quiet' | 'trip-outline'
 type Size = 'sm' | 'md' | 'lg'
 
 const VARIANT: Record<Variant, string> = {
   ink: 'bg-ink text-white',
   lime: 'bg-lime text-ink',
-  ghost: 'bg-transparent text-ink border-2 border-ink',
-  danger: 'bg-danger text-ink',
+  danger: 'bg-danger text-trip-ink',
   // The trip screen (/chat).
   'trip-ink': 'bg-trip-ink text-white',
   'trip-soft': 'bg-trip-fill text-trip-ink',
@@ -95,5 +94,32 @@ export function PillButton({
         />
       ) : null}
     </motion.button>
+  )
+}
+
+export function PillLink({
+  href,
+  variant = 'ink',
+  size = 'md',
+  children,
+}: {
+  href: string
+  variant?: Variant
+  size?: Size
+  children: ReactNode
+}) {
+  const reduced = useReducedMotion()
+  return (
+    <motion.a
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      whileHover={reduced ? undefined : { scale: 1.03 }}
+      whileTap={reduced ? undefined : { scale: 0.96 }}
+      transition={springs.snappy}
+      className={`relative inline-flex cursor-pointer items-center justify-center gap-2 rounded-full font-bold whitespace-nowrap ${VARIANT[variant]} ${SIZE[size]}`}
+    >
+      {children}
+    </motion.a>
   )
 }

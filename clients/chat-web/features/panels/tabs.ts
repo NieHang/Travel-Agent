@@ -15,3 +15,7 @@ export function sheetTabs(data: TripView | null): SheetTab[] {
     ...(data?.hotspots.length ? (['hotspots'] as const) : []),
   ]
 }
+
+export function panelTabs(data: TripView | null): PanelTab[] {
+  return sheetTabs(data).filter((tab): tab is PanelTab => tab !== 'checklist')
+}

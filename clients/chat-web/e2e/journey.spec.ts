@@ -37,7 +37,7 @@ test('落地页输入 → 注册 → 自动发送 → 历史重命名与删除 �
   await drawer.getByRole('button', { name: '更多操作' }).click()
   await page.getByRole('menuitem', { name: '删除', exact: true }).click()
   await page.getByRole('alertdialog').getByRole('button', { name: '删除', exact: true }).click()
-  await expect(drawer.getByText('还没有对话，从一个目的地开始吧')).toBeVisible()
+  await expect(drawer.getByText('还没有对话')).toBeVisible()
   await expect(page.getByRole('alertdialog', { includeHidden: true })).toHaveCount(0)
   await page.keyboard.press('Escape')
   await expect(drawer).toBeHidden()
