@@ -34,6 +34,7 @@ These apply to new and changed code. Do not rewrite untouched code just to match
 
 ## UI
 
+- **Read `clients/chat-web/DESIGN.md` before changing UI.** It holds the tokens, component choices, motion patterns and the acceptance checklist; the rules below are its summary.
 - **Reuse HeroUI before building UI.** Before you create or change a React component, check whether HeroUI already provides it, and use that instead of writing your own.
 - **Let the layout do the explaining.** Avoid unnecessary secondary labels and descriptions.
 - **Manage UI as components backed by design tokens.** Build UI from components, and define style and color as a system of variables (design tokens) so the look stays consistent across the product.
