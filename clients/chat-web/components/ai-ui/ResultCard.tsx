@@ -143,9 +143,11 @@ export function ResultCard({
     )
 
   return (
-    <article ref={cardRef} className="relative rounded-trip-md border border-trip-line bg-white p-3 text-trip-ink outline-none">
+    // Only rendered inside the white reply bubble, so it has no surface of its own (no card in a card);
+    // the image's radius is the bubble's minus its 16px inset, floored at 8px.
+    <article ref={cardRef} className="relative text-trip-ink outline-none">
       <div className="relative">
-        <Banner item={item} className="aspect-video rounded-[calc(var(--radius-trip-md)-12px)]" />
+        <Banner item={item} className="aspect-video rounded-lg" />
         {item.rating !== null ? (
           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold">
             <Star size={12} aria-hidden />{item.rating}

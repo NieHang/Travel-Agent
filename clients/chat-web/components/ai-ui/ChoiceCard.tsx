@@ -16,7 +16,7 @@ export function ChoiceCard({ component, onCommand }: {
             key={option.value}
             type="button"
             disabled={!onCommand}
-            className="min-h-11 rounded-trip-xs border border-trip-line px-4 py-2.5 text-left text-[15px] font-semibold text-trip-ink transition enabled:hover:border-trip-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trip-ink disabled:cursor-not-allowed disabled:opacity-40"
+            className="min-h-11 rounded-lg border border-trip-line px-4 py-2.5 text-left text-[15px] font-semibold text-trip-ink transition-colors enabled:hover:border-trip-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trip-ink disabled:cursor-not-allowed disabled:opacity-40"
             onClick={() =>
               onCommand?.(
                 component.command === 'set_trip_type'
