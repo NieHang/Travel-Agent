@@ -282,3 +282,18 @@ it('酒店页用卡片列表，可选择，并显示所选酒店的价格和预�
   expect(radios[1]).toHaveAttribute('aria-checked', 'true')
   expect(screen.getByRole('link', { name: /Old Town Rooms/ })).toHaveAttribute('href', 'https://rollinggo.ai/h/1')
 })
+
+it('路线页的结果可用键盘选择，价格随所选结果变化', async () => {
+  const user = userEvent.setup()
+  const route = (ref: string, name: string, amount: number): ResultItem => ({ ...hotel(ref, name), amenities: [], price: { amount, currency: 'EUR' } })
+  renderWithProviders(<LiveTripPanels tab="routes" data={{ ...lisbon, routes: [route('r1', 'Alfama walk', 118), route('r2', 'Belém by tram', 240)] }} conversationId="c-routes" />)
+  const radios = within(screen.getByRole('radiogroup', { name: '路线' })).getAllByRole('radio')
+  expect(screen.getByText('€118')).toBeInTheDocument()
+  await user.tab()
+  await user.tab()
+  expect(radios[1]).toHaveFocus()
+  await user.keyboard('{Enter}')
+  expect(radios[1]).toHaveAttribute('aria-checked', 'true')
+  expect(screen.getByText('€240')).toBeInTheDocument()
+  expect(screen.queryByText('€118')).toBeNull()
+})
