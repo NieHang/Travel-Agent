@@ -3,6 +3,8 @@
 import type { TripView } from '@autix/contracts'
 import Image from 'next/image'
 import { useFormatter, useTranslations } from 'next-intl'
+import { useContext } from 'react'
+import { SheetCover } from './MobileSheet'
 import { coverFacts } from './plan-model'
 
 const KYOTO = { src: '/covers/kyoto.webp', position: '50% 55%' }
@@ -22,6 +24,7 @@ const STATUS_DOT: Record<TripView['status'], string> = {
 export function TripCover({ data }: { data: TripView | null }) {
   const t = useTranslations('panels')
   const format = useFormatter()
+  const sheetCover = useContext(SheetCover)
   const cover = data?.destination ? COVERS.get(data.destination.trim().toLowerCase()) : undefined
   const facts = data ? coverFacts(data) : null
   const date = (value: Date, withMonth: boolean) =>
@@ -36,7 +39,7 @@ export function TripCover({ data }: { data: TripView | null }) {
   const title = data ? (data.destination ?? t('live.untitled')) : t('live.title')
 
   return (
-    <div data-sheet-hero className={`relative shrink-0 ${cover ? 'h-[330px] text-white lg:h-[340px]' : 'h-[232px] bg-trip-tile lg:h-[240px]'}`}>
+    <div ref={sheetCover} className={`relative shrink-0 ${cover ? 'h-[330px] text-white lg:h-[340px]' : 'h-[232px] bg-trip-tile lg:h-[240px]'}`}>
       {cover ? (
         <>
           <Image
@@ -51,7 +54,7 @@ export function TripCover({ data }: { data: TripView | null }) {
         </>
       ) : null}
       {data ? (
-        <span className="absolute top-[76px] left-4 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[13px] font-semibold text-trip-ink lg:top-5 lg:left-6 lg:gap-[7px] lg:px-3.5 lg:py-2">
+        <span className="absolute top-sheet-strip left-4 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[13px] font-semibold text-trip-ink lg:top-5 lg:left-6 lg:gap-[7px] lg:px-3.5 lg:py-2">
           <span aria-hidden className={`size-2 rounded-full ${STATUS_DOT[data.status]}`} />
           {t(`live.${data.status}`)}
         </span>

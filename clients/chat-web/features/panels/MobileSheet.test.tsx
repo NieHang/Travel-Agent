@@ -1,6 +1,7 @@
 import { act, screen } from '@testing-library/react'
+import { useContext } from 'react'
 import { renderWithProviders } from '@/test/render'
-import { MobileSheet, shouldDismiss } from './MobileSheet'
+import { MobileSheet, SheetCover, shouldDismiss } from './MobileSheet'
 it.each([[149, 600, false], [150, 600, false], [151, 600, true]])('拖动 %i / 高 %i → %s', (offset, height, expected) => {
   expect(shouldDismiss(offset, height)).toBe(expected)
 })
@@ -26,9 +27,13 @@ class FakeObserver {
   takeRecords() { return [] }
 }
 
+function Cover() {
+  return <div data-testid="cover" ref={useContext(SheetCover)} />
+}
+
 it('封面滚到控件条下面后，控件后面淡入实底，把手变成描边色', async () => {
   vi.stubGlobal('IntersectionObserver', FakeObserver)
-  renderWithProviders(<MobileSheet open onClose={() => {}}><div data-testid="cover" data-sheet-hero /><p>行程内容</p></MobileSheet>)
+  renderWithProviders(<MobileSheet open onClose={() => {}}><Cover /><p>行程内容</p></MobileSheet>)
   await screen.findByRole('dialog')
   const observer = FakeObserver.last
   expect(observer?.options.root).toBe(screen.getByTestId('sheet-scroll'))

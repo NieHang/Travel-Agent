@@ -47,8 +47,6 @@ export type PillButtonProps = {
   onClick?: () => void
   autoFocus?: boolean
   ref?: Ref<HTMLButtonElement>
-  /** Render a link that opens this URL in a new tab instead of a button. */
-  externalHref?: string
   children: ReactNode
 }
 
@@ -63,40 +61,12 @@ export function PillButton({
   onClick,
   autoFocus,
   ref,
-  externalHref,
   children,
   ...aria
 }: PillButtonProps) {
   const reduced = useReducedMotion()
   const inert = disabled || loading
   const feedback = !inert && !reduced
-  const motionProps = {
-    whileHover: feedback ? { scale: 1.03 } : undefined,
-    whileTap: feedback ? { scale: 0.96 } : undefined,
-    transition: springs.snappy,
-    className: `relative inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap ${
-      VARIANT[variant]
-    } ${iconOnly ? ICON_SIZE[size] : SIZE[size]} ${block ? 'w-full' : ''} ${
-      disabled ? 'cursor-not-allowed opacity-40' : loading ? 'cursor-progress' : 'cursor-pointer'
-    }`,
-  }
-  const content = (
-    <>
-      <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>{children}</span>
-      {loading ? (
-        <span
-          aria-hidden
-          className="absolute size-5 animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none"
-        />
-      ) : null}
-    </>
-  )
-  if (externalHref)
-    return (
-      <motion.a href={externalHref} target="_blank" rel="noreferrer noopener" aria-label={aria['aria-label']} {...motionProps}>
-        {content}
-      </motion.a>
-    )
   return (
     <motion.button
       ref={ref}
@@ -107,9 +77,49 @@ export function PillButton({
       aria-busy={loading || undefined}
       aria-disabled={loading || undefined}
       onClick={inert ? undefined : onClick}
-      {...motionProps}
+      whileHover={feedback ? { scale: 1.03 } : undefined}
+      whileTap={feedback ? { scale: 0.96 } : undefined}
+      transition={springs.snappy}
+      className={`relative inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap ${
+        VARIANT[variant]
+      } ${iconOnly ? ICON_SIZE[size] : SIZE[size]} ${block ? 'w-full' : ''} ${
+        disabled ? 'cursor-not-allowed opacity-40' : loading ? 'cursor-progress' : 'cursor-pointer'
+      }`}
     >
-      {content}
+      <span className={`inline-flex items-center gap-2 ${loading ? 'invisible' : ''}`}>{children}</span>
+      {loading ? (
+        <span
+          aria-hidden
+          className="absolute size-5 animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none"
+        />
+      ) : null}
     </motion.button>
+  )
+}
+
+export function PillLink({
+  href,
+  variant = 'ink',
+  size = 'md',
+  children,
+}: {
+  href: string
+  variant?: Variant
+  size?: Size
+  children: ReactNode
+}) {
+  const reduced = useReducedMotion()
+  return (
+    <motion.a
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      whileHover={reduced ? undefined : { scale: 1.03 }}
+      whileTap={reduced ? undefined : { scale: 0.96 }}
+      transition={springs.snappy}
+      className={`relative inline-flex cursor-pointer items-center justify-center gap-2 rounded-full font-bold whitespace-nowrap ${VARIANT[variant]} ${SIZE[size]}`}
+    >
+      {children}
+    </motion.a>
   )
 }

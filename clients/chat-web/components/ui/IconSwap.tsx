@@ -7,7 +7,6 @@ import { useReducedMotion } from '@/lib/use-reduced-motion'
 
 const FADE = { duration: 0.15, ease: 'easeOut' } as const
 
-/** An icon changing state (DESIGN.md 7.2): the old one shrinks to 0.6 and fades out while the new one pops in from 0.6, in the same cell. */
 export function IconSwap({ swapKey, children }: { swapKey: string; children: ReactNode }) {
   const reduced = useReducedMotion()
   const hidden = reduced ? { opacity: 0 } : { opacity: 0, scale: 0.6 }

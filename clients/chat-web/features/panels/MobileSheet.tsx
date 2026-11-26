@@ -5,33 +5,32 @@ import { Modal } from '@heroui/react'
 import { motion, useDragControls } from 'motion/react'
 import { X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { useCallback, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { PillButton } from '@/components/ui/PillButton'
 import { springs } from '@/lib/motion'
 
 const DISMISS_RATIO = 0.25
-/** The controls' strip: 16 + 44 + 16. TripCover's status pill sits just below it. */
-const STRIP_PX = 76
+const SHEET_STRIP_PX = 76
+
+export const SheetCover = createContext<RefObject<HTMLDivElement | null> | null>(null)
+
 export function shouldDismiss(dragOffsetY: number, sheetHeight: number): boolean {
   return sheetHeight > 0 && dragOffsetY > sheetHeight * DISMISS_RATIO
 }
-/**
- * The close button and drag handle float over the full-bleed trip cover (`data-sheet-hero`). Once the
- * cover has scrolled up under their strip, a solid bar fades in behind them so content never shows through.
- */
 export function MobileSheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
   const t = useTranslations('common'), tc = useTranslations('chat'), reduced = useReducedMotion()
   const sheet = useRef<HTMLDivElement>(null)
+  const cover = useRef<HTMLDivElement>(null)
   const dragControls = useDragControls()
   const [solid, setSolid] = useState(false)
   const watchCover = useCallback((scroll: HTMLDivElement | null) => {
-    const cover = scroll?.querySelector('[data-sheet-hero]')
-    if (!scroll || !cover) return
+    const target = cover.current
+    if (!scroll || !target) return
     const observer = new IntersectionObserver((entries) => {
       const entry = entries.at(-1)
       if (entry) setSolid(!entry.isIntersecting)
-    }, { root: scroll, rootMargin: `-${STRIP_PX}px 0px 0px 0px` })
-    observer.observe(cover)
+    }, { root: scroll, rootMargin: `-${SHEET_STRIP_PX}px 0px 0px 0px` })
+    observer.observe(target)
     return () => {
       observer.disconnect()
       setSolid(false)
@@ -47,7 +46,7 @@ export function MobileSheet({ open, onClose, children }: { open: boolean; onClos
           onDragEnd={(_event, info) => { if (shouldDismiss(info.offset.y, sheet.current?.clientHeight ?? 0)) onClose() }}
           className="relative flex h-[92dvh] flex-col overflow-hidden rounded-t-trip-panel bg-trip-panel font-trip text-trip-ink">
           <div aria-hidden data-testid="sheet-bar"
-            className={`pointer-events-none absolute inset-x-0 top-0 z-10 h-19 bg-trip-panel transition-opacity duration-150 ease-out ${solid ? 'opacity-100' : 'opacity-0'}`} />
+            className={`pointer-events-none absolute inset-x-0 top-0 z-10 h-sheet-strip bg-trip-panel transition-opacity duration-150 ease-out ${solid ? 'opacity-100' : 'opacity-0'}`} />
           <div aria-hidden data-testid="sheet-handle" onPointerDown={event => dragControls.start(event)} style={{ touchAction: 'none' }}
             className="absolute top-4 left-1/2 z-10 flex h-11 w-24 -translate-x-1/2 items-center justify-center">
             <span className={`h-1 w-12 rounded-full transition-colors duration-150 ease-out ${solid ? 'bg-trip-line' : 'bg-white shadow-trip-label'}`} />
@@ -55,7 +54,9 @@ export function MobileSheet({ open, onClose, children }: { open: boolean; onClos
           <div className="absolute top-4 left-4 z-10">
             <PillButton variant="trip-white" iconOnly size="sm" aria-label={t('close')} onClick={onClose}><X size={20} aria-hidden /></PillButton>
           </div>
-          <div ref={watchCover} data-testid="sheet-scroll" className="min-h-0 flex-1 overflow-y-auto" style={{ touchAction: 'pan-y' }}>{children}</div>
+          <div ref={watchCover} data-testid="sheet-scroll" className="min-h-0 flex-1 overflow-y-auto" style={{ touchAction: 'pan-y' }}>
+            <SheetCover value={cover}>{children}</SheetCover>
+          </div>
         </motion.div>
       </Modal.Dialog>
     </Modal.Container>

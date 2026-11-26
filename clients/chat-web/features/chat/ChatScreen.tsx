@@ -125,7 +125,6 @@ export function ChatScreen(): ReactNode {
       : null
   const revision = uiState.data?.revision ?? 0
   const tabs = panelTabs(panelData)
-  // Routes and hotspots drop out of the tabs when a trip has no such results.
   const shownTab = tabs.includes(panelTab) ? panelTab : 'plan'
 
   const stick = useStickToBottom(

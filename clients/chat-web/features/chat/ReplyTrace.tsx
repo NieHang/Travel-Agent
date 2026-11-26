@@ -1,7 +1,7 @@
 'use client'
 import { Button, Disclosure } from '@heroui/react'
 import type { Message, TraceVerification } from '@autix/contracts'
-import { AnimatePresence, motion, type MotionProps } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { IconSwap } from '@/components/ui/IconSwap'
 import { enter, springs } from '@/lib/motion'
@@ -43,7 +43,7 @@ export function ReplyTrace({
       <ol role="status" aria-live="polite" className="flex flex-col gap-1">
         <AnimatePresence initial={false}>
           {steps.map((step, i) => (
-            <StepRow key={step.phase + step.at} step={step} next={steps[i + 1]} endedAt={trace?.endedAt} active={i === steps.length - 1} live reduced={reduced} />
+            <StepRow key={step.phase + step.at} step={step} next={steps[i + 1]} endedAt={trace?.endedAt} active={i === steps.length - 1} animateIn reduced={reduced} />
           ))}
         </AnimatePresence>
       </ol>
@@ -66,7 +66,7 @@ export function ReplyTrace({
             <Disclosure.Body className="px-0 pt-2 pb-0">
               <ol className="flex flex-col gap-1">
                 {steps.map((step, i) => (
-                  <StepRow key={step.phase + step.at} step={step} next={steps[i + 1]} endedAt={trace?.endedAt} active={false} interrupted={i === steps.length - 1 && status !== 'complete' && status !== 'running'} live={false} reduced={reduced} />
+                  <StepRow key={step.phase + step.at} step={step} next={steps[i + 1]} endedAt={trace?.endedAt} active={false} interrupted={i === steps.length - 1 && status !== 'complete' && status !== 'running'} animateIn={false} reduced={reduced} />
                 ))}
               </ol>
               {trace?.verification ? <Verification data={trace.verification} /> : null}
@@ -111,14 +111,13 @@ function Summary({ text, status }: { text: string; status: ReplyStatus }) {
   return <span className={status === 'running' ? 'trace-shimmer' : status === 'error' ? 'text-danger' : undefined}>{text}</span>
 }
 
-/** `live` rows (the running list) enter as they arrive; rows in the folded detail list are static. */
-function StepRow({ step, next, endedAt, active, interrupted = false, live, reduced }: {
+function StepRow({ step, next, endedAt, active, interrupted = false, animateIn, reduced }: {
   step: TraceStep
   next: TraceStep | undefined
   endedAt: string | undefined
   active: boolean
   interrupted?: boolean
-  live: boolean
+  animateIn: boolean
   reduced: boolean
 }) {
   const t = useTranslations('chat.trace')
@@ -126,7 +125,7 @@ function StepRow({ step, next, endedAt, active, interrupted = false, live, reduc
   const duration = !active && end ? secondsBetween(step.at, end) : null
   const mark = active ? 'spin' : interrupted ? 'stop' : 'done'
   return (
-    <motion.li {...(live ? (enter(0, reduced) as MotionProps) : {})} className="flex items-center gap-2 text-[13px]">
+    <motion.li {...(animateIn ? enter(0, reduced) : {})} className="flex items-center gap-2 text-[13px]">
       <span className="grid size-4 shrink-0 place-items-center" aria-hidden>
         <IconSwap swapKey={mark}>
           {mark === 'spin' ? (
@@ -134,7 +133,7 @@ function StepRow({ step, next, endedAt, active, interrupted = false, live, reduc
           ) : mark === 'stop' ? (
             <span className="block size-2.5 rounded-xs bg-trip-muted" />
           ) : (
-            <Check draw={live && !reduced} />
+            <Check draw={animateIn && !reduced} />
           )}
         </IconSwap>
       </span>
@@ -148,7 +147,6 @@ function StepRow({ step, next, endedAt, active, interrupted = false, live, reduc
   )
 }
 
-/** IconSwap scales and fades it in; `draw` also strokes the tick in. */
 function Check({ draw }: { draw: boolean }) {
   return (
     <svg viewBox="0 0 16 16" className="size-4 text-trip-ink">

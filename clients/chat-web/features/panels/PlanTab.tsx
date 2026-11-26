@@ -82,15 +82,14 @@ function DayPicker({ data, day, onDay }: { data: TripView; day: number; onDay: (
           key={i}
           id={String(i)}
           aria-label={date ? `${t('day', { n: i + 1 })} · ${format.dateTime(date, { month: 'long', day: 'numeric', weekday: 'short', timeZone: 'UTC' })}` : t('day', { n: i + 1 })}
-          className="group h-auto min-h-[60px] w-full flex-col gap-px rounded-trip-sm border-2 border-trip-tile bg-trip-tile px-1 text-trip-ink lg:min-h-[72px] lg:gap-0.5 lg:border-0"
+          className="group h-auto min-h-[60px] w-full flex-col gap-px rounded-trip-sm bg-trip-tile px-1 text-trip-ink lg:min-h-[72px] lg:gap-0.5"
         >
           {i === day ? (
-            // Mobile marks the chosen day with an outline over the tile's border, desktop with the panel's one black block.
             <motion.span
               aria-hidden
               layoutId="day-picker"
               transition={reduced ? { duration: 0 } : springs.smooth}
-              className="absolute -inset-0.5 rounded-trip-sm border-2 border-trip-ink bg-white lg:inset-0 lg:border-0 lg:bg-trip-ink"
+              className="absolute inset-0 rounded-trip-sm border-2 border-trip-ink bg-white lg:border-0 lg:bg-trip-ink"
             />
           ) : null}
           {date ? (

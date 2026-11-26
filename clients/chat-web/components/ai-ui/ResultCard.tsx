@@ -5,7 +5,7 @@ import { Tooltip } from '@heroui/react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { ArrowUpRight, Building2, MapPin, Star } from 'lucide-react'
 import type { LocalizedText, ResultItem } from '@autix/contracts'
-import { PillButton } from '@/components/ui/PillButton'
+import { PillLink } from '@/components/ui/PillButton'
 import { amenityIcon } from './amenity-icon'
 
 const FACE_AMENITIES = 3
@@ -49,11 +49,11 @@ function Text({ text, main, sub }: { text: LocalizedText; main: string; sub: str
 
 export function ResultCard({
   item,
-  variant = 'full',
+  variant = 'bubble',
   selected = false,
 }: {
   item: ResultItem
-  variant?: 'full' | 'compact'
+  variant?: 'bubble' | 'compact'
   selected?: boolean
 }) {
   const t = useTranslations('resultCard')
@@ -143,11 +143,9 @@ export function ResultCard({
     )
 
   return (
-    // Only rendered inside the white reply bubble, so it has no surface of its own (no card in a card);
-    // the image's radius is the bubble's minus its 16px inset, floored at 8px.
     <article ref={cardRef} className="relative text-trip-ink outline-none">
       <div className="relative">
-        <Banner item={item} className="aspect-video rounded-lg" />
+        <Banner item={item} className="aspect-video rounded-[max(8px,calc(var(--radius-trip-sm)_-_16px))]" />
         {item.rating !== null ? (
           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold">
             <Star size={16} aria-hidden />{item.rating}
@@ -168,9 +166,9 @@ export function ResultCard({
           <p><span className="text-2xl font-bold">{price}</span><span className="text-xs text-trip-muted"> {t('fromPerNight')}</span></p>
         ) : <span />}
         {item.url ? (
-          <PillButton externalHref={item.url} variant="trip-soft" size="sm">
+          <PillLink href={item.url} variant="trip-soft" size="sm">
             {t('book')}<ArrowUpRight size={16} aria-hidden />
-          </PillButton>
+          </PillLink>
         ) : null}
       </div>
     </article>

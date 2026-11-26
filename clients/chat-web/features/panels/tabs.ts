@@ -16,7 +16,6 @@ export function sheetTabs(data: TripView | null): SheetTab[] {
   ]
 }
 
-/** The desktop top bar offers the same tabs; its plan tab holds the checklist. */
 export function panelTabs(data: TripView | null): PanelTab[] {
   return sheetTabs(data).filter((tab): tab is PanelTab => tab !== 'checklist')
 }

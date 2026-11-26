@@ -6,7 +6,7 @@ import { useFormatter, useTranslations } from 'next-intl'
 import { ResultCard } from '@/components/ai-ui/ResultCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Markdown } from '@/components/ui/Markdown'
-import { PillButton } from '@/components/ui/PillButton'
+import { PillLink } from '@/components/ui/PillButton'
 import { Checklist } from './Checklist'
 import { PlanTab } from './PlanTab'
 import { useNightsLabel } from './StayCard'
@@ -172,9 +172,9 @@ function Offer({ item }: { item: ResultItem }) {
         </p>
       ) : null}
       {item.url ? (
-        <PillButton externalHref={item.url} variant="trip-soft" size="sm">
+        <PillLink href={item.url} variant="trip-soft" size="sm">
           {t('book', { hotel: item.title.translation ?? item.title.original })}
-        </PillButton>
+        </PillLink>
       ) : null}
     </div>
   )

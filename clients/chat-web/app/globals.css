@@ -57,6 +57,8 @@
   --radius-trip-xs: 16px;
   --radius-trip-tail: 6px;
 
+  --spacing-sheet-strip: 76px;
+
   --shadow-trip-panel: 0 30px 70px rgb(120 90 70 / 0.16);
   --shadow-trip-card: 0 8px 20px rgb(190 140 135 / 0.12);
   --shadow-trip-pin: 0 6px 14px rgb(190 140 135 / 0.22);
@@ -79,7 +81,7 @@
     outline-offset: 2px;
   }
 
-  /* HeroUI 的聚焦环读取 --focus；映射到 trip-ink。落地页的 ink 底上为 lime。 */
+  /* HeroUI 的聚焦环读取 --focus */
   :root {
     --focus: var(--color-trip-ink);
   }
