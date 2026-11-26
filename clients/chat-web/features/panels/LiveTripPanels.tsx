@@ -4,6 +4,7 @@ import type { Command, ResultItem, TripView } from '@autix/contracts'
 import { useFormatter, useTranslations } from 'next-intl'
 import { ResultCard } from '@/components/ai-ui/ResultCard'
 import { Markdown } from '@/components/ui/Markdown'
+import { PillButton } from '@/components/ui/PillButton'
 import { Checklist } from './Checklist'
 import { PlanTab } from './PlanTab'
 import { useNightsLabel } from './StayCard'
@@ -173,14 +174,9 @@ function Offer({ item }: { item: ResultItem }) {
         </p>
       ) : null}
       {item.url ? (
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="inline-flex min-h-11 items-center rounded-full bg-trip-ink px-5 text-[15px] font-semibold text-white"
-        >
+        <PillButton externalHref={item.url} variant="trip-soft" size="sm">
           {t('book', { hotel: item.title.translation ?? item.title.original })}
-        </a>
+        </PillButton>
       ) : null}
     </div>
   )

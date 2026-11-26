@@ -47,4 +47,15 @@ describe('PillButton', () => {
     )
     expect(getByRole('button', { name: '发送' })).toBeInTheDocument()
   })
+
+  it('externalHref：渲染为新标签页打开的链接', () => {
+    const { getByRole, queryByRole } = renderWithProviders(
+      <PillButton externalHref="https://rollinggo.ai/h/1">预订</PillButton>,
+    )
+    const link = getByRole('link', { name: '预订' })
+    expect(link).toHaveAttribute('href', 'https://rollinggo.ai/h/1')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noreferrer noopener')
+    expect(queryByRole('button')).toBeNull()
+  })
 })

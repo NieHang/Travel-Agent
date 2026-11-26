@@ -5,6 +5,7 @@ import { Tooltip } from '@heroui/react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { ArrowUpRight, Building2, MapPin, Star } from 'lucide-react'
 import type { LocalizedText, ResultItem } from '@autix/contracts'
+import { PillButton } from '@/components/ui/PillButton'
 import { amenityIcon } from './amenity-icon'
 
 const FACE_AMENITIES = 3
@@ -165,9 +166,9 @@ export function ResultCard({
           <p><span className="text-2xl font-bold">{price}</span><span className="text-xs text-trip-muted"> {t('fromPerNight')}</span></p>
         ) : <span />}
         {item.url ? (
-          <a href={item.url} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-11 items-center gap-1 rounded-full bg-trip-ink px-4 text-sm font-semibold text-white">
-            {t('book')}<ArrowUpRight size={14} aria-hidden />
-          </a>
+          <PillButton externalHref={item.url} variant="trip-soft" size="sm">
+            {t('book')}<ArrowUpRight size={16} aria-hidden />
+          </PillButton>
         ) : null}
       </div>
     </article>

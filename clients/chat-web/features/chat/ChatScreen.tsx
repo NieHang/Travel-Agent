@@ -329,9 +329,9 @@ export function ChatScreen(): ReactNode {
               {body}
             </MessageList>
             {stick.atBottom ? null : (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 rounded-full shadow-trip-pin">
                 <PillButton
-                  variant="trip-ink"
+                  variant="trip-white"
                   iconOnly
                   aria-label={t('jumpToLatest')}
                   onClick={stick.scrollToBottom}
